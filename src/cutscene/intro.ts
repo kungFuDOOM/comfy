@@ -2,9 +2,10 @@
 // striped balloon and lands by the café, and Mimsy shuffles over to say hello.
 // Plays once per save (state.seenIntro). Skippable at any moment.
 import * as THREE from 'three';
+import { setMood, sfx } from '../audio';
 import { currentOutfit } from '../boutique';
 import { VILLAGERS } from '../data';
-import { initNpcs, npcs, updateNpcs } from '../npc';
+import { initNpcs, npcs, presentNpcs, updateNpcs } from '../npc';
 import { cancelPath, player } from '../player';
 import { createBalloon, type Balloon } from '../render/balloon';
 import { getWorld, runScene } from '../render/stage';
@@ -78,6 +79,7 @@ export function startIntroCutscene(onDone?: () => void, opts: IntroOptions = {})
   const world = getWorld();
   initNpcs();
   const mimsyDef = VILLAGERS.find((v) => v.id === 'mimsy')!;
+  setMood('intro');
   const mimsy = npcs.find((n) => n.def.id === 'mimsy')!;
   const balloon: Balloon = createBalloon();
   world.scene.add(balloon.group);
@@ -92,6 +94,7 @@ export function startIntroCutscene(onDone?: () => void, opts: IntroOptions = {})
   let outroAt = -1;                 // scene time the outro began
   let skipAt = -1;
   let finished = false;
+  let blipped = 0;                  // last typewriter index that got its blip
   const fake = { x: LAND.x * TS, y: LAND.z * TS, facing: 'down' as 'down' | 'left', moving: false };
   let riding = true, hopK = 0;
   mimsy.busy = true;
@@ -220,7 +223,7 @@ export function startIntroCutscene(onDone?: () => void, opts: IntroOptions = {})
   current = run;
 
   function nextLine() {
-    line++; lineT = 0;
+    line++; lineT = 0; blipped = 0;
     if (line >= INTRO_LINES.length) { talking = false; talkDone = true; outroAt = tt; ui.closeDialogue(); }
   }
 
@@ -246,6 +249,7 @@ export function startIntroCutscene(onDone?: () => void, opts: IntroOptions = {})
       const text = INTRO_LINES[line];
       const shown = Math.min(text.length, Math.floor(lineT * CPS));
       const done = shown >= text.length;
+      if (shown > blipped && shown <= text.length) { if (/\S/.test(text[shown - 1]) && shown % 2 === 0) sfx.blip('mimsy', shown); blipped = shown; }
       ui.setLine(text, shown, done);
       if (done && lineT > text.length / CPS + HOLD + text.length * HOLD_PER_CHAR) nextLine();
     }
@@ -259,7 +263,7 @@ export function startIntroCutscene(onDone?: () => void, opts: IntroOptions = {})
     mimsy.moving = mk > 0.02 && mk < 0.98; // (updateNpcs clears it for busy villagers)
     world.render({
       t, dt, hour: getClock().hour, season: getClock().season,
-      player: fake, outfit: currentOutfit(), npcs, talkedToday: (id) => id !== 'mimsy' || !mimsyAlert,
+      player: fake, outfit: currentOutfit(), npcs: presentNpcs(), talkedToday: (id) => id !== 'mimsy' || !mimsyAlert,
     });
 
     if ((outroAt >= 0 && tt - outroAt >= OUTRO_LEN) || (skipAt >= 0 && tt - skipAt >= SKIP_FADE)) finish();

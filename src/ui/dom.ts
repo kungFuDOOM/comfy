@@ -1,4 +1,5 @@
 // Minimal DOM helpers and the modal panel manager.
+import { sfx } from '../audio';
 import { currentMode, glyphEl, type PromptKey } from '../input/prompts';
 import { captureFocus, focusFirst, restoreFocus } from './focus';
 
@@ -14,7 +15,13 @@ export function h<K extends keyof HTMLElementTagNameMap>(
 export function btn(label: string | Node, onClick: () => void, cls = '', disabled = false): HTMLButtonElement {
   const b = h('button', 'btn ' + cls, label);
   b.disabled = disabled;
-  b.addEventListener('click', (e) => { e.stopPropagation(); onClick(); });
+  b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const was = current;
+    onClick();
+    // opening / closing a panel already sounds by itself; everything else gets a click
+    if (current === was && !cls.includes('close')) { if (cls.includes('tab')) sfx.tick(); else sfx.confirm(); }
+  });
   return b;
 }
 
@@ -25,7 +32,9 @@ let current: Open | null = null;
 export const isPanelOpen = () => current !== null;
 
 export function openPanel(title: string, render: (body: HTMLElement, api: PanelApi) => void, onClose?: () => void, wide = false) {
-  closePanel();
+  const replacing = current !== null;
+  closePanel(true);
+  if (!replacing) sfx.open();
   const root = h('div', 'panel-backdrop');
   const card = h('div', 'panel' + (wide ? ' wide' : ''));
   const head = h('div', 'panel-head', h('div', 'panel-title', title));
@@ -58,8 +67,9 @@ export function openPanel(title: string, render: (body: HTMLElement, api: PanelA
   return api;
 }
 
-export function closePanel() {
+export function closePanel(silent = false) {
   if (!current) return;
+  if (!silent) sfx.back();
   const c = current;
   current = null;
   c.cleanups.forEach((f) => f());

@@ -18,7 +18,7 @@ export interface ActorMesh {
 
 const FACE_ANGLE: Record<Facing, number> = { down: 0, right: Math.PI / 2, up: Math.PI, left: -Math.PI / 2 };
 
-type Kind = 'player' | 'dormouse' | 'cheetah' | 'hedgehog' | 'owl';
+type Kind = 'player' | 'dormouse' | 'hamster' | 'hedgehog' | 'bunny';
 type Fill = string | CheetahKind; // hex color or a cheetah print
 const isPrint = (f: Fill): f is CheetahKind => f === 'classic' || f === 'pink';
 
@@ -85,17 +85,30 @@ function buildHead(kind: Kind, skin: string, accent: string): THREE.Mesh {
       b.add(G.ball(0.055), '#ffffff', { ...at(on(14, 56, 1.05)) });
       b.add(G.ball(0.04, 8), PALETTE.rose, { ...at(on(0, -6, 1.0)) });
       break;
-    case 'cheetah': {
+    case 'hamster': {
+      // Dottie: a small round hamster with cheetah markings. Parts are named in comments so a polish pass can retune them.
+      // -- chubby stuffed cheeks
       for (const sx of [-1, 1]) {
-        b.add(G.ball(0.13), skin, { x: sx * 0.27, y: 0.32, z: -0.02, s: [1, 1, 0.6] });
-        b.add(G.ball(0.085, 10), accent, { x: sx * 0.27, y: 0.34, z: -0.07, s: [1, 1, 0.5] }); // dark ear backs
-        b.add(G.ball(0.075, 10), earInner, { x: sx * 0.27, y: 0.315, z: 0.045, s: [1, 1, 0.4] });
+        b.add(G.ball(0.21, 14), skin, { x: sx * 0.33, y: -0.09, z: 0.1, s: [1, 0.95, 0.92] });
+        // cheetah rosettes on the cheeks
+        for (const [dx, dy, dz, k] of [[0.5, -0.02, 0.5, 1], [0.7, -0.22, 0.2, 0.8], [0.3, -0.3, 0.7, 0.7]] as [number, number, number, number][]) {
+          b.add(G.ball(0.04, 8), accent, { x: sx * (0.33 + dx * 0.2), y: -0.09 + dy * 0.2, z: 0.1 + dz * 0.2, dir: [sx * dx, dy, dz], s: [k, 0.25, k] });
+        }
       }
-      // spots over the crown
-      const spots: [number, number, number][] = [[0, 78, 1], [-34, 58, 0.8], [30, 60, 0.9], [-70, 50, 0.8], [72, 46, 0.9], [-118, 52, 1], [124, 56, 0.9], [180, 60, 1], [-160, 30, 0.9], [150, 26, 0.8], [8, 46, 0.6]];
-      for (const [yw, pt, k] of spots) b.add(G.ball(0.05, 8), accent, { ...at(on(yw, pt, 0.995)), dir: on(yw, pt), s: [k, 0.25, k * 0.8] });
-      b.add(G.ball(0.13, 10), '#fff7ea', { ...at(on(0, -17, 0.93)), s: [1.15, 0.7, 0.6] }); // muzzle
-      b.add(G.ball(0.04, 8), PALETTE.cocoa, { ...at(on(0, -9, 1.05)), s: [1.3, 0.85, 0.8] });
+      // -- tiny rounded ears, set wide and low on the crown
+      for (const sx of [-1, 1]) {
+        b.add(G.ball(0.1, 12), skin, { x: sx * 0.27, y: 0.3, z: -0.03, s: [1, 1, 0.6] });
+        b.add(G.ball(0.06, 10), earInner, { x: sx * 0.27, y: 0.295, z: 0.03, s: [1, 1, 0.4] });
+      }
+      // -- spots over the crown and brow
+      const spots: [number, number, number][] = [[0, 76, 1], [-30, 62, 0.8], [30, 64, 0.9], [-62, 52, 0.8], [64, 50, 0.9], [-110, 56, 1], [112, 58, 0.9], [180, 60, 1], [10, 48, 0.55]];
+      for (const [yw, pt, k] of spots) b.add(G.ball(0.045, 8), accent, { ...at(on(yw, pt, 0.995)), dir: on(yw, pt), s: [k, 0.25, k * 0.8] });
+      // -- cheetah tear marks under the eyes
+      for (const sx of [-1, 1]) b.add(G.ball(0.028, 6), accent, { ...at(on(sx * 21, -11, 1.0)), s: [0.55, 2.4, 0.5] });
+      // -- small cream snout, rosy nose, two tiny front teeth
+      b.add(G.ball(0.1, 10), '#fff7ea', { ...at(on(0, -16, 0.95)), s: [1.15, 0.75, 0.7] });
+      b.add(G.ball(0.032, 8), '#ff8fb0', { ...at(on(0, -10, 1.04)), s: [1.3, 0.85, 0.8] });
+      b.add(G.box(0.028, 0.036, 0.012), '#ffffff', { ...at(on(0, -21, 1.0)) });
       break;
     }
     case 'hedgehog': {
@@ -113,14 +126,24 @@ function buildHead(kind: Kind, skin: string, accent: string): THREE.Mesh {
       b.add(G.ball(0.04, 8), EYE, { ...at(on(0, -9, 1.2)) });
       break;
     }
-    case 'owl':
+    case 'bunny': {
+      // Nimbus: a fog-puff bunny. Soft round head, long ears (one a little floppy), cloudy fur tufts, gold star clip.
+      const fog = '#f6f1ff', fogInner = '#ffd0e6';
       for (const sx of [-1, 1]) {
-        b.add(G.cone(0.1, 0.3, 8), skin, { x: sx * 0.29, y: 0.36, z: 0, dir: [sx * 0.5, 1, 0] });
-        b.add(G.ball(0.17, 12), '#f6f0ff', { ...at(on(sx * 21, 4, 0.955)), ry: sx * 21 * DEG, s: [1, 1, 0.3] }); // facial discs
+        const floppy = sx === 1;
+        b.add(G.capsule(0.078, 0.26), skin, { x: sx * (floppy ? 0.2 : 0.17), y: floppy ? 0.6 : 0.64, z: -0.03, rz: -sx * (floppy ? 0.55 : 0.16), s: [1, 1, 0.8] }); // ear
+        b.add(G.capsule(0.046, 0.2), fogInner, { x: sx * (floppy ? 0.21 : 0.17), y: floppy ? 0.6 : 0.64, z: 0.0, rz: -sx * (floppy ? 0.55 : 0.16), s: [1, 1, 0.5] }); // inner ear
       }
-      b.add(G.cone(0.05, 0.12, 8), PALETTE.honey, { ...at(on(0, -8, 1.06)), rx: 110 * DEG });
-      b.add(G.ball(0.07), accent, { ...at(on(0, 70, 1.03)) });
+      // misty fringe and cheek fluff
+      b.add(G.ball(0.12), fog, { ...at(on(0, 64, 1.02)), s: [1.2, 0.8, 1] });
+      b.add(G.ball(0.09), fog, { ...at(on(-24, 58, 1.03)) });
+      b.add(G.ball(0.085), fog, { ...at(on(26, 56, 1.03)) });
+      for (const sx of [-1, 1]) b.add(G.ball(0.1), fog, { ...at(on(sx * 66, -10, 1.0)), s: [0.8, 0.9, 0.9] });
+      b.add(G.ball(0.1, 10), fog, { ...at(on(0, -15, 0.95)), s: [1.1, 0.75, 0.7] }); // muzzle
+      b.add(G.ball(0.03, 8), '#f59ac0', { ...at(on(0, -9, 1.04)), s: [1.3, 0.85, 0.8] }); // nose
+      b.add(G.ball(0.032, 8), accent, { ...at(on(-48, 48, 1.06)), s: [1, 1, 0.5] }); // gold star clip (a bead for now)
       break;
+    }
   }
   return b.build();
 }
@@ -156,6 +179,10 @@ interface Spec {
   shoes: string;
   scale: number;
   bag?: boolean;
+  /** Squash the head: x/y/z multipliers (chubby cheeks, etc.). */
+  headScale?: [number, number, number];
+  /** Add model-level pieces (tail, mist skirt…). May return a per-frame callback (t, walk 0..1). */
+  extra?: (parts: { model: THREE.Group; body: THREE.Group; head: THREE.Group }) => ((t: number, walk: number) => void) | void;
 }
 
 function build(sp: Spec) {
@@ -209,7 +236,9 @@ function build(sp: Spec) {
   const eyes = buildEyes();
   head.add(buildHead(sp.kind, sp.skin, sp.accent), eyes);
 
+  if (sp.headScale) head.scale.set(...sp.headScale);
   model.add(body, legs[0], legs[1], head);
+  const tick = sp.extra?.({ model, body, head });
   root.add(contactShadow(1.0 * sp.scale), model);
   const marker = ball(0.09, mat(PALETTE.gold, PALETTE.gold), 0, 2.0 * sp.scale, 0, 8);
   marker.castShadow = false;
@@ -243,6 +272,7 @@ function build(sp: Spec) {
       legs[1].rotation.x = s * 0.75 * w;
       eyes.scale.y = (t + off * 3) % 3.7 < 0.12 ? 0.12 : 1; // blink
       marker.position.y = 2.0 * sp.scale + Math.sin(t * 3) * 0.06;
+      tick?.(t, w);
     },
     setAlert(on) { marker.visible = on; },
   };
@@ -297,25 +327,62 @@ export function createPlayerMesh(): ActorMesh & { setOutfit(o: OutfitDef): void 
   });
 }
 
-const HEAD_COLORS: Record<string, string> = { dormouse: '#fbe3ea', cheetah: '#f6d9a0', hedgehog: '#e8cfc0', owl: '#e6dcf5' };
+const HEAD_COLORS: Record<string, string> = { dormouse: '#fbe3ea', hamster: '#f6d9a0', hedgehog: '#e8cfc0', bunny: '#ebe3fa' };
 const VILLAGER_LOOK: Record<string, { dress?: Fill; band: Fill; shoes: string; bow?: Fill }> = {
   dormouse: { band: 'classic', shoes: '#ffffff', bow: 'pink' },
-  cheetah: { dress: 'pink', band: '#ffffff', shoes: PALETTE.rose, bow: PALETTE.rose },
+  hamster: { dress: 'classic', band: '#ffffff', shoes: PALETTE.rose, bow: PALETTE.rose },
   hedgehog: { band: 'classic', shoes: '#c9a8e8' },
-  owl: { band: 'pink', shoes: PALETTE.gold },
+  bunny: { band: '#ffffff', shoes: '#c9b8ee' },
+};
+
+/** Per-species body tweaks: size, head shape, and extra pieces. Edit here to refine a character without touching build(). */
+const VILLAGER_SHAPE: Partial<Record<string, Pick<Spec, 'scale' | 'headScale' | 'extra'>>> = {
+  hamster: { scale: 0.92, headScale: [1.1, 1.0, 1.04] },
+  bunny: {
+    scale: 1,
+    // a ring of cloud puffs hiding the hem, a smaller ring higher up, and a cotton tail; the puffs bob gently
+    extra({ model, body }) {
+      const puffs = new Batch();
+      const cols = ['#f6f1ff', '#e9e0fa'];
+      for (let i = 0; i < 9; i++) {
+        const a = (i / 9) * Math.PI * 2;
+        puffs.add(G.ball(0.14, 10), cols[i % 2], { x: Math.sin(a) * 0.34, y: 0.04 + (i % 2) * 0.03, z: Math.cos(a) * 0.34, s: [1, 0.8, 1] });
+      }
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + 0.3;
+        puffs.add(G.ball(0.1, 10), cols[(i + 1) % 2], { x: Math.sin(a) * 0.27, y: 0.2, z: Math.cos(a) * 0.27 });
+      }
+      const mist = puffs.build();
+      mist.name = 'bunny-mist';
+      mist.position.y = HIP_Y;
+      const tail = new Batch().add(G.ball(0.12, 10), '#ffffff', {}).build();
+      tail.name = 'bunny-tail';
+      tail.position.set(0, HIP_Y + 0.16, -0.3);
+      model.add(mist, tail);
+      void body;
+      return (t, walk) => {
+        mist.scale.set(1 + Math.sin(t * 1.4) * 0.025, 1 + Math.sin(t * 1.9 + 1) * 0.04, 1 + Math.sin(t * 1.4) * 0.025);
+        mist.rotation.y = t * 0.15;
+        tail.position.y = HIP_Y + 0.16 + Math.abs(Math.sin(t * 11)) * 0.03 * walk;
+      };
+    },
+  },
 };
 
 export function createVillagerMesh(def: VillagerDef): ActorMesh {
   const look = VILLAGER_LOOK[def.species] ?? VILLAGER_LOOK.dormouse;
+  const shape = VILLAGER_SHAPE[def.species];
   const a = build({
     kind: def.species as Kind, skin: HEAD_COLORS[def.species] ?? '#ffffff', accent: def.accent,
-    dress: look.dress ?? def.color, band: look.band, shoes: look.shoes, scale: def.species === 'owl' ? 1.1 : 1,
+    dress: look.dress ?? def.color, band: look.band, shoes: look.shoes, scale: shape?.scale ?? 1,
+    headScale: shape?.headScale, extra: shape?.extra,
   });
   if (look.bow) {
     const print = isPrint(look.bow);
     const bow = bowGeo(new Batch(), print ? '#ffffff' : look.bow).build(print ? cheetahToon(look.bow as CheetahKind) : undefined);
-    bow.position.set(...on(def.species === 'cheetah' ? 0 : 40, def.species === 'cheetah' ? 80 : 52, 1.1));
-    bow.rotation.set(-0.3, 0, def.species === 'cheetah' ? 0 : -0.45);
+    const top = def.species === 'hamster'; // Dottie wears hers dead centre on the crown
+    bow.position.set(...on(top ? 0 : 40, top ? 80 : 52, 1.1));
+    bow.rotation.set(-0.3, 0, top ? 0 : -0.45);
     a.head.add(bow);
   }
   return a;
