@@ -1,8 +1,9 @@
 /* Main menu, intro cutscene, settings & credits. Loaded by the scene modules (ui/mainMenu, ui/cutsceneUi, ui/fade). */
 
 /* While a scene owns the screen, tuck the gameplay HUD away. */
-body.scene .hud-top, body.scene .hud-quick, body.scene .hotbar, body.scene .hint, body.scene .toasts,
+body.scene .hud-top, body.scene .hud-quick, body.scene .hotbar, body.scene .hint,
 body.scene .touch-ui, body.scene .joy-base { display: none !important; }
+body.scene .toasts { top: max(14px, env(safe-area-inset-top)); }
 
 .scene-fade { position: absolute; inset: 0; z-index: 30; opacity: 0; visibility: hidden; pointer-events: none !important;
   background: radial-gradient(ellipse at 50% 45%, #fff8fb 0%, #ffe6f0 55%, #ffcfe1 100%); }

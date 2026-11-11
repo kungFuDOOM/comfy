@@ -34,6 +34,13 @@ export function moveFocus(dir: Dir) {
   const all = items(root);
   const cur = all.find((e) => e === document.activeElement);
   if (!cur) { focusFirst(); return; }
+  // a focused slider takes left / right itself
+  if (cur instanceof HTMLInputElement && cur.type === 'range' && (dir === 'left' || dir === 'right')) {
+    if (dir === 'left') cur.stepDown(); else cur.stepUp();
+    cur.dispatchEvent(new Event('input', { bubbles: true }));
+    cur.classList.add('pf');
+    return;
+  }
   const c = cur.getBoundingClientRect();
   const cx = c.left + c.width / 2, cy = c.top + c.height / 2;
   let best: HTMLElement | null = null, bs = Infinity;
@@ -64,7 +71,11 @@ export function cycleTab(d: number) {
   const tabs = [...document.querySelectorAll<HTMLElement>('.panel .tabs .tab')];
   if (tabs.length < 2) return;
   const i = Math.max(0, tabs.findIndex((t) => t.classList.contains('on')));
+  const ring = !!document.querySelector('.panel .pf');
   tabs[(i + d + tabs.length) % tabs.length].click();
+  // the tab row is rebuilt by the click: carry the focus over to the newly selected tab
+  const now = document.querySelector<HTMLElement>('.panel .tabs .tab.on');
+  if (now) setFocus(now, ring, false);
 }
 
 // ---- keep focus across panel re-renders ----
@@ -90,4 +101,10 @@ export function restoreFocus(s: Saved | null) {
   if (s.ring) pick.classList.add('pf');
 }
 
-document.addEventListener('pointerdown', clearRing, true);
+// Pointer use clears the controller ring; a touch tap moves the highlight to whatever was tapped.
+document.addEventListener('pointerdown', (e) => {
+  clearRing();
+  if (e.pointerType !== 'touch' || !(e.target instanceof Element)) return;
+  const el = e.target.closest<HTMLElement>(SEL);
+  if (el && panelEl()?.contains(el)) el.classList.add('pf');
+}, true);

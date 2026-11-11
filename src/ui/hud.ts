@@ -1,4 +1,4 @@
-// Always-on HUD: clock/season, pips, lanterns, hotbar, hint, toasts, quick buttons.
+// Always-on HUD: clock/season, pips, lanterns, hotbar, hint, quick buttons. (Toasts live in ui/toast.ts.)
 import { coinIcon, itemIcon } from '../art/icons';
 import { drawLantern } from '../art/lantern';
 import { bus } from '../bus';
@@ -9,7 +9,7 @@ import { state } from '../state';
 import { glyphEl, type PromptKey } from '../input/prompts';
 import { h } from './dom';
 
-let clockEl: HTMLElement, seasonEl: HTMLElement, coinEl: HTMLElement, lanternEl: HTMLElement, hotbarEl: HTMLElement, hintEl: HTMLElement, toastEl: HTMLElement, lanternCanvas: HTMLCanvasElement;
+let clockEl: HTMLElement, seasonEl: HTMLElement, coinEl: HTMLElement, lanternEl: HTMLElement, hotbarEl: HTMLElement, hintEl: HTMLElement, lanternCanvas: HTMLCanvasElement;
 
 export function buildHud(actions: { journal(tab: string): void; bag(): void; help(): void }) {
   const ui = document.getElementById('ui')!;
@@ -30,10 +30,8 @@ export function buildHud(actions: { journal(tab: string): void; bag(): void; hel
   );
   hotbarEl = h('div', 'hotbar');
   hintEl = h('div', 'hint');
-  toastEl = h('div', 'toasts');
-  ui.append(top, quick, hotbarEl, hintEl, toastEl);
+  ui.append(top, quick, hotbarEl, hintEl);
   bus.on('change', refreshHud);
-  bus.on('toast', showToast);
   refreshHud();
 }
 
@@ -63,17 +61,12 @@ export function refreshHud() {
       if (ITEMS[id].kind !== 'tool') slot.append(h('span', 'qty', String(state.inv[id] ?? 0)));
       slot.title = ITEMS[id].name;
     }
-    slot.addEventListener('pointerdown', (e) => { e.preventDefault(); selectSlot(i); });
+    slot.type = 'button';
+    slot.tabIndex = -1; // chosen by tap / click / 1-9 / LB RB, never by Tab focus
+    slot.setAttribute('aria-label', `Hotbar slot ${i + 1}${id ? ': ' + ITEMS[id].name : ''}`);
+    slot.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); selectSlot(i); });
     hotbarEl.append(slot);
   });
   const sel = state.hotbar[state.sel];
   hotbarEl.append(h('div', 'slot-name', sel ? ITEMS[sel].name : ''));
-}
-
-function showToast(msg: string) {
-  const t = h('div', 'toast', msg);
-  toastEl.append(t);
-  while (toastEl.children.length > 4) toastEl.firstChild?.remove();
-  setTimeout(() => t.classList.add('out'), 3800);
-  setTimeout(() => t.remove(), 4400);
 }
