@@ -3,7 +3,7 @@ import './scenes.css';
 import { VILLAGERS } from '../data';
 import { getVolume, setVolume } from '../settings';
 import { btn, h, openPanel } from './dom';
-import { comfyLogo } from './mainMenu';
+import { hushbellLogo } from './mainMenu';
 import { helpCards } from './panels';
 
 type SettingsTab = 'sound' | 'controls';
@@ -56,12 +56,13 @@ export function openCredits() {
   const line = (a: string, b: string) => h('div', 'cred-line', h('span', 'cred-role', a), h('span', 'cred-dots'), h('span', 'cred-name', b));
   openPanel('Credits', (body, api) => {
     body.append(
-      h('div', 'cred-hero', comfyLogo(true)),
+      h('div', 'cred-hero', hushbellLogo(true)),
       sec('Made by',
-        line('Design, code & art', 'The Comfy team'),
+        line('Design, code & art', 'The Hushbell team'),
         line('Island planning', 'The Sugarlily Square committee'),
         line('Quality napping', 'Mimsy (self-appointed)')),
       sec('Starring', ...VILLAGERS.map((v) => line(v.name, v.speciesName)), line('And', 'You')),
+      sec('Also waking up', line('Brioche', 'Capybara barista'), line('Oolie', 'Pastel moth'), line('Tuppi', 'Axolotl baker')),
       sec('Built with',
         line('3D rendering', 'three.js (MIT License)'),
         line('Lettering', 'Fredoka (SIL Open Font License)'),
@@ -69,7 +70,7 @@ export function openCredits() {
       sec('Special thanks',
         h('div', 'muted', 'To everyone who walks instead of runs, waters the puffberries, and stops to say hello. And to you, for visiting.')),
       h('div', 'cheetah-band'),
-      h('p', 'muted small center', 'Every character, place and drawing in Comfy is original to this game.'),
+      h('p', 'muted small center', 'Every character, place and drawing here is original to Hushbell.'),
       h('div', 'row end', btn('Lovely!', () => api.close())),
     );
   });

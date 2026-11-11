@@ -1,6 +1,8 @@
-# Comfy
+# Hushbell
 
-A cozy, original island village life-sim for the browser. Brew coffee at the café, shop for pink and cheetah-print outfits,
+*Somewhere soft is waking up.*
+
+A cozy, original island village life-sim for the browser. The Long Frost has put **Sugarlily Isle** into a snowy nap; the Hush Bell in its lighthouse has wound down. Wake the island one small kindness at a time until the Bell rings again. Brew coffee at the café, shop for pink and cheetah-print outfits,
 decorate your yard, make friends with animal neighbors, collect little treasures, wander the island, and release soft
 **Afterglow Lanterns** that drift to a hillside grove. (Farming is just one tiny garden plot.)
 

@@ -20,10 +20,10 @@ import { captureSceneKeys } from '../ui/sceneInput';
 
 /** Mimsy's greeting. Edit freely; timing adapts to the text length. */
 export const INTRO_LINES = [
-  'Oh…! A balloon? I thought I was dreaming again. You must be our new neighbor!',
-  "I'm Mimsy. Welcome to Sugarlily Isle — it's small, and sleepy, and it always smells like coffee.",
-  'The café is right behind me, the boutique is next door, and your own little yard is down the west path.',
-  'Take all the time you like settling in. Nobody hurries here… especially not me. *yawn*',
+  "Oh…! A balloon? I thought I was dreaming again. I'm Mimsy — welcome to Sugarlily Isle!",
+  'The Long Frost stayed too long and the Hush Bell in the lighthouse wound down. The whole island has been napping since.',
+  "Brioche, Dottie, Oolie, Tuppi and Nimbus are curled up somewhere warm. Small kindnesses will wake them.",
+  'Cocoa Leaf season is here — perfect timing. Shall we start with a coffee? *yawn*',
 ];
 
 /** True when the intro has not been seen on the current save. */
@@ -98,7 +98,7 @@ export function startIntroCutscene(onDone?: () => void, opts: IntroOptions = {})
   mimsy.x = MIMSY_FROM.x * TS; mimsy.y = MIMSY_FROM.z * TS; mimsy.facing = 'down'; mimsy.moving = false;
   let mimsyAlert = false;
 
-  const ui: CutsceneUi = createCutsceneUi({ tap: () => run.advance(), skip: () => run.skip() }, { name: 'Sugarlily Isle', sub: 'a little island, far from any hurry' });
+  const ui: CutsceneUi = createCutsceneUi({ tap: () => run.advance(), skip: () => run.skip() }, { name: 'Sugarlily Isle', sub: 'where the Hush Bell sleeps, and Hushbell begins' });
   const releaseKeys = opts.keys === false ? null : captureSceneKeys((k) => { if (k === 'back') run.skip(); else if (k === 'confirm') run.advance(); });
 
   // camera state (smoothed towards the scripted pose)

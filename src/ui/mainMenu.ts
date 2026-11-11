@@ -1,4 +1,4 @@
-// Main menu: "Comfy" logo + kawaii button frames over the live island backdrop (render/menuScene.ts).
+// Main menu: "Hushbell" logo + kawaii button frames over the live island backdrop (render/menuScene.ts).
 // The menu keeps its own selected index; pointer and keyboard work out of the box, and the exported
 // menuNavigate / menuConfirm / menuBack let the input layer drive it from a gamepad or touch buttons.
 import './scenes.css';
@@ -52,10 +52,10 @@ let logoSeq = 0;
  * The wordmark, drawn as SVG so the thick sticker outline gets round joins: a deep-pink edge with a little
  * "thickness" below it, a white outline, a candy gradient fill and a whisper of cheetah spots.
  */
-export function comfyLogo(small = false): HTMLElement {
+export function hushbellLogo(small = false): HTMLElement {
   const id = 'cl' + logoSeq++;
-  const tilt: [string, number, number][] = [['C', -7, 0], ['o', 4, 5], ['m', -3, -8], ['f', 6, 7], ['y', -5, -5]];
-  const word = (attrs: string) => `<text x="236" y="142" text-anchor="middle" font-family="Fredoka, ui-rounded, system-ui, sans-serif" font-weight="700" font-size="128" letter-spacing="2" ${attrs}>`
+  const tilt: [string, number, number][] = [['H', -6, 0], ['u', 4, 5], ['s', -3, -6], ['h', 5, 4], ['b', -5, -4], ['e', 4, 6], ['l', -4, -3], ['l', 6, 3]];
+  const word = (attrs: string) => `<text x="236" y="142" text-anchor="middle" font-family="Fredoka, ui-rounded, system-ui, sans-serif" font-weight="700" font-size="92" textLength="404" lengthAdjust="spacing" ${attrs}>`
     + tilt.map(([ch, r, dy]) => `<tspan rotate="${r}" dy="${dy}">${ch}</tspan>`).join('') + '</text>';
   const petals = [0, 72, 144, 216, 288];
   const svg = `<svg viewBox="0 0 480 200" class="logo-svg" aria-hidden="true">
@@ -80,8 +80,8 @@ ${petals.map((a) => `<ellipse cx="0" cy="-20" rx="4.5" ry="6" transform="rotate(
   const mark = h('div', 'logo-word', h('span', 'logo-spark s1', '✦'), h('span', 'logo-spark s2', '✦'), h('span', 'logo-spark s3', '♥'));
   mark.insertAdjacentHTML('afterbegin', svg);
   mark.setAttribute('role', 'img');
-  mark.setAttribute('aria-label', 'Comfy');
-  return h('div', 'logo' + (small ? ' small' : ''), mark, h('div', 'logo-tag', '✿ a cozy island village ✿'));
+  mark.setAttribute('aria-label', 'Hushbell');
+  return h('div', 'logo' + (small ? ' small' : ''), mark, h('div', 'logo-tag', '✿ Somewhere soft is waking up. ✿'));
 }
 
 interface Open {
@@ -184,7 +184,7 @@ export function startMainMenu(opts: MainMenuOptions = {}) {
     h('span', 'pf-item', glyphEl('move'), 'Choose'), h('span', 'pf-item', glyphEl('interact'), 'Select'));
   const root = h('div', 'mm',
     h('div', 'mm-veil'),
-    h('div', 'mm-col', comfyLogo(), list),
+    h('div', 'mm-col', hushbellLogo(), list),
     h('div', 'mm-foot', hints, h('span', 'mm-ver', 'Sugarlily Isle · v0.1')),
   );
   document.getElementById('ui')!.append(root);
