@@ -6,11 +6,12 @@ import { ITEMS, CURRENCY } from '../data';
 import { selectSlot } from '../inventory';
 import { getClock } from '../time';
 import { state } from '../state';
+import { glyphEl, type PromptKey } from '../input/prompts';
 import { h } from './dom';
 
 let clockEl: HTMLElement, seasonEl: HTMLElement, coinEl: HTMLElement, lanternEl: HTMLElement, hotbarEl: HTMLElement, hintEl: HTMLElement, toastEl: HTMLElement, lanternCanvas: HTMLCanvasElement;
 
-export function buildHud(actions: { interact(): void; journal(tab: string): void; bag(): void; help(): void }) {
+export function buildHud(actions: { journal(tab: string): void; bag(): void; help(): void }) {
   const ui = document.getElementById('ui')!;
   clockEl = h('div', 'clock');
   seasonEl = h('div', 'season');
@@ -24,15 +25,13 @@ export function buildHud(actions: { interact(): void; journal(tab: string): void
     (() => { const b = h('button', 'chip lantern', lanternCanvas, lanternEl); b.title = 'Afterglow Lanterns (L)'; b.onclick = () => actions.journal('lanterns'); return b; })(),
   );
   const quick = h('div', 'hud-quick',
-    ...([['✿ Journal', () => actions.journal('quests')], ['❖ Bag', actions.bag], ['? Help', actions.help]] as [string, () => void][])
-      .map(([t, f]) => { const b = h('button', 'btn small', t); b.onclick = f; return b; }),
+    ...([['✿ Journal', () => actions.journal('quests'), 'journal'], ['❖ Bag', actions.bag, 'bag'], ['? Help', actions.help, 'help']] as [string, () => void, PromptKey][])
+      .map(([t, f, k]) => { const b = h('button', 'btn small', t, glyphEl(k)); b.onclick = f; return b; }),
   );
   hotbarEl = h('div', 'hotbar');
   hintEl = h('div', 'hint');
   toastEl = h('div', 'toasts');
-  const act = h('button', 'act-btn', '✿'); act.title = 'Interact (E)';
-  act.addEventListener('pointerdown', (e) => { e.preventDefault(); actions.interact(); });
-  ui.append(top, quick, hotbarEl, hintEl, toastEl, act);
+  ui.append(top, quick, hotbarEl, hintEl, toastEl);
   bus.on('change', refreshHud);
   bus.on('toast', showToast);
   refreshHud();
