@@ -1,4 +1,4 @@
-// New-game intro (~30 s, in-engine): the camera glides in over the sea, the newcomer drifts down in a
+// New-game intro (~35 s, in-engine): the camera glides in over the sea, the newcomer drifts down in a
 // striped balloon and lands by the café, and Mimsy shuffles over to say hello.
 // Plays once per save (state.seenIntro). Skippable at any moment.
 import * as THREE from 'three';
@@ -46,12 +46,13 @@ const FLIGHT = [[39, 15, 56], [36.5, 12.5, 44], [33.2, 8.6, 31.5], [30.6, 4.0, 2
 // ---- timing (seconds) ----
 const T_FADE_IN = 1.4;
 const T_TITLE: [number, number] = [1.3, 6.2];
-const T_LAND = 14.5;       // touchdown
-const T_HOP = 15.7;        // newcomer hops out
+const T_LAND = 12.6;       // touchdown
+const T_HOP = 13.7;        // newcomer hops out
 const HOP_LEN = 0.85;
-const T_TALK = 17.6;       // first line starts
-const CPS = 36;            // typewriter characters per second
-const HOLD = 1.5;          // pause after a finished line before auto-advancing
+const T_TALK = 15.4;       // first line starts
+const CPS = 40;            // typewriter characters per second
+const HOLD = 1.3;          // pause after a finished line before auto-advancing (plus a little per character)
+const HOLD_PER_CHAR = 0.01;
 const OUTRO_LEN = 2.8;
 const OUTRO_FADE = 1.1;    // the last part of the outro fades out
 const SKIP_FADE = 0.45;
@@ -110,11 +111,11 @@ export function startIntroCutscene(onDone?: () => void, opts: IntroOptions = {})
   function scriptCamera(aspect: number, t: number) {
     const narrow = aspect < 1.25 ? 1 + (1.25 - aspect) * 1.15 : 1; // pull back on tall screens
     // 1) high over the sea, sliding towards the island
-    const a = smooth(0, 9.5, tt);
+    const a = smooth(0, 8.4, tt);
     wantPos.set(lerp(55, 41, a), lerp(25, 13.5, a), lerp(70, 44, a));
-    wantLook.copy(ISLAND).lerp(v1.copy(bPos).setY(bPos.y + 2.2), smooth(2.5, 8.5, tt) * 0.85);
+    wantLook.copy(ISLAND).lerp(v1.copy(bPos).setY(bPos.y + 2.2), smooth(2.2, 7.5, tt) * 0.85);
     // 2) swing in beside the balloon as it comes down
-    const b = smooth(7.5, T_LAND + 0.6, tt);
+    const b = smooth(6.6, T_LAND + 0.6, tt);
     v1.set(bPos.x + lerp(6.5, -1.0, b) , bPos.y + lerp(3.2, 2.9, b), bPos.z + lerp(11.5, 7.6, b) * narrow);
     wantPos.lerp(v1, b);
     // 3) settle into the conversation two-shot
@@ -246,7 +247,7 @@ export function startIntroCutscene(onDone?: () => void, opts: IntroOptions = {})
       const shown = Math.min(text.length, Math.floor(lineT * CPS));
       const done = shown >= text.length;
       ui.setLine(text, shown, done);
-      if (done && lineT > text.length / CPS + HOLD + text.length * 0.012) nextLine();
+      if (done && lineT > text.length / CPS + HOLD + text.length * HOLD_PER_CHAR) nextLine();
     }
     // --- fades ---
     let fade = 1 - smooth(0.15, T_FADE_IN, tt);

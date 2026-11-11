@@ -1,9 +1,8 @@
-// Title flow: main menu -> (New Game -> intro cutscene) -> gameplay. main.ts uses this for ?scene=menu;
-// make it the default boot when the menu should be the first screen.
+// Title flow: main menu -> (New Game -> intro cutscene) -> gameplay. Continue skips the intro.
 import { shouldPlayIntro, startIntroCutscene } from './cutscene/intro';
 import { startGame } from './game';
 import { hasSave, newGame } from './save';
-import { fadeTo } from './ui/fade';
+import { fadeTo, setFade } from './ui/fade';
 import { startMainMenu, stopMainMenu } from './ui/mainMenu';
 import { openConfirmNewGame } from './ui/menuPanels';
 
@@ -18,6 +17,9 @@ async function leave(next: () => void) {
 }
 
 export function bootWithMenu() {
+  // open softly: hold the blush cover for the first couple of frames while shaders warm up
+  setFade(1);
+  requestAnimationFrame(() => requestAnimationFrame(() => void fadeTo(0, 700)));
   startMainMenu({
     onContinue: () => leave(() => { startGame(); void fadeTo(0, 600); }),
     onNewGame: () => {

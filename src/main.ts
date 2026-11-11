@@ -3,16 +3,20 @@ import '@fontsource/fredoka/500.css';
 import '@fontsource/fredoka/600.css';
 import '@fontsource/fredoka/700.css';
 import './styles.css';
-import { loadGame } from './save';
-import { bootWithMenu } from './boot';
+import './ui/toast';
+import { bootIntoGame, bootWithMenu } from './boot';
 import { startIntroCutscene } from './cutscene/intro';
 import { startGame } from './game';
+import { initDevices } from './input';
+import { loadGame } from './save';
 
 loadGame();
-// Preview hooks until the title flow becomes the default boot:
-//   ?scene=menu  -> main menu (New Game plays the intro, Continue starts play)
-//   ?scene=intro -> the arrival cutscene, then play
+initDevices(); // prompt glyphs + gamepad hot-plug from the very first screen
+
+// The game opens on the main menu. Shortcuts for testing:
+//   ?scene=game  -> straight into play (a brand-new save still gets its arrival first)
+//   ?scene=intro -> replay the arrival cutscene, then play
 const scene = new URLSearchParams(location.search).get('scene');
-if (scene === 'menu') bootWithMenu();
+if (scene === 'game') bootIntoGame();
 else if (scene === 'intro') startIntroCutscene(startGame);
-else startGame();
+else bootWithMenu();
