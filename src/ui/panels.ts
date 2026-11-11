@@ -311,7 +311,7 @@ export function openHelp() {
   openPanel('Welcome to Sugarlily Isle', (body, api) => {
     state.seenHelp = true;
     body.append(
-      h('p', 'muted', 'A cozy island of coffee, boutiques, friends, and little glowing lanterns. Wander at your own pace!'),
+      h('p', 'muted', 'Hushbell: the Long Frost put Sugarlily Isle to sleep when the Hush Bell in the lighthouse wound down. Wake it one small kindness at a time — brew, gift, decorate, and light lanterns — until the Bell rings again. Somewhere soft is waking up.'),
       h('p', 'muted small', 'Play with a keyboard, a controller or your fingers — the button hints on screen follow whichever you touched last, and its card hops to the top here.'),
       ...helpCards(),
       h('p', 'muted small help-tip', 'Tip: the café, boutique, cart, and grove altar open when you stand close and press the interact button. Time and season follow your real clock. Progress saves automatically.'),

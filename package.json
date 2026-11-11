@@ -1,8 +1,8 @@
 {
-  "name": "comfy",
+  "name": "hushbell",
   "private": true,
   "version": "0.1.0",
-  "description": "Comfy - a cozy original island village life-sim for the browser",
+  "description": "Hushbell - a cozy original island village life-sim for the browser, where a long snowy nap ends one small kindness at a time",
   "type": "module",
   "scripts": {
     "dev": "vite",
