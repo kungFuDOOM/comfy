@@ -13,6 +13,7 @@ export interface Npc { def: VillagerDef; x: number; y: number; tx: number; ty: n
 export const npcs: Npc[] = [];
 
 export function initNpcs() {
+  if (npcs.length) return;
   for (const def of VILLAGERS) {
     const x = def.home.x * TS + TS / 2, y = def.home.y * TS + TS - 4;
     npcs.push({ def, x, y, tx: x, ty: y, wait: 1 + Math.random() * 3, facing: 'down', moving: false, busy: false });

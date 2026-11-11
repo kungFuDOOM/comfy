@@ -36,6 +36,8 @@ export interface SaveData {
   stats: Record<string, number>;
   spawns: Spawn[];
   seenHelp: boolean;
+  /** The new-game arrival cutscene has played (or been skipped) for this save. */
+  seenIntro: boolean;
 }
 
 export function defaultState(): SaveData {
@@ -62,6 +64,7 @@ export function defaultState(): SaveData {
     stats: {},
     spawns: [],
     seenHelp: false,
+    seenIntro: false,
   };
 }
 

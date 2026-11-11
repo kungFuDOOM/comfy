@@ -60,7 +60,10 @@ function fill(x0: number, y0: number, x1: number, y1: number, t: number, mark = 
 const block = (x: number, y: number) => { if (inMap(x, y)) { solid[idx(x, y)] = 1; reserved[idx(x, y)] = 1; } };
 const rand = (() => { let s = 90210; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; })();
 
+let built = false;
 export function buildWorld() {
+  if (built) return; // the menu / intro may build the island before the game starts
+  built = true;
   // island shape + shoreline
   for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
     const nx = (x + 0.5 - 30) / 29.5, ny = (y + 0.5 - 22) / 21.5;

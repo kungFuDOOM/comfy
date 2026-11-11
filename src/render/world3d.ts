@@ -43,7 +43,30 @@ export interface World3D {
   render(f: FrameInput): void;
   pick(sx: number, sy: number, npcs: Npc[]): Pick | null;
   snapCamera(px: number, py: number): void;
+  /** Nudge the camera (radians / zoom units). Yaw, pitch and zoom are clamped so it can't flip or enter the player. */
+  orbit(dYaw: number, dTilt: number, dZoom: number): void;
+  resetCamera(): void;
+  /** Current (smoothed) yaw: 0 = camera south of the player looking north; + moves the camera east. */
+  yaw(): number;
+  /** For scripted scenes (main menu, cutscenes): add props here, and drive the camera with a Director. */
+  scene: THREE.Scene;
+  camera: THREE.PerspectiveCamera;
+  playerMesh: ActorMesh;
+  villager(id: string): ActorMesh | undefined;
+  /** While set, the director owns the camera (and may re-pose actors). Pass null to return to the follow camera. */
+  setDirector(d: Director | null): void;
 }
+
+export interface Director {
+  /** Called after actors are placed on the ground; move/rotate/hide them here. */
+  stage?(f: FrameInput): void;
+  /** Set camera.position + orientation, and `focus` to the point of interest (shadows and particles follow it). */
+  shoot(camera: THREE.PerspectiveCamera, focus: THREE.Vector3, f: FrameInput): void;
+}
+
+const YAW_MAX = 1.0;
+const TILT_MAX = 0.2; // +/- radians around the default pitch
+const ZOOM_MIN = 0.6, ZOOM_MAX = 1.45;
 
 export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   // No canvas MSAA: the post stack renders into its own multisampled HDR target.
@@ -73,6 +96,7 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   const camPos = new THREE.Vector3();
   let aspect = 1;
   const actorY = new Map<ActorMesh, number>();
+  let director: Director | null = null;
 
   function resize() {
     // cap the pixel ratio (lower on touch devices): the HDR MSAA target + bloom scale with it
@@ -87,10 +111,16 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
     camera.updateProjectionMatrix();
   }
 
+  // player-controlled camera offsets (smoothed toward their targets)
+  const cam = { yaw: 0, yawT: 0, tilt: 0, tiltT: 0, zoom: 1, zoomT: 1 };
+  const basePitch = Math.atan2(CAM_UP, CAM_BACK), baseDist = Math.hypot(CAM_UP, CAM_BACK);
+
   function placeCamera() {
     // pull back on narrow/portrait screens so the same amount of town fits
-    const k = aspect < 1 ? 1 + (1 - aspect) * 0.9 : 1;
-    camPos.set(target.x, target.y + CAM_UP * k, target.z + CAM_BACK * k);
+    const k = (aspect < 1 ? 1 + (1 - aspect) * 0.9 : 1) * cam.zoom;
+    const pitch = basePitch + cam.tilt, d = baseDist * k;
+    const horiz = Math.cos(pitch) * d;
+    camPos.set(target.x + Math.sin(cam.yaw) * horiz, target.y + Math.sin(pitch) * d, target.z + Math.cos(cam.yaw) * horiz);
     camera.position.copy(camPos);
     camera.lookAt(target);
   }
@@ -114,6 +144,19 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   return {
     resize,
     snapCamera(px, py) { target.set(px / TS, 0, py / TS); placeCamera(); },
+    orbit(dYaw, dTilt, dZoom) {
+      cam.yawT = Math.max(-YAW_MAX, Math.min(YAW_MAX, cam.yawT + dYaw));
+      cam.tiltT = Math.max(-TILT_MAX, Math.min(TILT_MAX, cam.tiltT + dTilt));
+      cam.zoomT = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, cam.zoomT + dZoom));
+    },
+    resetCamera() { cam.yawT = 0; cam.tiltT = 0; cam.zoomT = 1; },
+    yaw: () => cam.yaw,
+    scene, camera, playerMesh: player,
+    villager: (id) => villagers.get(id),
+    setDirector(d) {
+      director = d;
+      if (!d) { player.root.visible = true; camera.clearViewOffset(); target.y = 0; }
+    },
     render(f) {
       if (f.season.id !== seasonId) { seasonId = f.season.id; terrain.setSeason(f.season); nature.setSeason(f.season); particles.setSeason(f.season); }
 
@@ -133,11 +176,15 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       nature.update(f.t);
       terrain.update(f.t);
 
+      director?.stage?.(f);
+
       // follow cam (smoothed, clamped to the island)
       const tx = Math.max(6, Math.min(MAP_W - 6, f.player.x / TS)), tz = Math.max(6, Math.min(MAP_H - 6, f.player.y / TS - 1.2)); // look a touch ahead (north) of the player
       const k = 1 - Math.pow(0.001, f.dt);
-      target.x += (tx - target.x) * k; target.z += (tz - target.z) * k;
-      placeCamera();
+      const ck = 1 - Math.pow(0.0005, f.dt);
+      cam.yaw += (cam.yawT - cam.yaw) * ck; cam.tilt += (cam.tiltT - cam.tilt) * ck; cam.zoom += (cam.zoomT - cam.zoom) * ck;
+      if (director) director.shoot(camera, target, f);
+      else { target.x += (tx - target.x) * k; target.z += (tz - target.z) * k; placeCamera(); }
       // continuous (not bucketed) so dawn/dusk blend smoothly and the shadow frustum follows the camera
       rig.update(f.hour, target);
       const pxScale = renderer.getDrawingBufferSize(bufSize).y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
@@ -164,3 +211,9 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   };
 }
 
+
+let shared: World3D | null = null;
+/** The one renderer for the page: gameplay, the main menu backdrop and cutscenes all draw through it. */
+export function sharedWorld3D(canvas: HTMLCanvasElement): World3D {
+  return (shared ??= createWorld3D(canvas));
+}

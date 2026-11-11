@@ -259,18 +259,43 @@ function renderLanternTab(body: HTMLElement, api: PanelApi) {
 }
 
 // ---------- Help ----------
+type HelpRow = [string, string];
+export const HELP: { mode: 'keyboard' | 'gamepad' | 'touch'; title: string; rows: HelpRow[] }[] = [
+  { mode: 'keyboard', title: 'Keyboard & mouse', rows: [
+    ['WASD / Arrows', 'Walk (relative to the camera)'], ['Shift', 'Run'], ['E / Space', 'Talk, use, till, plant, shop'],
+    ['Click', 'Walk there, or interact with what you click'], ['Q R / 1–9 / Wheel', 'Choose a hotbar slot'],
+    ['B', 'Bag & wardrobe'], ['J', 'Journal'], ['L', 'Lantern grove'], ['H', 'This help'], ['Esc', 'Close a window'],
+    ['[ ]  ·  - =', 'Orbit camera  ·  zoom (Backspace resets)'],
+  ] },
+  { mode: 'gamepad', title: 'Controller (Xbox-style)', rows: [
+    ['Left stick', 'Walk — small tilt strolls, full tilt runs'], ['Right stick', 'Orbit and tilt the camera (R3 resets)'],
+    ['LT / RT', 'Zoom out / zoom in'], ['A', 'Talk, use, shop'], ['B', 'Hold to run · close a window'],
+    ['X', 'Use tool on the tile in front'], ['Y / Back', 'Bag'], ['Start', 'Journal'], ['LB / RB', 'Previous / next hotbar slot'],
+    ['D-pad', 'Hotbar ◀ ▶ in the world · move focus in windows'],
+  ] },
+  { mode: 'touch', title: 'Touch', rows: [
+    ['Drag left side', 'Floating joystick — gentle drag walks, full drag runs'], ['Tap', 'Walk there, or talk to what you tap'],
+    ['A', 'Talk, use, shop'], ['B', 'Hold to run · close a window'], ['X', 'Use tool on the tile in front'], ['Y', 'Bag'],
+    ['LB / RB', 'Previous / next hotbar slot'], ['✿', 'Journal, quests & friends'], ['Hotbar', 'Tap a slot to choose it'],
+  ] },
+];
+
 export function openHelp() {
   openPanel('Welcome to Sugarlily Isle', (body, api) => {
     state.seenHelp = true;
     body.append(
       h('p', 'muted', 'A cozy island of coffee, boutiques, friends, and little glowing lanterns. Wander at your own pace!'),
-      h('div', 'help-grid',
-        ...[
-          ['WASD / Arrows', 'Walk'], ['Tap / Click', 'Walk there, or interact with what you tap'], ['E / Space', 'Talk, use, till, place, shop'],
-          ['1–9 / Wheel', 'Choose a hotbar slot'], ['B', 'Bag & wardrobe'], ['J', 'Journal (quests, collection, friends)'],
-          ['L', 'Lantern grove'], ['H', 'This help'], ['Esc', 'Close a window'],
-        ].map(([k, v]) => h('div', 'help-row', h('kbd', '', k), h('span', '', v)))),
-      h('p', 'muted small', 'Tip: the café, boutique, cart, and grove altar open when you stand close and press E. Time and season follow your real clock. Progress saves automatically.'),
+      ...HELP.map((sec) => {
+        const el = h('div', 'help-sec', h('div', 'help-title', sec.title),
+          h('div', 'help-grid', ...sec.rows.map(([k, v]) => h('div', 'help-row', h('kbd', '', k), h('span', '', v)))));
+        el.dataset.mode = sec.mode;
+        return el;
+      }),
+    );
+    body.append(
+      h('div', 'help-sec menus', h('div', 'help-title', 'In any window'),
+        h('div', 'muted', 'Controller or keyboard: D-pad / stick / arrows move the pink focus ring, A / E chooses, B / Esc goes back, LB RB / Q R switch tabs. Touch: just tap.')),
+      h('p', 'muted small', 'Tip: the café, boutique, cart, and grove altar open when you stand close and press A / E. Time and season follow your real clock. Progress saves automatically.'),
       h('div', 'row', btn('Let\'s go!', () => api.close())),
     );
   });
