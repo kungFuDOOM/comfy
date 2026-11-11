@@ -1,4 +1,4 @@
-// Player movement: keyboard, plus tap/click-to-move with BFS pathfinding.
+// Player movement: smoothed analog/keyboard movement, plus tap/click-to-move with BFS pathfinding.
 import { MAP_H, MAP_W, TS, isWalkable } from './world';
 import { state } from './state';
 import type { Facing } from './art/characters';
@@ -13,8 +13,13 @@ export const player = {
   faceTile: null as null | { x: number; y: number },
 };
 
-const SPEED = 104;
+const SPEED = 100; // click-to-move pace
+const WALK = 96;
+const RUN = 156;
+const ACCEL = 11; // 1/s smoothing toward the target velocity
+const DECEL = 15;
 const HALF = 7;
+let vx = 0, vy = 0;
 
 function blockedAt(x: number, y: number) {
   const l = Math.floor((x - HALF) / TS), r = Math.floor((x + HALF) / TS);
@@ -89,31 +94,59 @@ export function faceToward(wx: number, wy: number) {
 }
 
 function tryMove(dx: number, dy: number) {
-  if (dx && !blockedAt(player.x + dx, player.y)) player.x += dx;
-  if (dy && !blockedAt(player.x, player.y + dy)) player.y += dy;
+  let hitX = false, hitY = false;
+  if (dx) { if (!blockedAt(player.x + dx, player.y)) player.x += dx; else hitX = true; }
+  if (dy) { if (!blockedAt(player.x, player.y + dy)) player.y += dy; else hitY = true; }
+  if (hitX) vx = 0;
+  if (hitY) vy = 0;
 }
 
-export function updatePlayer(dt: number, axisX: number, axisY: number) {
+/**
+ * mx,my: world-space move vector (|v| <= 1). Keyboard gives a unit vector; sticks give analog tilt
+ * (small tilt = slow walk, full tilt = run). Velocity eases in/out for every input type.
+ */
+export function updatePlayer(dt: number, axisX: number, axisY: number, run = false, analog = false) {
   let mx = axisX, my = axisY;
-  if (mx || my) {
-    // keyboard takes over from any click path
+  let speed = 0;
+  const mag = Math.hypot(mx, my);
+  const input = mag > 0.001;
+  if (input) {
+    // any manual input takes over from a click path
     if (player.path.length) cancelPath();
-    const len = Math.hypot(mx, my);
-    mx /= len; my /= len;
+    mx /= mag; my /= mag;
+    if (analog) {
+      const walk = WALK * Math.min(1, Math.max(0.3, mag / 0.7));
+      speed = run ? RUN * Math.min(1, Math.max(0.45, mag / 0.7)) : mag >= 0.92 ? RUN : walk;
+    } else speed = run ? RUN : WALK;
   } else if (player.path.length) {
     const tgt = player.path[0];
     const dx = tgt.x - player.x, dy = tgt.y - player.y;
     const d = Math.hypot(dx, dy);
     if (d < 3) {
       player.path.shift();
-      if (!player.path.length) { arrive(); player.moving = false; return; }
-    } else { mx = dx / d; my = dy / d; }
+      if (!player.path.length) { arrive(); player.moving = false; vx = vy = 0; return; }
+    } else {
+      mx = dx / d; my = dy / d;
+      // click-to-move is direct (no easing, so it can't overshoot waypoints)
+      vx = mx * SPEED; vy = my * SPEED;
+      player.moving = true;
+      faceMove(mx, my);
+      tryMove(vx * dt, vy * dt);
+      return;
+    }
   }
-  player.moving = !!(mx || my);
-  if (!player.moving) return;
+  const k = 1 - Math.exp(-(input ? ACCEL : DECEL) * dt);
+  vx += (mx * speed - vx) * k;
+  vy += (my * speed - vy) * k;
+  if (!input && Math.hypot(vx, vy) < 4) { vx = vy = 0; }
+  player.moving = Math.hypot(vx, vy) > 8;
+  if (input) faceMove(mx, my);
+  if (vx || vy) tryMove(vx * dt, vy * dt);
+}
+
+function faceMove(mx: number, my: number) {
   if (Math.abs(mx) > Math.abs(my) + 0.2) player.facing = mx < 0 ? 'left' : 'right';
   else if (Math.abs(my) > 0.01) player.facing = my < 0 ? 'up' : 'down';
-  tryMove(mx * SPEED * dt, my * SPEED * dt);
 }
 
 export function frontTile() {

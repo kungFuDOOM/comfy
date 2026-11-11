@@ -5,16 +5,18 @@ import { updateBrew } from './cafe';
 import { spawnOne, updateCollect } from './collect';
 import { decorHint, useYard } from './decorate';
 import { gardenHint, tickGarden, useGarden } from './garden';
-import { axis, initInput } from './input';
+import { glyph, initInput, pollInput, readCamera, readMove } from './input';
 import { updateLanterns } from './lanterns';
 import { initNpcs, npcs, talkedToday, updateNpcs, type Npc } from './npc';
 import { faceToward, frontTile, placePlayer, player, tileOf, updatePlayer, walkTo, cancelPath } from './player';
 import { selectSlot } from './inventory';
-import { createWorld3D, type World3D } from './render/world3d';
+import { toast } from './bus';
+import { sceneActive } from './render/stage';
+import { sharedWorld3D, type World3D } from './render/world3d';
 import { saveGame } from './save';
 import { state } from './state';
 import { getClock } from './time';
-import { closePanel, isPanelOpen } from './ui/dom';
+import { isPanelOpen } from './ui/dom';
 import { buildHud, setHint, tickHud } from './ui/hud';
 import { openBag, openBoutique, openCafe, openDialogue, openHelp, openJournal, openMarket } from './ui/panels';
 import { TS, buildWorld, inYard, isPlotTile, isSolidTile, stations, type Station } from './world';
@@ -107,29 +109,31 @@ function handleClick(sx: number, sy: number) {
   walkTo(goals);
 }
 
-function onKey(k: string) {
-  if (k === 'escape') { closePanel(); return; }
-  if (isPanelOpen()) return;
-  if (k === 'e' || k === ' ' || k === 'enter') interact();
-  else if (k >= '1' && k <= '9') selectSlot(Number(k) - 1);
-  else if (k === 'b') openBag();
-  else if (k === 'j') openJournal('quests');
-  else if (k === 'l') openJournal('lanterns');
-  else if (k === 'h' || k === '?') openHelp();
+/** X / "use tool": act on the tile in front of the player with the selected hotbar item. */
+function useTool() {
+  const f = frontTile();
+  const t = tileTarget(f.x, f.y);
+  if (t) t.run();
+  else toast('Face a garden plot or your yard to use this.');
 }
 
 // ---- Update ----
 function update(dt: number) {
+  pollInput(dt);
   const panel = isPanelOpen();
-  const [ax, ay] = panel ? [0, 0] : axis();
-  updatePlayer(dt, ax, ay);
+  const cam = readCamera();
+  world3d.orbit(cam.orbit * 1.1 * dt, cam.tilt * 0.6 * dt, cam.zoom * 0.9 * dt);
+  // camera-relative movement: input forward (-y) is away from the camera
+  const mv = readMove(), yaw = world3d.yaw(), c = Math.cos(yaw), sn = Math.sin(yaw);
+  updatePlayer(dt, c * mv.x + sn * mv.y, -sn * mv.x + c * mv.y, mv.run, mv.analog);
   updateNpcs(dt);
   updateBrew(dt);
   updateLanterns(dt);
   tickGarden();
   updateCollect(dt, player.x, player.y);
   // hint
-  setHint(panel ? null : currentTarget() ? `E · ${currentTarget()!.label}` : null);
+  const tgt = panel ? null : currentTarget();
+  setHint(tgt ? `${glyph('interact')} · ${tgt.label}` : null);
   saveTimer += dt;
   if (saveTimer > 5) { saveTimer = 0; persist(); }
   if (seenHelpTimer > 0 && !state.seenHelp) { seenHelpTimer -= dt; if (seenHelpTimer <= 0) openHelp(); }
@@ -149,18 +153,26 @@ function render(t: number, dt: number) {
   });
 }
 
+let started = false;
 export function startGame() {
+  if (started) return; // safe to call from both the menu's Continue and the intro's onDone
+  started = true;
   buildWorld();
   initNpcs();
   placePlayer();
   if (!state.spawns.length) for (let i = 0; i < 10; i++) spawnOne(player.x, player.y);
   document.documentElement.style.setProperty('--cheetah', `url(${cheetahDataUrl('classic')})`);
   document.documentElement.style.setProperty('--cheetah-pink', `url(${cheetahDataUrl('pink')})`);
-  world3d = createWorld3D(canvas);
+  world3d = sharedWorld3D(canvas);
   world3d.resize();
   window.addEventListener('resize', () => world3d.resize());
-  buildHud({ interact, journal: (tab) => !isPanelOpen() && openJournal(tab), bag: () => !isPanelOpen() && openBag(), help: () => !isPanelOpen() && openHelp() });
-  initInput(canvas, { onKey, onClick: handleClick, onWheel: (d) => !isPanelOpen() && selectSlot(state.sel + d) });
+  buildHud({ journal: (tab) => !isPanelOpen() && openJournal(tab), bag: () => !isPanelOpen() && openBag(), help: () => !isPanelOpen() && openHelp() });
+  initInput(canvas, {
+    interact, tool: useTool, cancel: cancelPath,
+    bag: openBag, journal: openJournal, help: openHelp,
+    hotbarStep: (d) => selectSlot(state.sel + d), hotbarSet: selectSlot,
+    click: handleClick, camReset: () => world3d.resetCamera(),
+  });
   window.addEventListener('beforeunload', persist);
   document.addEventListener('visibilitychange', () => { if (document.hidden) persist(); });
   world3d.snapCamera(player.x, player.y);
@@ -169,6 +181,7 @@ export function startGame() {
   const frame = (now: number) => {
     const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
     last = now;
+    if (sceneActive()) { requestAnimationFrame(frame); return; } // main menu / cutscene owns the screen
     update(dt);
     render(now / 1000, dt);
     hudT += dt;

@@ -1,4 +1,20 @@
-# Comfy — Design Document (v0.1 skeleton)
+# Hushbell — Design Document (v0.1 skeleton)
+
+*Somewhere soft is waking up.*
+
+## 0. The story
+
+Sugarlily Isle was once the sweetest stop in the Pastel Sea. Then the **Long Frost** came and wouldn't leave, and the clockwork heart of the island, the **Hush Bell** in the lighthouse, wound down. Shutters stayed closed, flowers folded up, and the animals curled into their burrows for a long snowy nap. You arrive by balloon in **Cocoa Leaf** season (autumn, Sep–Nov). Waking the island means relighting its warmth one small kindness at a time (brewing, gifting, decorating, collecting, releasing lanterns) until the Hush Bell rings again.
+
+**The five friends of Hushbell**
+
+- **Brioche**, a tubby capybara barista who believes every problem can be solved with a warm pastry.
+- **Dottie Spotwhisk**, a cheetah-spotted hamster who runs the boutique and has strong opinions about hats. *(Playable slot: id `zuzu`.)*
+- **Oolie**, a shy pastel moth who collects pressed flowers and whispers her favorite ones.
+- **Tuppi**, a blush-cheeked axolotl baker who dreams in frosting and giggles when it wiggles.
+- **Nimbus**, a fog-puff bunny who only appears at dusk and loves to hear about your day. *(Playable slot: id `nimbus`, keeper of the grove.)*
+
+Brioche, Oolie and Tuppi are lore-only for now (no walkable models yet). **Mimsy Brindlewick** hosts, and **Bramble Tumbledown** tends the garden. Save ids stay stable across renames.
 
 A cozy, original island village life-sim for the browser. You arrive on **Sugarlily Isle**, a pink-and-pastel island
 with a café, a boutique, a little yard of your own, a tiny garden, shorelines to comb, and a hillside where lanterns gather.
@@ -28,8 +44,13 @@ Currency is **pips** (the little star coin). Pips come from selling at the Tuppe
 
 ### Controls
 
-WASD / arrows to walk, tap/click to walk or interact, `E`/Space to act, `1–9` and the mouse wheel for the hotbar,
-`B` bag & wardrobe, `J` journal, `L` lantern grove, `H` help, `Esc` closes windows. A round ✿ button appears on touch devices.
+Three equal input paths funnel into one action layer (`src/input`): interact, tool, cancel/run, bag, journal, hotbar.
+
+- **Keyboard & mouse:** WASD / arrows walk (smooth, camera-relative), Shift runs, `E`/Space interacts, `F` uses the selected item, `1–9` / `Q R` / wheel pick a hotbar slot, `B` bag, `J` journal, `L` lantern grove, `H` help, `Esc` closes windows. Click to walk or interact.
+- **Controller:** left stick walks, A interact, B run/cancel, X use item, Y bag, LB/RB hotbar, Start journal, View bag, D-pad menu focus. Hot-pluggable.
+- **Touch:** a floating joystick plus an A/B/X/Y diamond, nothing else; tap the hotbar to switch tools. Only shown while touch is in use.
+
+Prompt glyphs follow the last device used. The game opens on a main menu (New Game / Continue / Settings / Credits); New Game plays a skippable arrival intro once per save.
 
 ## 3. The hook: Afterglow Lanterns
 
@@ -56,7 +77,7 @@ Rules (so lanterns stay special, never a chore):
 
 ### 3.2 The grove and constellation
 
-The grove sits on the northeastern hillside around a lavender altar, looked after by **Nimbus Hollowell**. Each lantern takes the next
+The grove sits on the northeastern hillside around a lavender altar, looked after by **Nimbus Hollowell**, the fog-puff bunny. Each lantern takes the next
 free slot along a gentle curved path above the altar; settled lanterns are connected by faint dashed lines, and a few dim "star" dots
 show the slots still waiting. The grove glows brightest at night. The journal's *Lanterns* tab shows a preview of the same sky, per-kind counts and set progress.
 
@@ -81,9 +102,9 @@ All animal friends are original designs drawn in code. Each has a liked-item pai
 | Villager | Animal | Personality | Home | Likes |
 | --- | --- | --- | --- | --- |
 | **Mimsy Brindlewick** | Fluff-eared Dormouse | Sleepy sweetheart. Café regular, naps with her eyes open. | Café patio | Pink Puff Latte, Ribbon Blossom |
-| **Zuzu Spotswood** | Spotted Cheetah Cub | Bold boutique diva. Runs Spot & Bow. Dramatic and kind. | Boutique front | Spotted Mocha, Steam-Moth |
+| **Dottie Spotwhisk** (id `zuzu`) | Cheetah-spotted Hamster | Hat-opinionated boutique boss. Runs Spot & Bow. Dramatic and kind. | Boutique front | Spotted Mocha, Steam-Moth |
 | **Bramble Tumbledown** | Marshmallow Hedgehog | Grumpy-sweet gardener. Names every sprout. | Garden | Puffberry, Cottonbloom |
-| **Nimbus Hollowell** | Moon Owl | Gentle lantern keeper and storyteller. | Lantern grove | Starlit Button, Honey Cloud Cappuccino |
+| **Nimbus Hollowell** | Fog-puff Bunny | Gentle lantern keeper who only appears at dusk and loves to hear about your day. | Lantern grove | Starlit Button, Honey Cloud Cappuccino |
 
 **Friendship.** Each villager has 0–100 points shown as up to 5 hearts (20 points each). Talking once per day gives +6. A liked gift/drink gives +20; a neutral drink +8; a neutral gift +4.
 One gift and one drink per villager per day. A pink speech bubble with a heart floats over villagers you have not chatted with today.
