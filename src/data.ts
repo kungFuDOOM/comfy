@@ -130,13 +130,13 @@ export const VILLAGERS: VillagerDef[] = [
     loved: 'A Pink Puff Latte?! My heart just did a little tumble!', liked: 'For me? Squee! This is so sweet.', meh: 'Aww, thank you. I will put it somewhere soft.',
   },
   {
-    id: 'zuzu', name: 'Zuzu Spotswood', species: 'cheetah', speciesName: 'Spotted Cheetah Cub',
-    personality: 'Bold boutique diva', color: '#fbe0ae', accent: '#7a4a3a',
+    id: 'zuzu', name: 'Dottie Spotwhisk', species: 'cheetah', speciesName: 'Cheetah-spotted Hamster',
+    personality: 'Hat-opinionated boutique boss', color: '#fbe0ae', accent: '#7a4a3a',
     likes: ['spot_mocha', 'moth'], home: { x: 37, y: 15 }, radius: 2.5,
-    bio: 'Runs the Spot & Bow Boutique. Believes every day deserves a runway.',
+    bio: 'Runs the Spot & Bow Boutique and has strong opinions about hats. Believes every day deserves a runway.',
     lines: [
-      ['Darling, nice to meet you. The boutique is always open for dreamers.', 'Spots are not a pattern. They are a lifestyle.'],
-      ['Ooh, that color works on you. I have a hat for that.', 'Fashion tip: pink goes with everything. Cheetah goes with everything else.'],
+      ['Darling, nice to meet you. The boutique is always open for dreamers.', 'Spots are not a pattern. They are a lifestyle. Also, nice head. Let\'s find it a hat.'],
+      ['Ooh, that color works on you. I have a hat for that. I have a hat for everything.', 'Fashion tip: pink goes with everything. Spots go with everything else. Hats go on top.'],
       ['You are officially my favorite model. Do not tell the mannequins.', 'I saved a rack just for your best looks, bestie.'],
     ],
     phase: {
@@ -166,22 +166,22 @@ export const VILLAGERS: VillagerDef[] = [
     loved: '...That is my favorite. Do not look at my face right now.', liked: 'Oh. Hm. That is nice. Thanks.', meh: 'It\'s fine. I will find a spot for it. Thanks.',
   },
   {
-    id: 'nimbus', name: 'Nimbus Hollowell', species: 'owl', speciesName: 'Moon Owl',
-    personality: 'Gentle lantern keeper', color: '#d9ccf5', accent: '#ffd36e',
+    id: 'nimbus', name: 'Nimbus Hollowell', species: 'owl', speciesName: 'Fog-puff Bunny',
+    personality: 'Gentle dusk-time listener', color: '#d9ccf5', accent: '#ffd36e',
     likes: ['button', 'honey_cap'], home: { x: 44, y: 11 }, radius: 1.5,
-    bio: 'Keeper of the Afterglow Grove. Knows the name of every light.',
+    bio: 'A fog-puff bunny who only appears at dusk, keeps the Afterglow Grove, and loves to hear about your day.',
     lines: [
-      ['Welcome, little wanderer. The grove loves a warm heart.', 'Each lantern remembers the moment it was born.'],
+      ['Oh, hello. I only drift in at dusk. Tell me about your day?', 'Each lantern remembers the moment it was born.'],
       ['The hillside glows brighter when kind things are done.', 'Pour a drink for a friend, and a light may drift my way.'],
-      ['I will tell you a secret: the constellations are a map. Keep collecting.', 'Your lanterns are my favorites. Do not tell the others.'],
+      ['I will tell you a secret: the constellations are a map. Keep collecting.', 'Your lanterns are my favorites, and your stories. Do not tell the others.'],
     ],
     phase: {
       morning: 'The lanterns sleep in the day. How lovely.',
-      day: 'Quiet hours. Time for reading and tea.',
+      day: 'Quiet hours. I am a bit foggy before dusk. Come find me later.',
       evening: 'The first lights are drifting up now.',
       night: 'Look up. Isn\'t it wonderful?',
     },
-    loved: 'A gift fit for the grove! My feathers are all aflutter.', liked: 'How kind. The grove will remember this.', meh: 'Thank you, dear. Every gift is a small light.',
+    loved: 'A gift fit for the grove! My ears are all aflutter.', liked: 'How kind. The grove will remember this.', meh: 'Thank you, dear. Every gift is a small light.',
   },
 ];
 

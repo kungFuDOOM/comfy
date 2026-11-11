@@ -1,4 +1,7 @@
 // Minimal DOM helpers and the modal panel manager.
+import { currentMode, glyphEl, type PromptKey } from '../input/prompts';
+import { captureFocus, focusFirst, restoreFocus } from './focus';
+
 export function h<K extends keyof HTMLElementTagNameMap>(
   tag: K, cls = '', ...kids: (Node | string | null | undefined | false)[]
 ): HTMLElementTagNameMap[K] {
@@ -29,7 +32,8 @@ export function openPanel(title: string, render: (body: HTMLElement, api: PanelA
   const body = h('div', 'panel-body');
   const x = btn('✕', () => closePanel(), 'close');
   head.append(x);
-  card.append(head, body);
+  const foot = h('div', 'panel-foot');
+  card.append(head, body, foot);
   root.append(card);
   root.addEventListener('pointerdown', (e) => { if (e.target === root) closePanel(); });
   document.getElementById('ui')!.append(root);
@@ -39,14 +43,18 @@ export function openPanel(title: string, render: (body: HTMLElement, api: PanelA
     rerender() {
       me.cleanups.splice(0).forEach((f) => f());
       const sc = body.scrollTop;
+      const saved = captureFocus();
       body.replaceChildren();
       render(body, api);
       body.scrollTop = sc;
+      restoreFocus(saved);
     },
     close: closePanel,
     cleanup: (fn) => me.cleanups.push(fn),
   };
   render(body, api);
+  fillFoot(foot, !!body.querySelector('.tabs'));
+  focusFirst(currentMode() === 'gamepad');
   return api;
 }
 
@@ -57,4 +65,11 @@ export function closePanel() {
   c.cleanups.forEach((f) => f());
   c.root.remove();
   c.onClose?.();
+}
+
+/** Controller/keyboard prompt strip (hidden on touch via CSS). */
+function fillFoot(foot: HTMLElement, tabs: boolean) {
+  const g = (k: PromptKey, label: string) => h('span', 'pf-item', glyphEl(k), label);
+  foot.append(g('move', 'Move'), g('interact', 'Choose'), g('cancel', 'Back'));
+  if (tabs) foot.append(g('tabs', 'Tabs'));
 }

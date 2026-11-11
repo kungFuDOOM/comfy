@@ -13,6 +13,7 @@ import { give, hearts, talk } from '../npc';
 import { progress } from '../quests';
 import { state } from '../state';
 import { getClock } from '../time';
+import { glyphEl } from '../input/prompts';
 import { btn, h, openPanel, type PanelApi } from './dom';
 import { npcs } from '../npc';
 import { GROVE } from '../world';
@@ -259,19 +260,62 @@ function renderLanternTab(body: HTMLElement, api: PanelApi) {
 }
 
 // ---------- Help ----------
+type HelpRow = [string, string];
+/** One card per device. CSS floats the card for the device used last to the top (body.input-*). */
+export const HELP: { mode: 'keyboard' | 'gamepad' | 'touch'; title: string; rows: HelpRow[] }[] = [
+  { mode: 'keyboard', title: 'Keyboard & mouse', rows: [
+    ['WASD / Arrows', 'Walk, smoothly and relative to the camera'], ['Shift', 'Hold to run'],
+    ['E / Space', 'Talk, shop, and use what you are facing'], ['F', 'Use the selected hotbar item on the tile in front'],
+    ['Click', 'Walk there, or interact with what you click'], ['1–9 / Q R / Wheel', 'Choose a hotbar slot'],
+    ['B', 'Bag & wardrobe'], ['J', 'Journal'], ['L', 'Lantern grove'], ['H', 'This help'], ['Esc', 'Close a window'],
+    ['[ ]  ·  - =', 'Orbit camera  ·  zoom (Backspace resets)'],
+  ] },
+  { mode: 'gamepad', title: 'Controller', rows: [
+    ['Left stick', 'Walk — a small tilt strolls, a full tilt runs'], ['A', 'Talk, shop, interact'],
+    ['B', 'Hold to run · cancel · close a window'], ['X', 'Use the selected hotbar item on the tile in front'],
+    ['Y', 'Bag & wardrobe'], ['LB / RB', 'Previous / next hotbar slot'], ['Start', 'Journal'], ['View', 'Bag'],
+    ['D-pad', 'Move the focus ring in windows (◀ ▶ also steps the hotbar)'],
+    ['Right stick', 'Orbit and tilt the camera (click it to reset)'], ['LT / RT', 'Zoom out / zoom in'],
+  ] },
+  { mode: 'touch', title: 'Touch', rows: [
+    ['Drag the left side', 'A joystick appears under your thumb — a gentle drag walks, a full drag runs'],
+    ['A', 'Talk, shop, interact'], ['B', 'Hold to run · cancel'], ['X', 'Use the selected hotbar item on the tile in front'],
+    ['Y', 'Bag & wardrobe'], ['Hotbar', 'Tap a slot to switch tools'], ['Tap the island', 'Walk there, or talk to who you tap'],
+    ['Top buttons', 'Journal, bag and this help'],
+  ] },
+];
+
+/** The device cards plus the shared "in any window" note; used by Help and by Settings › Controls. */
+export function helpCards(): HTMLElement[] {
+  const key = (k: string, pad: boolean) => {
+    const el = h('kbd', '', k);
+    if (pad && k.length === 1 && 'ABXY'.includes(k)) el.dataset.btn = k.toLowerCase(); // colored like the real buttons
+    return el;
+  };
+  return [
+    ...HELP.map((sec) => {
+      const el = h('div', 'help-sec', h('div', 'help-title', sec.title),
+        h('div', 'help-grid', ...sec.rows.map(([k, v]) => h('div', 'help-row', key(k, sec.mode !== 'keyboard'), h('span', '', v)))));
+      el.dataset.mode = sec.mode;
+      return el;
+    }),
+    h('div', 'help-sec menus', h('div', 'help-title', 'In any window'),
+      h('div', 'help-menu-row',
+        h('span', 'pf-item', glyphEl('move'), 'Move the pink ring'), h('span', 'pf-item', glyphEl('interact'), 'Choose'),
+        h('span', 'pf-item', glyphEl('cancel'), 'Back / close'), h('span', 'pf-item', glyphEl('tabs'), 'Switch tabs')),
+      h('div', 'muted', 'Controller: D-pad or stick, A, B, LB RB. Keyboard: arrows, E or Enter, Esc, Q R. Touch: just tap — the ring follows your finger.')),
+  ];
+}
+
 export function openHelp() {
   openPanel('Welcome to Sugarlily Isle', (body, api) => {
     state.seenHelp = true;
     body.append(
-      h('p', 'muted', 'A cozy island of coffee, boutiques, friends, and little glowing lanterns. Wander at your own pace!'),
-      h('div', 'help-grid',
-        ...[
-          ['WASD / Arrows', 'Walk'], ['Tap / Click', 'Walk there, or interact with what you tap'], ['E / Space', 'Talk, use, till, place, shop'],
-          ['1–9 / Wheel', 'Choose a hotbar slot'], ['B', 'Bag & wardrobe'], ['J', 'Journal (quests, collection, friends)'],
-          ['L', 'Lantern grove'], ['H', 'This help'], ['Esc', 'Close a window'],
-        ].map(([k, v]) => h('div', 'help-row', h('kbd', '', k), h('span', '', v)))),
-      h('p', 'muted small', 'Tip: the café, boutique, cart, and grove altar open when you stand close and press E. Time and season follow your real clock. Progress saves automatically.'),
-      h('div', 'row', btn('Let\'s go!', () => api.close())),
+      h('p', 'muted', 'Hushbell: the Long Frost put Sugarlily Isle to sleep when the Hush Bell in the lighthouse wound down. Wake it one small kindness at a time — brew, gift, decorate, and light lanterns — until the Bell rings again. Somewhere soft is waking up.'),
+      h('p', 'muted small', 'Play with a keyboard, a controller or your fingers — the button hints on screen follow whichever you touched last, and its card hops to the top here.'),
+      ...helpCards(),
+      h('p', 'muted small help-tip', 'Tip: the café, boutique, cart, and grove altar open when you stand close and press the interact button. Time and season follow your real clock. Progress saves automatically.'),
+      h('div', 'row end', btn('Let\'s go!', () => api.close())),
     );
   });
 }
