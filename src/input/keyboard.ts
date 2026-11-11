@@ -1,4 +1,4 @@
-// Keyboard: WASD/arrows, E/Space, Shift run, Q/R + 1-9 + wheel hotbar, Esc/B/J/L/H, [ ] orbit, - = zoom.
+// Keyboard: WASD/arrows, E/Space, F tool, Shift run, Q/R + 1-9 + wheel hotbar, Esc/B/J/L/H, [ ] orbit, - = zoom.
 import { isPanelOpen } from '../ui/dom';
 import { confirmFocus } from '../ui/focus';
 import { click, hotbar, navigate, trigger } from './dispatch';
@@ -56,6 +56,7 @@ export function initKeyboard(canvas: HTMLCanvasElement) {
     const a = document.activeElement;
     if (a instanceof HTMLButtonElement) a.blur();
     if (CONFIRM.has(k)) trigger('interact');
+    else if (k === 'f') trigger('tool');
     else if (/^Digit[1-9]$/.test(e.code)) hotbar(Number(e.code.slice(5)) - 1);
     else if (k === 'q') trigger('hotbarPrev');
     else if (k === 'r') trigger('hotbarNext');

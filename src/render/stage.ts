@@ -1,6 +1,7 @@
 // Stage: the shared Three.js world plus a tiny "scene" loop for full-screen scripted moments
 // (main menu backdrop, intro cutscene). While a scene runs, the gameplay loop in game.ts idles.
 import { cheetahDataUrl } from '../art/cheetah';
+import { pollInput } from '../input';
 import { buildWorld } from '../world';
 import { sharedWorld3D, type World3D } from './world3d';
 
@@ -43,6 +44,8 @@ export function runScene(kind: SceneKind, tick: (t: number, dt: number) => void)
     if (running !== me) return;
     const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
     last = now;
+    pollInput(dt); // gamepad: menu selection, cutscene advance / skip
+    if (running !== me) return;
     me.tick(now / 1000, dt);
     if (running === me) me.raf = requestAnimationFrame(frame);
   };

@@ -1,5 +1,7 @@
-// Touch UI: a floating virtual joystick (left half of the screen) and Xbox-style action buttons (right).
-// Everything is HTML/CSS; overlays only receive pointer events on the buttons themselves.
+// Touch UI: a floating virtual joystick (appears under the thumb, left half of the screen) and the four
+// A/B/X/Y face buttons in an Xbox diamond (right). Nothing else: no shoulder buttons, no menu button.
+// Everything is HTML/CSS; the overlay only receives pointer events on the buttons themselves.
+// CSS shows it only while the last-used device is touch (body.input-touch).
 import { h, isPanelOpen } from '../ui/dom';
 import { click, trigger, type Action } from './dispatch';
 import { markInput } from './prompts';
@@ -33,6 +35,8 @@ function endJoy(tap: boolean, x: number, y: number) {
   const quick = performance.now() - joy.t0 < TAP_MS && joy.travel < TAP_PX;
   joy.id = -1; joy.x = joy.y = 0;
   base.classList.remove('on');
+  base.style.left = base.style.top = ''; // back to its resting spot (CSS)
+  knob.style.transform = '';
   if (tap && quick) click(x, y); // a quick tap on the left half still taps NPCs / stations / ground
 }
 
@@ -70,7 +74,7 @@ export function initTouch(canvas: HTMLCanvasElement) {
     if (isPanelOpen()) return;
     if (e.clientX >= window.innerWidth / 2 || joy.id !== -1) { click(e.clientX, e.clientY); return; }
     joy.id = e.pointerId; joy.t0 = performance.now(); joy.travel = 0;
-    const m = 70; // keep the whole base on screen
+    const m = 68; // keep the whole base on screen
     joy.ox = Math.min(window.innerWidth - m, Math.max(m, e.clientX));
     joy.oy = Math.min(window.innerHeight - m, Math.max(m, e.clientY));
     base.style.left = joy.ox + 'px'; base.style.top = joy.oy + 'px';
@@ -86,18 +90,17 @@ export function initTouch(canvas: HTMLCanvasElement) {
   canvas.addEventListener('pointerup', (e) => { if (e.pointerId === joy.id) endJoy(true, e.clientX, e.clientY); });
   canvas.addEventListener('pointercancel', (e) => { if (e.pointerId === joy.id) endJoy(false, 0, 0); });
 
-  // ---- action buttons ----
+  // ---- face buttons: Xbox diamond (Y top, X left, B right, A bottom). No shoulder or menu buttons:
+  // the hotbar is tapped directly and the journal lives on the HUD. ----
   const act = (a: Action) => () => trigger(a);
   const A = btn('a', 'A', 'talk', act('interact'));
   const B = btn('b', 'B', 'run', () => { heldRun = true; trigger('cancel'); }, () => { heldRun = false; });
   const X = btn('x', 'X', 'use', act('tool'));
   const Y = btn('y', 'Y', 'bag', act('bag'));
-  const LB = btn('pill lb', 'LB', 'prev', act('hotbarPrev'));
-  const RB = btn('pill rb', 'RB', 'next', act('hotbarNext'));
-  const MENU = btn('pill menu', '✿', 'menu', act('menu'));
-  const pad = h('div', 'touch-ui',
-    h('div', 'tp-top', LB, RB, MENU),
-    h('div', 'tp-face', Y, X, B, A));
-  ui.append(pad);
-  window.addEventListener('blur', () => { heldRun = false; joy.id = -1; joy.x = joy.y = 0; base.classList.remove('on'); });
+  ui.append(h('div', 'touch-ui', h('div', 'tp-face', Y, X, B, A)));
+  window.addEventListener('blur', () => {
+    heldRun = false;
+    for (const b of [A, B, X, Y]) b.classList.remove('down');
+    if (joy.id !== -1) endJoy(false, 0, 0);
+  });
 }

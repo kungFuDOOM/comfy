@@ -1,5 +1,5 @@
-// Device-independent actions. Keyboard, touch and gamepad all funnel through trigger(), which
-// routes to the open panel (focus navigation) or to the game handlers.
+// Device-independent actions. Keyboard, touch and gamepad all funnel through trigger(), which routes to
+// the open panel (focus navigation), then to a full-screen scene (main menu / cutscene), then to the game.
 import { closePanel, isPanelOpen } from '../ui/dom';
 import { confirmFocus, cycleTab, moveFocus, type Dir } from '../ui/focus';
 
@@ -18,8 +18,18 @@ export interface Handlers {
   camReset(): void;
 }
 
-let H: Handlers;
+let H: Handlers | null = null;
 export const setHandlers = (h: Handlers) => { H = h; };
+
+/** What a full-screen scene understands: move the selection, confirm (A), go back / skip (B). */
+export type SceneKey = Dir | 'confirm' | 'back';
+let scene: ((k: SceneKey) => void) | null = null;
+/** The main menu and cutscenes register here so the gamepad drives them too; returns a release function. */
+export function setSceneHandler(fn: (k: SceneKey) => void): () => void {
+  scene = fn;
+  return () => { if (scene === fn) scene = null; };
+}
+export const sceneInputActive = () => scene !== null;
 
 export function trigger(a: Action) {
   if (isPanelOpen()) {
@@ -29,6 +39,12 @@ export function trigger(a: Action) {
     else if (a !== 'tool' && a !== 'camReset') closePanel(); // cancel / bag / journal / help / menu toggle off
     return;
   }
+  if (scene) {
+    if (a === 'interact') scene('confirm');
+    else if (a === 'cancel') scene('back');
+    return;
+  }
+  if (!H) return;
   switch (a) {
     case 'interact': H.interact(); break;
     case 'tool': H.tool(); break;
@@ -44,6 +60,9 @@ export function trigger(a: Action) {
   }
 }
 
-export function hotbar(i: number) { if (!isPanelOpen()) H.hotbarSet(i); }
-export function click(sx: number, sy: number) { if (!isPanelOpen()) H.click(sx, sy); }
-export function navigate(d: Dir) { moveFocus(d); }
+export function hotbar(i: number) { if (!isPanelOpen() && !scene) H?.hotbarSet(i); }
+export function click(sx: number, sy: number) { if (!isPanelOpen() && !scene) H?.click(sx, sy); }
+export function navigate(d: Dir) {
+  if (isPanelOpen()) moveFocus(d);
+  else scene?.(d);
+}

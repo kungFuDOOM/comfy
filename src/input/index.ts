@@ -1,6 +1,6 @@
 // Input façade: merges keyboard, touch joystick and gamepad into one movement/camera reading.
 import { isPanelOpen } from '../ui/dom';
-import { setHandlers, type Handlers } from './dispatch';
+import { sceneInputActive, setHandlers, type Handlers } from './dispatch';
 import { initGamepad, padCamera, padMove, pollGamepad } from './gamepad';
 import { initKeyboard, keyCamera, keyMove } from './keyboard';
 import { initPrompts, markInput } from './prompts';
@@ -18,7 +18,7 @@ export interface Move {
 
 /** Strongest source wins: analog stick/joystick if tilted, else the keyboard. */
 export function readMove(): Move {
-  if (isPanelOpen()) return { x: 0, y: 0, run: false, analog: false };
+  if (isPanelOpen() || sceneInputActive()) return { x: 0, y: 0, run: false, analog: false };
   const t = touchMove(), p = padMove(), k = keyMove();
   const mt = Math.hypot(t.x, t.y), mp = Math.hypot(p.x, p.y);
   const run = k.run || t.run || p.run;
@@ -31,18 +31,27 @@ export function readMove(): Move {
 
 /** Camera rates, each roughly -1..1: orbit (yaw), tilt (pitch), zoom (+ out). */
 export function readCamera() {
-  if (isPanelOpen()) return { orbit: 0, tilt: 0, zoom: 0 };
+  if (isPanelOpen() || sceneInputActive()) return { orbit: 0, tilt: 0, zoom: 0 };
   const p = padCamera(), k = keyCamera();
   return { orbit: p.orbit + k.orbit, tilt: p.tilt, zoom: p.zoom + k.zoom };
 }
 
 export function pollInput(dt: number) { pollGamepad(dt); }
 
-export function initInput(canvas: HTMLCanvasElement, handlers: Handlers) {
-  setHandlers(handlers);
+let devicesReady = false;
+/** Device detection, prompt glyphs and the gamepad. Safe to call early (the main menu does) and more than once. */
+export function initDevices() {
+  if (devicesReady) return;
+  devicesReady = true;
   initPrompts();
+  initGamepad();
+  document.addEventListener('pointerdown', (e) => markInput(e.pointerType === 'touch' ? 'touch' : 'keyboard'), true);
+}
+
+/** Gameplay input: world keyboard/mouse, the touch overlay, and the action handlers. */
+export function initInput(canvas: HTMLCanvasElement, handlers: Handlers) {
+  initDevices();
+  setHandlers(handlers);
   initKeyboard(canvas);
   initTouch(canvas);
-  initGamepad();
-  document.addEventListener('pointerdown', (e) => { if (e.pointerType === 'touch') markInput('touch'); else markInput('keyboard'); }, true);
 }
