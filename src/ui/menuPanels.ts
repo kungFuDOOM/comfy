@@ -4,7 +4,7 @@ import { VILLAGERS } from '../data';
 import { getVolume, setVolume } from '../settings';
 import { btn, h, openPanel } from './dom';
 import { comfyLogo } from './mainMenu';
-import { HELP } from './panels';
+import { helpCards } from './panels';
 
 type SettingsTab = 'sound' | 'controls';
 const TAB_LABELS: Record<SettingsTab, string> = { sound: '♪ Sound', controls: '✿ Controls' };
@@ -36,14 +36,7 @@ function volumeCard(): HTMLElement {
 function controlsView(): HTMLElement[] {
   return [
     h('p', 'muted', 'Play however is comfiest. The card for the device you touched last hops to the top.'),
-    ...HELP.map((sec) => {
-      const el = h('div', 'help-sec', h('div', 'help-title', sec.title),
-        h('div', 'help-grid', ...sec.rows.map(([k, v]) => h('div', 'help-row', h('kbd', '', k), h('span', '', v)))));
-      el.dataset.mode = sec.mode;
-      return el;
-    }),
-    h('div', 'help-sec menus', h('div', 'help-title', 'In menus and windows'),
-      h('div', 'muted', 'D-pad / stick / arrows move the pink ring, A / E chooses, B / Esc goes back, LB RB / Q R switch tabs. On touch, just tap.')),
+    ...helpCards(),
   ];
 }
 
