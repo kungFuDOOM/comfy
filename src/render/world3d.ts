@@ -10,6 +10,7 @@ import { createDynamic } from './dynamic';
 import { createLightRig } from './lighting';
 import { PALETTE } from './materials';
 import { createNature } from './nature';
+import { createParticles } from './particles';
 import { createPost } from './post';
 import { createStructures } from './structures';
 import { createTerrain, heightAtUnits } from './terrain';
@@ -31,8 +32,8 @@ export type Pick =
   | { kind: 'ground'; wx: number; wy: number }; // world pixels (1 tile = TS)
 
 // Camera: high three-quarter view. Offset is relative to the follow target, in tile units.
-const CAM_BACK = 9.5;
-const CAM_UP = 12.5;
+const CAM_BACK = 10;
+const CAM_UP = 12; // slightly shallower pitch so rooftop shop signs stay in frame
 const FOV = 36;
 const MAX_DPR = 2;
 const MAX_DPR_TOUCH = 1.5;
@@ -60,7 +61,8 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   const nature = createNature();
   const structures = createStructures();
   const dynamic = createDynamic();
-  scene.add(terrain.group, nature.group, structures, dynamic.group);
+  const particles = createParticles(); // after structures: reads the café steam vents
+  scene.add(terrain.group, nature.group, structures, dynamic.group, particles.group);
 
   const player = createPlayerMesh();
   scene.add(player.root);
@@ -107,12 +109,13 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const hit = new THREE.Vector3();
   const tmp = new THREE.Vector3();
+  const bufSize = new THREE.Vector2();
 
   return {
     resize,
     snapCamera(px, py) { target.set(px / TS, 0, py / TS); placeCamera(); },
     render(f) {
-      if (f.season.id !== seasonId) { seasonId = f.season.id; terrain.setSeason(f.season); nature.setSeason(f.season); }
+      if (f.season.id !== seasonId) { seasonId = f.season.id; terrain.setSeason(f.season); nature.setSeason(f.season); particles.setSeason(f.season); }
 
       player.setOutfit(f.outfit);
       place(player, f.player.x, f.player.y);
@@ -131,12 +134,14 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       terrain.update(f.t);
 
       // follow cam (smoothed, clamped to the island)
-      const tx = Math.max(6, Math.min(MAP_W - 6, f.player.x / TS)), tz = Math.max(6, Math.min(MAP_H - 6, f.player.y / TS - 0.6));
+      const tx = Math.max(6, Math.min(MAP_W - 6, f.player.x / TS)), tz = Math.max(6, Math.min(MAP_H - 6, f.player.y / TS - 1.2)); // look a touch ahead (north) of the player
       const k = 1 - Math.pow(0.001, f.dt);
       target.x += (tx - target.x) * k; target.z += (tz - target.z) * k;
       placeCamera();
       // continuous (not bucketed) so dawn/dusk blend smoothly and the shadow frustum follows the camera
       rig.update(f.hour, target);
+      const pxScale = renderer.getDrawingBufferSize(bufSize).y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
+      particles.update(f.t, rig.night, target, pxScale, heightAtUnits);
       post.render(rig.night);
     },
     pick(sx, sy, npcs) {
