@@ -1,6 +1,6 @@
 :root {
   --pink: #ff9ec0; --pink-d: #e0709a; --pink-l: #ffe3ee; --cream: #fff8f3; --ink: #7a3b58; --ink-l: #a8708a; --lav: #c9a8e8;
-  --font: ui-rounded, "SF Pro Rounded", "Nunito", "Quicksand", "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
+  --font: "Fredoka", ui-rounded, "SF Pro Rounded", "Nunito", "Quicksand", "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: #bfe6f2; font-family: var(--font); color: var(--ink); touch-action: none; user-select: none; }
