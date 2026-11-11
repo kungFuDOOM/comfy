@@ -1,24 +1,16 @@
 // Small shared helpers for the Three.js layer.
 import * as THREE from 'three';
+import { registerUnlit, toon, type GlowKind } from './materials';
 
-const mats = new Map<string, THREE.MeshLambertMaterial>();
-/** Cached flat-colored material (pastel look, cheap lighting). */
-export function mat(color: string, emissive?: string): THREE.MeshLambertMaterial {
-  const key = color + '|' + (emissive ?? '');
-  let m = mats.get(key);
-  if (!m) {
-    m = new THREE.MeshLambertMaterial({ color });
-    if (emissive) { m.emissive = new THREE.Color(emissive); m.emissiveIntensity = 0; nightMats.push(m); }
-    mats.set(key, m);
-  }
-  return m;
+/** Cached soft-toon material from the shared palette/ramp (materials.ts). Emissive colors fade in at night. */
+export function mat(color: string, emissive?: string, glow: GlowKind = 'window'): THREE.MeshToonMaterial {
+  return emissive ? toon(color, { emissive, glow }) : toon(color);
 }
-/** Materials whose emissiveIntensity follows the night factor (windows, lamps). */
-export const nightMats: THREE.MeshLambertMaterial[] = [];
 
 export function mesh(geo: THREE.BufferGeometry, color: string | THREE.Material, x = 0, y = 0, z = 0): THREE.Mesh {
   const m = new THREE.Mesh(geo, typeof color === 'string' ? mat(color) : color);
   m.position.set(x, y, z);
+  m.castShadow = m.receiveShadow = true;
   return m;
 }
 
@@ -50,7 +42,7 @@ export function makeLabel(text: string, width: number): THREE.Mesh {
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   labels.push({ tex, text, w: c.width, h: c.height });
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(width, width / 4), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(width, width / 4), registerUnlit(new THREE.MeshBasicMaterial({ map: tex, transparent: true })));
   return m;
 }
 // Repaint once the web font is ready.

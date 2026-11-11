@@ -3,14 +3,16 @@ import * as THREE from 'three';
 import type { Facing } from '../art/characters';
 import type { OutfitDef } from '../data';
 import type { Npc } from '../npc';
-import { darkness, skyTint, type Season } from '../time';
+import type { Season } from '../time';
 import { MAP_H, MAP_W, TS } from '../world';
 import { createPlayerMesh, createVillagerMesh, type ActorMesh } from './actors';
 import { createDynamic } from './dynamic';
+import { createLightRig } from './lighting';
+import { PALETTE } from './materials';
 import { createNature } from './nature';
+import { createPost } from './post';
 import { createStructures } from './structures';
 import { createTerrain, heightAtUnits } from './terrain';
-import { nightMats } from './util';
 
 export interface FrameInput {
   t: number;
@@ -32,6 +34,8 @@ export type Pick =
 const CAM_BACK = 9.5;
 const CAM_UP = 12.5;
 const FOV = 36;
+const MAX_DPR = 2;
+const MAX_DPR_TOUCH = 1.5;
 
 export interface World3D {
   resize(): void;
@@ -40,30 +44,17 @@ export interface World3D {
   snapCamera(px: number, py: number): void;
 }
 
-/** Light + sky + lit-window response to the time of day. Replace for a fancier sky later. */
-export function setDayNight(scene: THREE.Scene, rig: { hemi: THREE.HemisphereLight; sun: THREE.DirectionalLight }, hour: number) {
-  const [r, g, b] = skyTint(hour);
-  const tint = new THREE.Color(r / 255, g / 255, b / 255).convertSRGBToLinear();
-  const night = darkness(hour);
-  rig.hemi.color.set('#ffffff').multiply(tint);
-  rig.hemi.groundColor.set('#ffe6ef').multiply(tint);
-  rig.sun.color.set('#fff6ea').multiply(tint);
-  rig.sun.intensity = 0.7 * (1 - night * 0.5);
-  (scene.background as THREE.Color).set('#bfe6f2').multiply(tint);
-  (scene.fog as THREE.Fog).color.copy(scene.background as THREE.Color);
-  for (const m of nightMats) m.emissiveIntensity = night * 1.1;
-}
-
 export function createWorld3D(canvas: HTMLCanvasElement): World3D {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  // No canvas MSAA: the post stack renders into its own multisampled HDR target.
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color('#bfe6f2');
-  scene.fog = new THREE.Fog('#bfe6f2', 45, 95);
+  scene.background = new THREE.Color(PALETTE.sky); // sky + fog colors are driven by the light rig
+  scene.fog = new THREE.Fog(PALETTE.sky, 45, 95);
   const camera = new THREE.PerspectiveCamera(FOV, 1, 0.5, 200);
-  const hemi = new THREE.HemisphereLight('#ffffff', '#ffe6ef', 1.0);
-  const sun = new THREE.DirectionalLight('#fff6ea', 0.7);
-  sun.position.set(-8, 14, 6);
-  scene.add(hemi, sun);
+  const rig = createLightRig(scene); // day/night key + fill, lamp point lights, glow materials
+  const post = createPost(renderer, scene, camera); // HDR -> lamp/lantern bloom -> tone map
 
   const terrain = createTerrain();
   const nature = createNature();
@@ -76,16 +67,17 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   const villagers = new Map<string, ActorMesh>();
 
   let seasonId = '';
-  let lastHourBucket = -1;
   const target = new THREE.Vector3(30, 0, 24);
   const camPos = new THREE.Vector3();
   let aspect = 1;
   const actorY = new Map<ActorMesh, number>();
 
   function resize() {
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    // cap the pixel ratio (lower on touch devices): the HDR MSAA target + bloom scale with it
+    const dpr = Math.min(matchMedia('(pointer: coarse)').matches ? MAX_DPR_TOUCH : MAX_DPR, window.devicePixelRatio || 1);
     renderer.setPixelRatio(dpr);
     renderer.setSize(window.innerWidth, window.innerHeight, false);
+    post.setSize(window.innerWidth, window.innerHeight, dpr);
     canvas.style.width = window.innerWidth + 'px';
     canvas.style.height = window.innerHeight + 'px';
     aspect = window.innerWidth / window.innerHeight;
@@ -121,8 +113,6 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
     snapCamera(px, py) { target.set(px / TS, 0, py / TS); placeCamera(); },
     render(f) {
       if (f.season.id !== seasonId) { seasonId = f.season.id; terrain.setSeason(f.season); nature.setSeason(f.season); }
-      const bucket = Math.round(f.hour * 20);
-      if (bucket !== lastHourBucket) { lastHourBucket = bucket; setDayNight(scene, { hemi, sun }, f.hour); }
 
       player.setOutfit(f.outfit);
       place(player, f.player.x, f.player.y);
@@ -144,7 +134,9 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       const k = 1 - Math.pow(0.001, f.dt);
       target.x += (tx - target.x) * k; target.z += (tz - target.z) * k;
       placeCamera();
-      renderer.render(scene, camera);
+      // continuous (not bucketed) so dawn/dusk blend smoothly and the shadow frustum follows the camera
+      rig.update(f.hour, target);
+      post.render(rig.night);
     },
     pick(sx, sy, npcs) {
       const r = canvas.getBoundingClientRect();

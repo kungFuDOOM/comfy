@@ -5,6 +5,7 @@ import { FLIGHT, flyers, slotPos } from '../lanterns';
 import { LANTERN_KINDS } from '../art/lantern';
 import { state, type Spawn } from '../state';
 import { AREAS, GROVE, TS } from '../world';
+import { contactShadow, PALETTE, toon } from './materials';
 import { ball, box, cyl, mat } from './util';
 import { tileHeight } from './terrain';
 
@@ -16,12 +17,13 @@ export function createDecor(id: string): THREE.Group {
   switch (id) {
     case 'd_pouf': g.add(cyl(0.35, 0.38, 0.4, '#ffb3cf', 0, 0.2, 0)); break;
     case 'd_rug': g.add(box(0.92, 0.04, 0.92, '#f9deb0', 0, 0.03, 0)); break;
-    case 'd_lamp': g.add(cyl(0.04, 0.05, 0.9, '#c99a7a', 0, 0.45, 0)); g.add(cyl(0.2, 0.3, 0.3, '#ffe6ef', 0, 0.95, 0)); break;
+    case 'd_lamp': g.add(cyl(0.04, 0.05, 0.9, PALETTE.wood, 0, 0.45, 0)); g.add(cyl(0.2, 0.3, 0.3, mat('#ffe6ef', PALETTE.lampGlow, 'lamp'), 0, 0.95, 0)); break;
     case 'd_shelf': g.add(box(0.6, 1.0, 0.3, '#ffc3da', 0, 0.5, 0)); break;
     case 'd_teacup': g.add(cyl(0.28, 0.2, 0.3, '#ffffff', 0, 0.15, 0)); g.add(ball(0.2, '#ff9ec0', 0, 0.35, 0)); break;
     case 'd_chair': g.add(box(0.6, 0.4, 0.6, '#f9deb0', 0, 0.2, 0)); g.add(box(0.6, 0.5, 0.12, '#f9deb0', 0, 0.65, -0.24)); break;
     default: g.add(ball(0.3, '#ffb3cf', 0, 0.3, 0));
   }
+  if (id !== 'd_rug') g.add(contactShadow(0.9));
   return g;
 }
 
@@ -81,7 +83,7 @@ export function createDynamic(): Dynamic {
           if (rec) plotsRoot.remove(rec.obj);
           const obj = new THREE.Group();
           obj.position.set(x + 0.5, tileHeight(x, y), y + 0.5);
-          obj.add(box(0.88, 0.08, 0.88, wet ? '#9b6f58' : '#c99a7a', 0, 0.04, 0));
+          obj.add(box(0.88, 0.08, 0.88, wet ? '#c48f8a' : PALETTE.wood, 0, 0.04, 0));
           if (p.crop) { const c = createCrop(p.crop, stage); c.position.y = 0.08; obj.add(c); }
           plotsRoot.add(obj);
           rec = { sig, obj }; plotMeshes.set(k, rec);
@@ -106,7 +108,8 @@ export function createDynamic(): Dynamic {
       for (const s of state.spawns) {
         let m = spawnMeshes.get(s);
         if (!m) {
-          m = new THREE.Mesh(spawnGeo, mat(SPAWN_COLOR[s.item] ?? '#fff', s.item === 'moth' ? '#fff3a8' : undefined));
+          m = new THREE.Mesh(spawnGeo, s.item === 'moth' ? mat(SPAWN_COLOR.moth, PALETTE.lampGlow, 'lamp') : mat(SPAWN_COLOR[s.item] ?? '#ffffff'));
+          m.castShadow = s.item !== 'moth';
           spawnRoot.add(m); spawnMeshes.set(s, m);
         }
         m.position.set(s.x / TS, tileHeight(Math.floor(s.x / TS), Math.floor(s.y / TS)) + 0.35 + Math.sin(t * 2.5 + s.x) * 0.06 + (s.item === 'moth' ? 0.25 : 0), s.y / TS);
@@ -122,7 +125,7 @@ export function createDynamic(): Dynamic {
         let m = lanternMeshes.get(l.id);
         if (!m) {
           const meta = LANTERN_KINDS.find((k) => k.id === l.kind)!;
-          m = new THREE.Mesh(lanternGeo, new THREE.MeshBasicMaterial({ color: meta.bottom }));
+          m = new THREE.Mesh(lanternGeo, toon(meta.top, { emissive: meta.bottom, glow: 'lamp' })); // paper by day, HDR glow (bloom) at night
           lanternRoot.add(m); lanternMeshes.set(l.id, m);
         }
         const to = lanternPos(i), f = flying.get(l.id);

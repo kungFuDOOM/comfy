@@ -24,7 +24,7 @@ const look = (key: string, keyI: number, sky: string, ground: string, fillI: num
 export const LOOKS = {
   day: look('#fff4e2', 1.65, '#e6f4ff', '#ffe6d6', 1.7, PALETTE.sky, '#ffffff', 0.4, '#d6ccd8', '#ffffff'),
   golden: look('#ffd3a1', 1.75, '#ffe6da', '#ffd2b8', 1.35, '#ffd8c0', '#fff0d0', 0.45, '#dcc8c4', '#fff0e4'),
-  night: look('#dce7ff', 0.62, '#b9cbf6', '#94a6d6', 0.9, '#24407c', '#cfe0ff', 0.32, '#c4c8dc', '#8e9cc4'),
+  night: look('#cfdcff', 0.62, '#a6bcff', '#8799e2', 0.92, '#24407c', '#cfe0ff', 0.32, '#c4c8dc', '#8e9cc4'),
 };
 
 const SHADOW_HALF = 23;    // half-size of the shadow frustum, tile units
