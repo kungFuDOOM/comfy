@@ -3,6 +3,7 @@ import { drawPlayer, drawVillager } from '../art/characters';
 import { cheetahDataUrl } from '../art/cheetah';
 import { coinIcon, itemIcon } from '../art/icons';
 import { drawLantern, LANTERN_KINDS } from '../art/lantern';
+import { enterPlace, leavePlace, sfx } from '../audio';
 import { toast } from '../bus';
 import { canBrew, brewing, startBrew } from '../cafe';
 import { buyDecor, buyOutfit, currentOutfit, endPreview, outfitById, tryOn, wear } from '../boutique';
@@ -15,6 +16,7 @@ import { state } from '../state';
 import { getClock } from '../time';
 import { glyphEl } from '../input/prompts';
 import { btn, h, openPanel, type PanelApi } from './dom';
+import { openPause } from './menuPanels';
 import { npcs } from '../npc';
 import { GROVE } from '../world';
 
@@ -30,6 +32,32 @@ function canvasEl(w: number, h2: number, draw: (g: CanvasRenderingContext2D) => 
 }
 
 // ---------- Dialogue ----------
+const TYPE_CPS = 46;
+/** Speech bubble that types out its text with a per-speaker blip; tap it to show the whole line at once. */
+function typedBubble(text: string, speaker: string, api: PanelApi): HTMLElement {
+  const shownEl = h('span', ''), restEl = h('span', 'cs-rest');
+  restEl.style.visibility = 'hidden'; // reserves the bubble's final size so it does not reflow
+  restEl.textContent = text;
+  const el = h('div', 'bubble', shownEl, restEl);
+  let n = 0;
+  const reveal = (to: number) => {
+    n = Math.min(text.length, to);
+    shownEl.textContent = text.slice(0, n);
+    restEl.textContent = text.slice(n);
+  };
+  const t0 = performance.now();
+  const iv = window.setInterval(() => {
+    const want = Math.floor(((performance.now() - t0) / 1000) * TYPE_CPS);
+    if (want <= n) return;
+    for (let i = n; i < Math.min(text.length, want); i++) if (/\S/.test(text[i]) && i % 2 === 0) { sfx.blip(speaker, i); break; }
+    reveal(want);
+    if (n >= text.length) clearInterval(iv);
+  }, 30);
+  api.cleanup(() => clearInterval(iv));
+  el.addEventListener('click', () => { reveal(text.length); clearInterval(iv); });
+  return el;
+}
+
 export function openDialogue(def: VillagerDef) {
   const npc = npcs.find((n) => n.def.id === def.id);
   if (npc) npc.busy = true;
@@ -46,7 +74,7 @@ export function openDialogue(def: VillagerDef) {
         h('div', 'dlg-main',
           h('div', 'dlg-sub', `${def.speciesName} · ${def.personality}`),
           h('div', 'hearts', hearts5(def.id)),
-          h('div', 'bubble', line),
+          typedBubble(line, def.id, api),
           note ? h('div', 'note', note) : null,
         ),
       ),
@@ -65,6 +93,7 @@ export function openDialogue(def: VillagerDef) {
 // ---------- Café ----------
 export function openCafe() {
   let tab: 'brew' | 'pantry' = 'brew';
+  enterPlace('cafe');
   openPanel('Puddle & Pip Café', (body, api) => {
     body.append(h('div', 'tabs', tabBtn('Brew', tab === 'brew', () => { tab = 'brew'; api.rerender(); }), tabBtn('Pantry', tab === 'pantry', () => { tab = 'pantry'; api.rerender(); })));
     if (tab === 'brew') {
@@ -92,7 +121,7 @@ export function openCafe() {
       body.append(h('div', 'muted', 'Fresh ingredients for the counter.'));
       for (const id of SHOP_INGREDIENTS) body.append(shopRow(id, ITEMS[id].buy!, () => buyItem(id, api)));
     }
-  });
+  }, () => leavePlace());
 }
 
 function buyItem(id: string, api: PanelApi) {
@@ -107,6 +136,7 @@ function shopRow(id: string, cost: number, onBuy: () => void) {
 // ---------- Boutique ----------
 export function openBoutique() {
   let tab: 'outfits' | 'decor' = 'outfits';
+  enterPlace('boutique');
   openPanel('Spot & Bow Boutique', (body, api) => {
     body.style.setProperty('--cheetah', `url(${cheetahDataUrl('classic')})`);
     body.append(h('div', 'cheetah-band'),
@@ -129,7 +159,7 @@ export function openBoutique() {
       body.append(h('div', 'muted', 'Decor for your yard. Select it on the hotbar and face a yard tile.'));
       for (const id of SHOP_DECOR) body.append(shopRow(id, ITEMS[id].buy!, () => { if (buyDecor(id)) api.rerender(); }));
     }
-  }, () => endPreview(), true);
+  }, () => { endPreview(); leavePlace(); }, true);
 }
 
 // ---------- Market ----------
@@ -215,6 +245,7 @@ export function openJournal(start = 'quests') {
     } else {
       renderLanternTab(body, api);
     }
+    body.append(h('div', 'row end', btn('❚❚ Pause menu', () => openPause(), 'ghost small')));
   });
 }
 
@@ -267,13 +298,13 @@ export const HELP: { mode: 'keyboard' | 'gamepad' | 'touch'; title: string; rows
     ['WASD / Arrows', 'Walk, smoothly and relative to the camera'], ['Shift', 'Hold to run'],
     ['E / Space', 'Talk, shop, and use what you are facing'], ['F', 'Use the selected hotbar item on the tile in front'],
     ['Click', 'Walk there, or interact with what you click'], ['1–9 / Q R / Wheel', 'Choose a hotbar slot'],
-    ['B', 'Bag & wardrobe'], ['J', 'Journal'], ['L', 'Lantern grove'], ['H', 'This help'], ['Esc', 'Close a window'],
+    ['B', 'Bag & wardrobe'], ['J', 'Journal'], ['L', 'Lantern grove'], ['H', 'This help'], ['Esc', 'Pause menu (settings, back to title) · closes a window'],
     ['[ ]  ·  - =', 'Orbit camera  ·  zoom (Backspace resets)'],
   ] },
   { mode: 'gamepad', title: 'Controller', rows: [
     ['Left stick', 'Walk — a small tilt strolls, a full tilt runs'], ['A', 'Talk, shop, interact'],
     ['B', 'Hold to run · cancel · close a window'], ['X', 'Use the selected hotbar item on the tile in front'],
-    ['Y', 'Bag & wardrobe'], ['LB / RB', 'Previous / next hotbar slot'], ['Start', 'Journal'], ['View', 'Bag'],
+    ['Y', 'Bag & wardrobe'], ['LB / RB', 'Previous / next hotbar slot'], ['Start', 'Pause menu (settings, back to title)'], ['View', 'Bag'],
     ['D-pad', 'Move the focus ring in windows (◀ ▶ also steps the hotbar)'],
     ['Right stick', 'Orbit and tilt the camera (click it to reset)'], ['LT / RT', 'Zoom out / zoom in'],
   ] },
@@ -281,7 +312,7 @@ export const HELP: { mode: 'keyboard' | 'gamepad' | 'touch'; title: string; rows
     ['Drag the left side', 'A joystick appears under your thumb — a gentle drag walks, a full drag runs'],
     ['A', 'Talk, shop, interact'], ['B', 'Hold to run · cancel'], ['X', 'Use the selected hotbar item on the tile in front'],
     ['Y', 'Bag & wardrobe'], ['Hotbar', 'Tap a slot to switch tools'], ['Tap the island', 'Walk there, or talk to who you tap'],
-    ['Top buttons', 'Journal, bag and this help'],
+    ['Top buttons', 'Journal, bag and this help'], ['Journal › Pause', 'Resume, settings, or back to the title'],
   ] },
 ];
 

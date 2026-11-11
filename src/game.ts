@@ -1,5 +1,6 @@
 // Game orchestration: loop, interaction, and hooking simulation up to the Three.js renderer.
 import { cheetahDataUrl } from './art/cheetah';
+import { setMood, sfx, updateDirector } from './audio';
 import { currentOutfit } from './boutique';
 import { updateBrew } from './cafe';
 import { spawnOne, updateCollect } from './collect';
@@ -7,10 +8,10 @@ import { decorHint, useYard } from './decorate';
 import { gardenHint, tickGarden, useGarden } from './garden';
 import { glyph, initInput, pollInput, readCamera, readMove } from './input';
 import { updateLanterns } from './lanterns';
-import { initNpcs, npcs, talkedToday, updateNpcs, type Npc } from './npc';
+import { initNpcs, npcs, presentNpcs, talkedToday, updateNpcs, type Npc } from './npc';
 import { faceToward, frontTile, placePlayer, player, tileOf, updatePlayer, walkTo, cancelPath } from './player';
 import { selectSlot } from './inventory';
-import { toast } from './bus';
+import { changed, toast } from './bus';
 import { sceneActive } from './render/stage';
 import { sharedWorld3D, type World3D } from './render/world3d';
 import { saveGame } from './save';
@@ -19,7 +20,8 @@ import { getClock } from './time';
 import { isPanelOpen } from './ui/dom';
 import { buildHud, setHint, tickHud } from './ui/hud';
 import { openBag, openBoutique, openCafe, openDialogue, openHelp, openJournal, openMarket } from './ui/panels';
-import { TS, buildWorld, inYard, isPlotTile, isSolidTile, stations, type Station } from './world';
+import { openPause } from './ui/menuPanels';
+import { T, TS, buildWorld, inYard, isPlotTile, isSolidTile, stations, terrainAt, type Station } from './world';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 let world3d: World3D;
@@ -41,7 +43,7 @@ function stationNear(): Station | null {
 
 function npcNear(): Npc | null {
   let best: Npc | null = null, bd = 46;
-  for (const n of npcs) { const d = Math.hypot(n.x - player.x, n.y - player.y); if (d < bd) { best = n; bd = d; } }
+  for (const n of presentNpcs()) { const d = Math.hypot(n.x - player.x, n.y - player.y); if (d < bd) { best = n; bd = d; } }
   return best;
 }
 
@@ -77,7 +79,7 @@ function interact() {
 function handleClick(sx: number, sy: number) {
   if (isPanelOpen()) return;
   // Raycast the 3D scene: villager / station / else the ground point (world px, 1 tile = TS).
-  const pick = world3d.pick(sx, sy, npcs);
+  const pick = world3d.pick(sx, sy, presentNpcs());
   if (!pick) return;
   const around = (x: number, y: number) => [{ x: x + 1, y }, { x: x - 1, y }, { x, y: y + 1 }, { x, y: y - 1 }];
   if (pick.kind === 'npc') {
@@ -126,6 +128,8 @@ function update(dt: number) {
   // camera-relative movement: input forward (-y) is away from the camera
   const mv = readMove(), yaw = world3d.yaw(), c = Math.cos(yaw), sn = Math.sin(yaw);
   updatePlayer(dt, c * mv.x + sn * mv.y, -sn * mv.x + c * mv.y, mv.run, mv.analog);
+  footsteps(mv.run);
+  updateDirector(dt);
   updateNpcs(dt);
   updateBrew(dt);
   updateLanterns(dt);
@@ -139,7 +143,21 @@ function update(dt: number) {
   if (seenHelpTimer > 0 && !state.seenHelp) { seenHelpTimer -= dt; if (seenHelpTimer <= 0) openHelp(); }
 }
 
-function persist() {
+// Footsteps are paced by distance walked (not time), so they match the stride at any speed.
+let stepDist = 0, stepAlt = false, lastX = 0, lastY = 0;
+function footsteps(run: boolean) {
+  const d = Math.hypot(player.x - lastX, player.y - lastY);
+  lastX = player.x; lastY = player.y;
+  if (!player.moving || d > 20) { if (!player.moving) stepDist = Math.max(0, stepDist - 2); return; } // (big jumps are teleports)
+  stepDist += d;
+  if (stepDist < (run ? 26 : 20)) return;
+  stepDist = 0; stepAlt = !stepAlt;
+  const t = tileOf(), ter = terrainAt(t.x, t.y);
+  sfx.step(ter === T.Sand ? 'sand' : ter === T.Path || ter === T.Plaza ? 'path' : 'grass', stepAlt, run);
+}
+
+/** Write the player's position and the save now. */
+export function persist() {
   state.px = player.x; state.py = player.y; state.facing = player.facing;
   saveGame();
 }
@@ -149,18 +167,31 @@ function render(t: number, dt: number) {
   const clock = getClock();
   world3d.render({
     t, dt, hour: clock.hour, season: clock.season,
-    player, outfit: currentOutfit(), npcs, talkedToday,
+    player, outfit: currentOutfit(), npcs: presentNpcs(), talkedToday,
   });
 }
 
-let started = false;
+let booted = false;
+/**
+ * Enter (or re-enter) gameplay. The first call builds the renderer, HUD, input and the loop; later calls (after
+ * "Back to title" -> Continue) only re-seat the world from the current state, so nothing is built twice.
+ */
 export function startGame() {
-  if (started) return; // safe to call from both the menu's Continue and the intro's onDone
-  started = true;
   buildWorld();
   initNpcs();
   placePlayer();
+  for (const n of npcs) n.busy = false;
   if (!state.spawns.length) for (let i = 0; i < 10; i++) spawnOne(player.x, player.y);
+  lastX = player.x; lastY = player.y; stepDist = 0;
+  setMood('town');
+  if (booted) {
+    cancelPath();
+    world3d.snapCamera(player.x, player.y);
+    changed();
+    tickHud();
+    return;
+  }
+  booted = true;
   document.documentElement.style.setProperty('--cheetah', `url(${cheetahDataUrl('classic')})`);
   document.documentElement.style.setProperty('--cheetah-pink', `url(${cheetahDataUrl('pink')})`);
   world3d = sharedWorld3D(canvas);
@@ -168,7 +199,7 @@ export function startGame() {
   window.addEventListener('resize', () => world3d.resize());
   buildHud({ journal: (tab) => !isPanelOpen() && openJournal(tab), bag: () => !isPanelOpen() && openBag(), help: () => !isPanelOpen() && openHelp() });
   initInput(canvas, {
-    interact, tool: useTool, cancel: cancelPath,
+    interact, tool: useTool, cancel: cancelPath, pause: openPause,
     bag: openBag, journal: openJournal, help: openHelp,
     hotbarStep: (d) => selectSlot(state.sel + d), hotbarSet: selectSlot,
     click: handleClick, camReset: () => world3d.resetCamera(),
@@ -177,11 +208,12 @@ export function startGame() {
   document.addEventListener('visibilitychange', () => { if (document.hidden) persist(); });
   world3d.snapCamera(player.x, player.y);
 
+  // The loop parks itself (just re-arms) while the main menu or a cutscene owns the screen.
   let last = performance.now(), hudT = 0;
   const frame = (now: number) => {
     const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
     last = now;
-    if (sceneActive()) { requestAnimationFrame(frame); return; } // main menu / cutscene owns the screen
+    if (sceneActive()) { requestAnimationFrame(frame); return; }
     update(dt);
     render(now / 1000, dt);
     hudT += dt;

@@ -1,5 +1,6 @@
 // Villagers: wandering, dialogue, friendship hearts, gifts and serving drinks.
 import { drawVillager, type Facing } from './art/characters';
+import { sfx } from './audio';
 import { changed } from './bus';
 import { ITEMS, VILLAGERS, type VillagerDef } from './data';
 import { removeItem } from './inventory';
@@ -11,6 +12,11 @@ import { TS, isWalkable } from './world';
 
 export interface Npc { def: VillagerDef; x: number; y: number; tx: number; ty: number; wait: number; facing: Facing; moving: boolean; busy: boolean }
 export const npcs: Npc[] = [];
+
+/** Is this villager around right now? (Nimbus only drifts in at dusk.) */
+export const isPresent = (n: Npc, phase = getClock().phase) => !n.def.phases || n.def.phases.includes(phase);
+/** Villagers currently on the island; use this for rendering, picking and interaction. */
+export const presentNpcs = (): Npc[] => { const ph = getClock().phase; return npcs.filter((n) => isPresent(n, ph)); };
 
 export function initNpcs() {
   if (npcs.length) return;
@@ -80,6 +86,7 @@ export function give(def: VillagerDef, itemId: string): Reply | null {
   }
   if (!removeItem(itemId)) return null;
   list.push(def.id);
+  sfx.gift();
   const liked = def.likes.includes(itemId);
   const gain = liked ? 20 : isDrink ? 8 : 4;
   addFriend(def.id, gain);

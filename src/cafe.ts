@@ -1,4 +1,5 @@
 // Café: brew coffee drinks. Serving happens through villager dialogue.
+import { sfx } from './audio';
 import { RECIPES, ITEMS } from './data';
 import { changed, toast } from './bus';
 import { addItem, count, removeItem } from './inventory';
@@ -26,6 +27,7 @@ export function updateBrew(dt: number) {
   if (brewing.left <= 0) {
     addItem(brewing.id);
     toast(`${ITEMS[brewing.id].name} is ready! Serve it to a friend ☕`);
+    sfx.ding();
     bump('brewed');
     brewing.id = '';
     changed();

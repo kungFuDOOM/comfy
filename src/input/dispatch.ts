@@ -9,6 +9,8 @@ export interface Handlers {
   interact(): void;
   tool(): void;
   cancel(): void;
+  /** Esc / Start in the world: the pause menu. */
+  pause(): void;
   bag(): void;
   journal(tab: string): void;
   help(): void;
@@ -51,7 +53,7 @@ export function trigger(a: Action) {
     case 'cancel': H.cancel(); break;
     case 'bag': H.bag(); break;
     case 'journal': H.journal('quests'); break;
-    case 'menu': H.journal('quests'); break;
+    case 'menu': H.pause(); break;
     case 'lantern': H.journal('lanterns'); break;
     case 'help': H.help(); break;
     case 'hotbarPrev': H.hotbarStep(-1); break;

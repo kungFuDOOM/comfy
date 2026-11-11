@@ -5,12 +5,14 @@ import '@fontsource/fredoka/700.css';
 import './styles.css';
 import './ui/toast';
 import { bootIntoGame, bootWithMenu } from './boot';
+import { initAudio } from './audio';
 import { startIntroCutscene } from './cutscene/intro';
 import { startGame } from './game';
 import { initDevices } from './input';
 import { loadGame } from './save';
 
 loadGame();
+initAudio(); // unlocks on the first gesture; nothing plays before that
 initDevices(); // prompt glyphs + gamepad hot-plug from the very first screen
 
 // The game opens on the main menu. Shortcuts for testing:

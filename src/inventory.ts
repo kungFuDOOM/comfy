@@ -1,3 +1,4 @@
+import { sfx } from './audio';
 import { ITEMS } from './data';
 import { changed } from './bus';
 import { state } from './state';
@@ -28,7 +29,9 @@ export function removeItem(id: string, n = 1): boolean {
 export const selectedItem = (): string | null => state.hotbar[state.sel] ?? null;
 
 export function selectSlot(i: number) {
-  state.sel = (i + 9) % 9;
+  const next = (i + 9) % 9;
+  if (next !== state.sel) sfx.tick();
+  state.sel = next;
   changed();
 }
 
@@ -39,10 +42,11 @@ export function assignHotbar(id: string) {
   changed();
 }
 
-export function earn(n: number) { state.coins += n; changed(); }
+export function earn(n: number) { state.coins += n; if (n > 0) sfx.coin(); changed(); }
 export function spend(n: number): boolean {
   if (state.coins < n) return false;
   state.coins -= n;
+  if (n > 0) sfx.spend();
   changed();
   return true;
 }

@@ -164,6 +164,7 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       place(player, f.player.x, f.player.y);
       player.setFacing(f.player.facing, f.dt);
       player.animate(f.t, f.player.moving);
+      for (const [id, v] of villagers) v.root.visible = f.npcs.some((n) => n.def.id === id); // absent villagers (e.g. Nimbus by day) hide
       for (const n of f.npcs) {
         let v = villagers.get(n.def.id);
         if (!v) { v = createVillagerMesh(n.def); villagers.set(n.def.id, v); scene.add(v.root); }

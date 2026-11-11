@@ -49,7 +49,7 @@ body.scene .toasts { top: max(14px, env(safe-area-inset-top)); }
 .mm-label { flex: 1; text-shadow: 0 2px 0 rgba(150, 40, 90, 0.38); position: relative; z-index: 1; }
 .mm-paw { font-size: 17px; opacity: 0; transform: scale(0.3); transition: opacity 0.14s, transform 0.2s cubic-bezier(0.3, 1.8, 0.5, 1); text-shadow: 0 2px 0 rgba(150, 40, 90, 0.3); position: relative; z-index: 1; }
 /* quieter frames for the secondary entries */
-.mm-settings, .mm-credits { --a: #fffdfb; --b: #ffeef4; --edge: #f5a3c2; --deep: #eb8fb3; --ink: #c04d7e; height: 50px; font-size: 18px; }
+.mm-settings, .mm-credits { --a: #fffdfb; --b: #ffeef4; --edge: #f5a3c2; --deep: #eb8fb3; --ink: #c04d7e; height: 54px; font-size: 19px; }
 .mm-settings .mm-label, .mm-credits .mm-label { text-shadow: none; }
 .mm-settings .mm-ico, .mm-credits .mm-ico { background: #ffe3ee; width: 34px; height: 34px; }
 .mm-settings::before, .mm-credits::before { border-color: rgba(245, 163, 194, 0.7); }
@@ -160,3 +160,10 @@ body.input-touch .mm-hints, body:not(.input-keyboard):not(.input-gamepad) .mm-hi
 }
 /* help cards reorder themselves (styles.css); keep the closing row last */
 .panel-body > .row.end { order: 20; }
+
+/* ================= Pause menu + sound hint ================= */
+.pause-list { display: flex; flex-direction: column; gap: 12px; margin: 10px auto 4px; width: min(320px, 100%); }
+.btn.pause-btn { min-height: 52px; font-size: 18px; border-radius: 999px; justify-content: center; }
+.btn.pause-btn.primary { background: linear-gradient(#ffb9d3, #f585b1); color: #fff; text-shadow: 0 2px 0 rgba(150, 40, 90, 0.35); }
+.mm-snd { padding: 4px 12px; border-radius: 999px; background: rgba(255, 248, 243, 0.86); border: 2px solid #ffd6e6; color: var(--pink-ink); animation: twinkle 2.4s ease-in-out infinite; }
+.mm-snd[hidden] { display: none; }

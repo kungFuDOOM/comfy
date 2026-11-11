@@ -40,7 +40,7 @@ export function initKeyboard(canvas: HTMLCanvasElement) {
     if (e.repeat) { if (isPanelOpen() && NAV[k]) navigate(NAV[k]); return; }
     if (!fresh && !isPanelOpen()) return;
 
-    if (k === 'escape') { trigger('cancel'); return; }
+    if (k === 'escape') { trigger('menu'); return; } // closes a window, else opens the pause menu
     if (isPanelOpen()) {
       if (NAV[k]) { e.preventDefault(); navigate(NAV[k]); }
       else if (CONFIRM.has(k)) { e.preventDefault(); confirmFocus(); }

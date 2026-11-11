@@ -260,9 +260,9 @@ export function drawVillager(
   shadow(ctx, 0, 0, 11, 3.6, 0.24);
   switch (def.species) {
     case 'dormouse': dormouse(ctx, def, p, t); break;
-    case 'cheetah': cheetah(ctx, def, p, t); break;
+    case 'hamster': hamster(ctx, def, p, t); break;
     case 'hedgehog': hedgehog(ctx, def, p, t); break;
-    case 'owl': owl(ctx, def, p, t); break;
+    case 'bunny': bunny(ctx, def, p, t); break;
   }
   ctx.restore();
   if (bubble) {
@@ -367,52 +367,54 @@ function dormouse(ctx: CanvasRenderingContext2D, def: VillagerDef, p: Pose, t: n
   star(ctx, hx - 2, hy - 11.6, 1.3, '#ffd36e');
 }
 
-// --- Zuzu: spotted cheetah cub ---
-function cheetah(ctx: CanvasRenderingContext2D, def: VillagerDef, p: Pose, t: number) {
+// --- Dottie ("zuzu"): cheetah-spotted hamster ---
+// Small and round, chubby cheeks, tiny ears, little snout, with cheetah spots on fur and a cheetah-print pinafore.
+function hamster(ctx: CanvasRenderingContext2D, def: VillagerDef, p: Pose, t: number) {
   const c = def.color, a = def.accent, belly = '#fff6e6';
-  feet(ctx, p, c, 3.4, 2.8);
+  feet(ctx, p, c, 3.2, 2.7);
   applyBody(ctx, p);
-  // long curvy tail with rings
-  const sway = Math.sin(t * 2.6) * 2.4;
-  const dir = p.side ? -p.side : 1;
-  ctx.beginPath(); ctx.moveTo(dir * 5, -6); ctx.bezierCurveTo(dir * 14, -6, dir * 14, -16 + sway, dir * 10 + sway * 0.4, -22);
-  ink(ctx, 5, INK); ink(ctx, 3.1, c);
-  const bz = (k: number, p0: number, p1: number, p2: number, p3: number) => {
-    const m = 1 - k; return m * m * m * p0 + 3 * m * m * k * p1 + 3 * m * k * k * p2 + k * k * k * p3;
-  };
-  for (const k of [0.4, 0.62, 0.82]) {
-    ctx.beginPath(); ctx.ellipse(bz(k, dir * 5, dir * 14, dir * 14, dir * 10 + sway * 0.4), bz(k, -6, -6, -16 + sway, -22), 1.7, 0.9, 0.4 * dir, 0, Math.PI * 2);
-    ctx.fillStyle = a; ctx.fill();
+  // tail: just a tiny round nub
+  const tx = p.side ? -p.side * 8 : 8.4;
+  oc(ctx, tx, -5.6 + Math.sin(t * 5) * 0.2, 2.1, c, LW);
+  body(ctx, c, p.back ? null : belly, 9.6, 8.2, -10.2);
+  // cheetah-print pinafore
+  if (!p.back) {
+    oe(ctx, 0, -8.4, 6.6, 5.6, cheetahPattern(ctx, 'classic', 0.26), 0.9);
+    ctx.beginPath(); ctx.moveTo(-4, -13); ctx.lineTo(-3, -9.8); ctx.moveTo(4, -13); ctx.lineTo(3, -9.8); ink(ctx, 0.8);
+  } else {
+    for (const [sx, sy] of [[-4, -13], [3.6, -14], [-1.4, -9.4], [5, -8.6], [-6, -7.4]]) circle(ctx, sx, sy, 1.15, a);
   }
-  oc(ctx, dir * 10 + sway * 0.4, -22, 1.9, a, 0.8);
-  body(ctx, c, belly);
-  for (const [sx, sy] of [[-5, -14], [5.5, -12.5], [-6, -8], [6, -7], [3.6, -16]]) circle(ctx, sx, sy, 0.95, a);
   arms(ctx, c, p);
-  // pink neck bow
-  if (!p.back) bow(ctx, 0, -18, 0.62, '#ff8fb6');
-  const hx = p.side * 0.8, hy = -26;
-  // ears with dark backs
+  const hx = p.side * 0.8, hy = -23.8;
+  // stuffed cheeks bulge out behind the head outline
   for (const d of [-1, 1]) {
     if (p.side === -d && !p.back) continue;
-    oc(ctx, hx + d * 8.2, hy - 9, 4.4, c, LW);
-    circle(ctx, hx + d * 8.2, hy - 8.6, 2.4, p.back ? a : '#ffc8d8');
+    oc(ctx, hx + d * 8.8, hy + 3.2, 5, c, LW);
   }
-  oe(ctx, hx, hy, 11.8, 10.6, c, LW);
-  for (const [sx, sy] of [[-6, -6], [-2.6, -8.4], [2.4, -8.8], [6.4, -6.4], [-9, -1], [9, -0.6], [0, -5.6]]) circle(ctx, hx + sx + p.side * 1.4, hy + sy, 0.95, a);
-  // heart sunglasses perched on head
-  for (const d of [-1, 1]) heart(ctx, hx + d * 3.4, hy - 8.2, 2.6, '#ff6f9c', 0.8);
-  ctx.beginPath(); ctx.moveTo(hx - 1, hy - 8.6); ctx.lineTo(hx + 1, hy - 8.6); ink(ctx, 0.9);
+  if (p.side && !p.back) oc(ctx, hx - p.side * 5.6, hy + 3.4, 4.6, c, LW);
+  // tiny rounded ears
+  for (const d of [-1, 1]) {
+    if (p.side === -d && !p.back) continue;
+    oc(ctx, hx + d * 7.6, hy - 8.4, 3.2, c, LW);
+    circle(ctx, hx + d * 7.6, hy - 8.1, 1.8, p.back ? a : '#ffc8d8');
+  }
+  oe(ctx, hx, hy, 12.4, 10.4, c, LW);
+  // spots: crown, brow and cheeks
+  for (const [sx, sy] of [[-6, -7], [-2.4, -8.6], [2.6, -8.8], [6.6, -6.8], [-9, -1.6], [9.2, -1.2], [0, -5.4], [-9.4, 4.4], [9.6, 4.8]]) circle(ctx, hx + sx + p.side * 1.4, hy + sy, 0.95, a);
+  bow(ctx, hx, hy - 10.4, 0.55, '#ff8fb6');
   if (p.back) return;
-  const ey = hy + 1.8;
-  const mx = faceEyes(ctx, p, hx, ey, 4.5, 2.1, 2.8);
-  // signature tear lines
+  const ey = hy + 1;
+  const mx = faceEyes(ctx, p, hx, ey, 4.3, 2.0, 2.7);
+  // cheetah tear lines
   ctx.beginPath();
   const fx = p.side * 3.2;
-  for (const d of p.side === 0 ? [-1, 1] : [p.side]) { ctx.moveTo(hx + fx + d * 2.6 - (p.side ? 2 : 0), ey + 2.4); ctx.quadraticCurveTo(hx + fx + d * 3.6, ey + 4.4, hx + fx + d * 2.8, ey + 6.4); }
-  ink(ctx, 0.9, a);
-  ellipse(ctx, mx, ey + 5, 3.6, 2.6, belly);
-  ctx.beginPath(); ctx.moveTo(mx - 1.4, ey + 3.4); ctx.lineTo(mx + 1.4, ey + 3.4); ctx.lineTo(mx, ey + 4.8); ctx.closePath(); fs(ctx, '#7a4a3a', 0.5);
-  mouth(ctx, mx, ey + 5.6, 'w', 0.75);
+  for (const d of p.side === 0 ? [-1, 1] : [p.side]) { ctx.moveTo(hx + fx + d * 2.6 - (p.side ? 2 : 0), ey + 2.6); ctx.quadraticCurveTo(hx + fx + d * 3.4, ey + 4.4, hx + fx + d * 2.8, ey + 6); }
+  ink(ctx, 0.85, a);
+  // small snout, nose, two front teeth
+  ellipse(ctx, mx, ey + 4.8, 3.4, 2.5, belly);
+  oe(ctx, mx, ey + 3.4, 1.15, 0.85, '#ff7fa0', 0.55);
+  mouth(ctx, mx, ey + 5.3, 'w', 0.7);
+  orr(ctx, mx - 0.7, ey + 5.8, 1.4, 1.5, 0.5, '#ffffff', 0.45);
 }
 
 // --- Bramble: marshmallow hedgehog gardener ---
@@ -471,53 +473,50 @@ function hedgehog(ctx: CanvasRenderingContext2D, def: VillagerDef, p: Pose, _t: 
   circle(ctx, hx + 5, hy - 12, 0.9, '#ffd36e');
 }
 
-// --- Nimbus: moon owl lantern keeper ---
-function owl(ctx: CanvasRenderingContext2D, def: VillagerDef, p: Pose, t: number) {
-  const c = def.color, a = def.accent;
-  // tiny orange feet
-  const st = p.step * 1.8;
-  for (const d of [-1, 1]) { ctx.beginPath(); ctx.ellipse(d * 3.4, -1.4 - (d * st > 0 ? d * st * 0.6 : 0), 2.6, 1.6, 0, 0, Math.PI * 2); fs(ctx, '#ffb562', LW); }
+// --- Nimbus: fog-puff bunny (only out at dusk) ---
+// Soft lavender cloud-fur, long ears (one floppy), a cloudy puff skirt with a few drifting wisps, gold star clip.
+function bunny(ctx: CanvasRenderingContext2D, def: VillagerDef, p: Pose, t: number) {
+  const c = def.color, a = def.accent, fog = '#f6f1ff', headCol = '#ebe3fa';
+  feet(ctx, p, shade(c, -0.1), 3.3, 2.6);
   applyBody(ctx, p);
-  const flap = p.step ? Math.sin(t * 18) * 0.25 : Math.sin(t * 1.6) * 0.06;
-  // wings
+  // cotton tail
+  oc(ctx, p.side ? -p.side * 8 : 8, -6.2, 3, '#ffffff', LW);
+  body(ctx, c, p.back ? null : fog, 8.8, 8.4, -10.6);
+  arms(ctx, c, p);
+  // cloud skirt: a scalloped row of puffs hiding the hem
+  for (let i = -3; i <= 3; i++) oc(ctx, i * 3.5, -3.6 - (Math.abs(i) === 3 ? 0.8 : 0) + Math.sin(t * 1.6 + i) * 0.35, 3.7, i % 2 ? fog : '#ece4fb', 0.8);
+  // drifting wisps of fog
+  ctx.save();
+  for (let i = 0; i < 4; i++) {
+    const k = (t * 0.22 + i * 0.25) % 1;
+    ctx.globalAlpha = 0.45 * Math.sin(k * Math.PI);
+    circle(ctx, Math.sin(t * 0.7 + i * 1.9) * 12, -3 - k * 20, 1.8 + (i % 2), '#ffffff');
+  }
+  ctx.restore();
+  const hx = p.side * 0.8, hy = -25.2;
+  // long ears; the right one flops
   for (const d of [-1, 1]) {
-    ctx.save(); ctx.translate(d * 10, -15); ctx.rotate(d * (0.15 + flap));
-    ctx.beginPath(); ctx.ellipse(0, 3, 3.6, 7.6, 0, 0, Math.PI * 2); fs(ctx, shade(c, -0.12), LW);
-    ctx.beginPath(); ctx.moveTo(-1.5, 5); ctx.quadraticCurveTo(0, 7.5, 1.5, 5); ink(ctx, 0.6, INK_W);
+    const floppy = d === 1;
+    if (p.side === -d && !p.back) continue;
+    ctx.save();
+    ctx.translate(hx + d * (floppy ? 6.6 : 5), hy - 8);
+    ctx.rotate(floppy ? 0.8 : -0.12 + Math.sin(t * 1.5) * 0.02);
+    oe(ctx, 0, -8.4, 3.5, 9, c, LW);
+    oe(ctx, 0, -8, 1.9, 6.4, p.back ? shade(c, -0.1) : '#ffcfe3', 0);
     ctx.restore();
   }
-  // egg body + head as one round shape
-  oe(ctx, 0, -17.5, 12.6, 16.2, c, LW);
-  // ear tufts
-  for (const d of [-1, 1]) {
-    ctx.beginPath(); ctx.moveTo(d * 4, -31); ctx.quadraticCurveTo(d * 9, -38.5, d * 11.2, -36); ctx.quadraticCurveTo(d * 10.4, -30, d * 8.6, -27.6); ctx.closePath(); fs(ctx, c, LW);
-  }
-  oe(ctx, 0, -17.5, 12.6, 16.2, c, 0);
-  if (p.back) {
-    for (let r = 0; r < 3; r++) for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.arc(i * 3.6 + (r % 2) * 1.8, -14 + r * 3.6, 1.8, 0, Math.PI); ink(ctx, 0.6, shade(c, -0.2)); }
-    oe(ctx, 0, -17.5, 12.6, 16.2, 'rgba(0,0,0,0)', LW);
-    return;
-  }
-  // belly with feather scallops + crescent moon pendant
-  oe(ctx, 0, -9.6, 8, 7.6, '#f6f1ff', 0);
-  for (let r = 0; r < 2; r++) for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.arc(i * 3.6 + (r % 2) * 1.8 - (r % 2 ? 1.8 : 0), -10 + r * 3.4, 1.6, 0.1, Math.PI - 0.1); ink(ctx, 0.6, '#c9b8ee'); }
-  ctx.beginPath(); ctx.arc(0, -17.6, 2.6, Math.PI * 0.25, Math.PI * 1.75); ctx.arc(1.4, -17.6, 2.1, Math.PI * 1.6, Math.PI * 0.4, true); ctx.closePath(); fs(ctx, a, 0.7);
-  ctx.beginPath(); ctx.moveTo(-5, -21.6); ctx.quadraticCurveTo(0, -18.6, 5, -21.6); ink(ctx, 0.6, '#c9a64a');
-  // face discs + huge eyes
-  const fx = p.side * 3;
-  for (const d of [-1, 1]) oe(ctx, fx + d * 4.8, -27, 5, 4.8, '#fbf7ff', 0.8);
-  if (p.side === 0) {
-    eye(ctx, -4.8, -27, 2.7, 3.1, p.blink);
-    eye(ctx, 4.8, -27, 2.7, 3.1, p.blink);
-    blush(ctx, -8.6, -22.6, 2, 1.2); blush(ctx, 8.6, -22.6, 2, 1.2);
-  } else {
-    eye(ctx, fx - 4.2, -27, 2.5, 3.1, p.blink);
-    eye(ctx, fx + 5, -27, 2.3, 3, p.blink);
-    blush(ctx, fx + p.side * 9, -22.6, 1.8, 1.1);
-  }
-  ctx.beginPath(); ctx.moveTo(fx - 1.6, -23.6); ctx.lineTo(fx + 1.6, -23.6); ctx.lineTo(fx, -21.2); ctx.closePath(); fs(ctx, '#ffb562', 0.7);
-  // forehead star
-  star(ctx, fx, -33, 1.8, a, 0.6);
+  if (p.side && !p.back) { ctx.save(); ctx.translate(hx - p.side * 3.8, hy - 8); ctx.rotate(-0.12 * p.side); oe(ctx, 0, -8.4, 3.2, 8.6, c, LW); oe(ctx, 0, -8, 1.7, 6, '#ffcfe3', 0); ctx.restore(); }
+  oe(ctx, hx, hy, 11.2, 10, headCol, LW);
+  // cloud-fur tufts: fringe and cheeks
+  for (const [dx, dy, r] of [[-3.6, -9.4, 2.8], [0, -10.6, 3.2], [3.8, -9.4, 2.6]]) oc(ctx, hx + dx, hy + dy, r, fog, 0.7);
+  if (p.back) return;
+  for (const d of [-1, 1]) oc(ctx, hx + d * 10.6 + p.side * 1, hy + 3.4, 2.8, fog, 0.7);
+  const ey = hy + 1.2;
+  const mx = faceEyes(ctx, p, hx, ey, 4.2, 2.1, 2.7);
+  ellipse(ctx, mx, ey + 4.6, 3.3, 2.3, fog);
+  oe(ctx, mx, ey + 3.4, 1.15, 0.85, '#f59ac0', 0.55);
+  mouth(ctx, mx, ey + 5.1, 'w', 0.7);
+  star(ctx, hx - 6.8, hy - 6.4, 1.9, a, 0.6); // gold star clip
 }
 
 const INK_W = 'rgba(91,58,78,0.6)';
