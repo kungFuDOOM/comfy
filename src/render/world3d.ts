@@ -123,10 +123,11 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
         if (!v) { v = createVillagerMesh(n.def); villagers.set(n.def.id, v); scene.add(v.root); }
         place(v, n.x, n.y);
         v.setFacing(n.facing, f.dt);
-        v.animate(f.t + n.x, n.moving);
+        v.animate(f.t, n.moving);
         v.setAlert?.(!f.talkedToday(n.def.id));
       }
       dynamic.update(f.t);
+      nature.update(f.t);
       terrain.update(f.t);
 
       // follow cam (smoothed, clamped to the island)

@@ -179,3 +179,78 @@ export function applyNightToMaterials(night: number, ambient: THREE.Color) {
   for (const p of poolMats) { p.m.opacity = e * p.base; p.m.visible = e > 0.01; }
   for (const u of unlitMats) u.color.copy(ambient);
 }
+
+// ---- procedural cheetah print (canvas, tileable) ----
+export type CheetahKind = 'classic' | 'pink';
+const CHEETAH_INK: Record<CheetahKind, { base: string; mid: string; spot: string }> = {
+  classic: { base: '#f6d49c', mid: '#dc9e5a', spot: '#70463a' },
+  pink: { base: '#ffc6dc', mid: '#ff8fb6', spot: '#93406a' },
+};
+const cheetahTex = new Map<CheetahKind, THREE.CanvasTexture>();
+
+/** Tileable cheetah-spot texture: soft centre blotch ringed by broken dark arcs. One UV tile reads well at ~0.9 world units. */
+export function cheetahTexture(kind: CheetahKind): THREE.CanvasTexture {
+  let tex = cheetahTex.get(kind);
+  if (tex) return tex;
+  const S = 256, ink = CHEETAH_INK[kind];
+  const c = document.createElement('canvas');
+  c.width = c.height = S;
+  const g = c.getContext('2d')!;
+  g.fillStyle = ink.base; g.fillRect(0, 0, S, S);
+  let seed = kind === 'classic' ? 1337 : 4242;
+  const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  const torus = (a: number, b: number) => { const d = Math.abs(a - b); return Math.min(d, S - d); };
+  const pts: { x: number; y: number; r: number }[] = [];
+  const free = (x: number, y: number, gap: number) => pts.every((p) => Math.hypot(torus(p.x, x), torus(p.y, y)) > gap + p.r);
+  const wrapped = (x: number, y: number, draw: () => void) => {
+    for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) { g.save(); g.translate(x + ox, y + oy); draw(); g.restore(); }
+  };
+  g.lineCap = 'round';
+  for (let tries = 0; tries < 900 && pts.length < 24; tries++) {
+    const x = rnd() * S, y = rnd() * S, r = 14 + rnd() * 6;
+    if (!free(x, y, r + 9)) continue;
+    pts.push({ x, y, r });
+    const rot = rnd() * Math.PI, n = rnd() < 0.5 ? 2 : 3, start = rnd() * Math.PI * 2;
+    const len = n === 2 ? 2.0 : 1.25, sx = 0.85 + rnd() * 0.2, sy = 0.62 + rnd() * 0.16, lw = r * (0.36 + rnd() * 0.1);
+    wrapped(x, y, () => {
+      g.rotate(rot);
+      g.fillStyle = ink.mid;
+      g.beginPath(); g.ellipse(0, 0, r * sx * 0.72, r * sy * 0.72, 0, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = ink.spot; g.lineWidth = lw;
+      for (let i = 0; i < n; i++) {
+        const a0 = start + (i * Math.PI * 2) / n;
+        g.beginPath(); g.ellipse(0, 0, r * sx, r * sy, 0, a0, a0 + len); g.stroke();
+      }
+    });
+  }
+  // small solid freckles between the rosettes
+  for (let tries = 0, made = 0; tries < 600 && made < 16; tries++) {
+    const x = rnd() * S, y = rnd() * S, r = 3 + rnd() * 2.5;
+    if (!free(x, y, r + 5)) continue;
+    pts.push({ x, y, r }); made++;
+    wrapped(x, y, () => { g.fillStyle = ink.spot; g.beginPath(); g.ellipse(0, 0, r * 1.25, r, rnd() * 3, 0, Math.PI * 2); g.fill(); });
+  }
+  tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.anisotropy = 4;
+  cheetahTex.set(kind, tex);
+  return tex;
+}
+
+const cheetahMats = new Map<CheetahKind, THREE.MeshToonMaterial>();
+/** Shared toon material carrying the cheetah print. Scale the geometry's UVs to set spot size. */
+export function cheetahToon(kind: CheetahKind): THREE.MeshToonMaterial {
+  let m = cheetahMats.get(kind);
+  if (!m) { m = makeToon('#ffffff'); m.map = cheetahTexture(kind); cheetahMats.set(kind, m); }
+  return m;
+}
+
+const vertexMats = new Map<string, THREE.MeshToonMaterial>();
+/** Shared white toon material tinted by per-vertex colors: lets a whole merged model be one draw call. */
+export function vertexToon(emissive?: string, glow: GlowKind = 'window'): THREE.MeshToonMaterial {
+  const key = (emissive ?? '') + '|' + glow;
+  let m = vertexMats.get(key);
+  if (!m) { m = makeToon('#ffffff', emissive ? { emissive, glow } : {}); m.vertexColors = true; vertexMats.set(key, m); }
+  return m;
+}
