@@ -13,10 +13,10 @@ export interface Season {
 }
 
 export const SEASONS: Season[] = [
-  { id: 'blossom', name: 'Blossom Bloom', months: [3, 4, 5], grass: '#cdeec0', grassAlt: '#c5eab7', hill: '#d9f1c4', leaf: '#ffc4d9', leafAlt: '#ffa9c8', petal: '#ffd0e0', blurb: 'Petals everywhere. Ribbon Blossoms thrive.' },
-  { id: 'sunsip', name: 'Sunsip Days', months: [6, 7, 8], grass: '#bde9ae', grassAlt: '#b5e4a5', hill: '#cdeeb2', leaf: '#a9e3b6', leafAlt: '#92d8a6', petal: '#fff2a8', blurb: 'Long glowy days. Dewdrop Shells wash ashore.' },
-  { id: 'cocoa', name: 'Cocoa Leaf', months: [9, 10, 11], grass: '#e6dba6', grassAlt: '#e1d59f', hill: '#efdfae', leaf: '#ffc99e', leafAlt: '#ffad8a', petal: '#ffb98c', blurb: 'Cozy knits and drifting leaves. Perfect café weather.' },
-  { id: 'snowfluff', name: 'Snowfluff', months: [12, 1, 2], grass: '#e4eef5', grassAlt: '#dfeaf2', hill: '#eef4fa', leaf: '#eae4fa', leafAlt: '#ddd2f4', petal: '#ffffff', blurb: 'Soft snow. Starlit Buttons sparkle on the hill.' },
+  { id: 'blossom', name: 'Blossom Bloom', months: [3, 4, 5], grass: '#a4e6a6', grassAlt: '#b4edab', hill: '#c2f0b4', leaf: '#ffb6d0', leafAlt: '#ff9cc2', petal: '#ffc2d8', blurb: 'Petals everywhere. Ribbon Blossoms thrive.' },
+  { id: 'sunsip', name: 'Sunsip Days', months: [6, 7, 8], grass: '#94e0a0', grassAlt: '#a6e8a6', hill: '#b8eeae', leaf: '#86d9a2', leafAlt: '#a3e69a', petal: '#fff2a8', blurb: 'Long glowy days. Dewdrop Shells wash ashore.' },
+  { id: 'cocoa', name: 'Cocoa Leaf', months: [9, 10, 11], grass: '#ace39f', grassAlt: '#bde8a0', hill: '#c8edab', leaf: '#ffb48a', leafAlt: '#ff9fa8', petal: '#ffb08a', blurb: 'Cozy knits and drifting leaves. Perfect café weather.' },
+  { id: 'snowfluff', name: 'Snowfluff', months: [12, 1, 2], grass: '#eef7fc', grassAlt: '#e3f1fa', hill: '#f6fbff', leaf: '#9fdcc0', leafAlt: '#b6e6cf', petal: '#ffffff', blurb: 'Soft snow. Starlit Buttons sparkle on the hill.' },
 ];
 
 export type Phase = 'morning' | 'day' | 'evening' | 'night';
@@ -71,18 +71,21 @@ export function getClock(): Clock {
   };
 }
 
-// Multiply-tint keyframes: [hour, r, g, b]
+// Multiply-tint keyframes: [hour, r, g, b].
+// Kept close to white so colors stay saturated; night is a gentle cool blue, never a grey/purple wash.
+const NIGHT: [number, number, number] = [184, 198, 248];
 const KEYS: [number, number, number, number][] = [
-  [0, 150, 140, 215],
-  [5, 160, 148, 220],
-  [6.5, 255, 205, 210],
-  [8, 255, 240, 238],
-  [10, 255, 255, 255],
-  [16, 255, 255, 250],
-  [18, 255, 214, 190],
-  [19.5, 238, 160, 196],
-  [21, 150, 140, 215],
-  [24, 150, 140, 215],
+  [0, ...NIGHT],
+  [4.6, ...NIGHT],
+  [6, 238, 222, 244],
+  [7.4, 255, 240, 232],
+  [9.5, 255, 253, 248],
+  [16, 255, 252, 244],
+  [17.6, 255, 236, 208],
+  [19, 255, 214, 186],
+  [20.2, 222, 204, 236],
+  [21.4, ...NIGHT],
+  [24, ...NIGHT],
 ];
 
 export function skyTint(hour: number): [number, number, number] {
@@ -96,8 +99,15 @@ export function skyTint(hour: number): [number, number, number] {
   return [255, 255, 255];
 }
 
-/** 0 = bright day, 1 = deep night. Drives glows. */
+const NIGHT_AVG = (NIGHT[0] + NIGHT[1] + NIGHT[2]) / 3;
+/** 0 = bright day, 1 = deep night. Drives lamp glows, lit windows and fireflies. */
 export function darkness(hour: number): number {
   const [r, g, b] = skyTint(hour);
-  return Math.max(0, Math.min(1, (255 - (r + g + b) / 3) / 100));
+  return Math.max(0, Math.min(1, (246 - (r + g + b) / 3) / (246 - NIGHT_AVG)));
+}
+
+/** 0..1 golden-hour strength (morning + evening), for warm sun glints. */
+export function golden(hour: number): number {
+  const bump = (c: number, w: number) => Math.max(0, 1 - Math.abs(hour - c) / w);
+  return Math.max(bump(18.6, 1.6), bump(6.8, 1.2) * 0.7);
 }

@@ -6,9 +6,9 @@ import { earn } from './inventory';
 import { bump } from './quests';
 import { ensureDaily, state, type LanternKind } from './state';
 
-const FLIGHT = 6.5; // seconds to drift to the grove
-interface Flyer { id: number; kind: LanternKind; sx: number; sy: number; t: number }
-const flyers: Flyer[] = [];
+export const FLIGHT = 6.5; // seconds to drift to the grove
+export interface Flyer { id: number; kind: LanternKind; sx: number; sy: number; t: number }
+export const flyers: Flyer[] = [];
 
 export interface LanternSet { id: string; name: string; goal: string; unlock: string; done: (c: Record<string, number>, total: number) => boolean; reward: number }
 export const SETS: LanternSet[] = [
