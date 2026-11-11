@@ -118,6 +118,8 @@ function softTexture(shape: 'round' | 'rect'): THREE.CanvasTexture {
   const c = document.createElement('canvas');
   c.width = c.height = 128;
   const g = c.getContext('2d')!;
+  // alphaMap samples the green channel, so paint white-on-black rather than relying on canvas alpha
+  g.fillStyle = '#000'; g.fillRect(0, 0, 128, 128);
   if (shape === 'round') {
     const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
     gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.45, 'rgba(255,255,255,0.62)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
