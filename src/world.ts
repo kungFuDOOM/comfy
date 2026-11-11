@@ -105,15 +105,18 @@ export function buildWorld() {
   for (const b of buildings) for (let y = b.y0; y <= b.y1; y++) for (let x = b.x0; x <= b.x1; x++) { block(x, y); }
   // stations + props
   for (const s of stations) for (let i = 0; i < s.w; i++) block(s.x + i, s.y);
+  // station models are wider than their tile: café counter + chalkboard, boutique rail, grove plinth
+  for (const [x, y] of [[22, 13], [24, 13], [25, 13], [35, 13], [37, 13], [44, 9], [46, 9]]) block(x, y);
   for (const p of [[21, 14], [26, 14]]) { props.push({ type: 'table', x: p[0], y: p[1] }); block(p[0], p[1]); }
   for (const p of [[34, 14], [38, 14]]) { props.push({ type: 'mannequin', x: p[0], y: p[1], v: p[0] === 34 ? 0 : 1 }); block(p[0], p[1]); }
-  props.push({ type: 'fountain', x: 30, y: 20 }); block(30, 20);
+  props.push({ type: 'fountain', x: 30, y: 20 });
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) block(30 + dx, 20 + dy); // basin is ~2.2 tiles wide
   for (const p of [[26, 15], [33, 15], [27, 23], [33, 23], [43, 17], [16, 24]]) { props.push({ type: 'lamp', x: p[0], y: p[1] }); block(p[0], p[1]); }
   const signs: [number, number, string][] = [
     [13, 27, 'Your Yard'], [16, 20, 'Garden'], [42, 15, 'To the Grove'], [8, 13, 'Ribbon Meadow'],
     [29, 38, 'Dewdrop Shore'], [34, 24, 'Sugarlily Square'],
   ];
-  for (const [x, y, text] of signs) { props.push({ type: 'sign', x, y, text }); reserved[idx(x, y)] = 1; }
+  for (const [x, y, text] of signs) { props.push({ type: 'sign', x, y, text }); block(x, y); }
   // glows (night lamps / windows)
   for (const p of props) if (p.type === 'lamp') glows.push({ x: p.x * TS + 16, y: p.y * TS - 6, r: 70, c: '255,220,170' });
   for (const b of buildings) {

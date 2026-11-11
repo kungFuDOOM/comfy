@@ -152,11 +152,14 @@ function chalkboard(x: number, z: number): THREE.Group {
 
 /** Pedestal poking out of the front roof slope, to carry a big 3D shop sign. Returns the y of its top. */
 function roofPedestal(b: Batch, wallH: number, color: string, x: number, z = 1.85): number {
-  const top = wallH + 0.85;
+  const top = wallH + 0.6; // kept low so the sign stays in frame from the default follow camera
   b.add(G.box(1.5, 0.8, 1.0), color, { x, y: top - 0.4, z });
   b.add(G.box(1.66, 0.1, 1.16), '#ffffff', { x, y: top, z });
   return top + 0.05;
 }
+
+/** World-space points where coffee steam rises (filled while structures are built; read by particles.ts). */
+export const steamVents: { x: number; y: number; z: number; big: boolean }[] = [];
 
 export function createBuilding(b: Building): THREE.Group {
   const st = STYLE[b.id];
@@ -209,8 +212,8 @@ export function createBuilding(b: Building): THREE.Group {
     // latte-art heart
     for (const dx of [-0.07, 0.07]) k.v.add(G.ball(0.1, 10), '#fff4e6', { x: sx - 0.06 + dx, y: top + 0.69, z: sz - 0.03, s: [1, 0.12, 1] });
     k.v.add(G.cone(0.16, 0.2, 3), '#fff4e6', { x: sx - 0.06, y: top + 0.69, z: sz + 0.09, rx: Math.PI / 2, s: [1, 1, 0.1] });
-    const steam: [number, number, number, number][] = [[-0.2, 1.0, -0.05, 0.11], [-0.08, 1.24, -0.03, 0.14], [-0.22, 1.5, -0.05, 0.1], [0.1, 1.08, 0.01, 0.09], [0.15, 1.32, -0.01, 0.11]];
-    for (const [x, y, z, r] of steam) k.v.add(G.ball(r, 10), '#ffffff', { x: sx + x, y: top + y, z: sz + z });
+    // steam is animated by particles.ts
+    steamVents.push({ x: cx + sx - 0.06, y: base + top + 0.72, z: cz + sz, big: true });
   } else if (b.id === 'boutique') {
     // display bays: glowing backdrop, ledge, dresses on forms, cheetah awning
     const looks: [string | CheetahKind, string | CheetahKind][] = [['classic', '#ff8fb6'], ['pink', '#ffffff']];
@@ -282,6 +285,7 @@ export function createStation(s: Station): THREE.Group {
       k.v.add(G.box(0.5, 0.05, 0.2), '#ffffff', { x: -0.72, y: 0.93, z: 0.16 });
       for (const dx of [-0.14, 0.14]) k.v.add(G.cyl(0.04, 0.05, 0.09, 8), PALETTE.gold, { x: -0.72 + dx, y: 1.1, z: 0.14 });
       mug(k.v, -0.86, 0.955, 0.17, 0.75);
+      steamVents.push({ x: cx - 0.86, y: base + 1.05, z: cz + 0.17, big: false });
       for (const dx of [-0.16, 0, 0.16]) k.v.add(G.cyl(0.055, 0.045, 0.08, 10), dx ? '#ffffff' : PALETTE.blush, { x: -0.72 + dx, y: 1.42, z: -0.12 });
       // cake under a dome plate
       k.v.add(G.cyl(0.05, 0.1, 0.1, 10), '#ffffff', { x: 0.75, y: 0.95, z: -0.05 });
@@ -365,11 +369,12 @@ export function createProp(p: Prop): THREE.Group | null {
       k.v.add(G.cyl(0.035, 0.05, 0.12, 8), '#aee2f5', { x: 0.05, y: 0.715, z: 0.2 });
       k.v.add(G.ball(0.06, 8), PALETTE.rose, { x: 0.05, y: 0.83, z: 0.2 });
       for (const sx of [-1, 1]) {
-        k.v.add(G.cyl(0.035, 0.035, 0.36, 8), '#ffffff', { x: sx * 0.72, y: 0.18, z: 0.12 });
-        k.v.add(G.cyl(0.2, 0.2, 0.09, 14), sx > 0 ? PALETTE.pink : '#ffffff', { x: sx * 0.72, y: 0.4, z: 0.12 });
+        // stools tucked in so they stay inside the table's (blocked) tile
+        k.v.add(G.cyl(0.035, 0.035, 0.36, 8), '#ffffff', { x: sx * 0.52, y: 0.18, z: 0.22 });
+        k.v.add(G.cyl(0.16, 0.16, 0.09, 14), sx > 0 ? PALETTE.pink : '#ffffff', { x: sx * 0.52, y: 0.4, z: 0.22 });
       }
-      k.pink.add(G.cyl(0.18, 0.18, 0.04, 14), '#ffffff', { x: -0.72, y: 0.46, z: 0.12, uv: [1.2, 0.4] }); // cheetah cushion
-      g.add(contactShadow(2.0, 1.2));
+      k.pink.add(G.cyl(0.14, 0.14, 0.04, 14), '#ffffff', { x: -0.52, y: 0.46, z: 0.22, uv: [1.2, 0.4] }); // cheetah cushion
+      g.add(contactShadow(1.5, 1.1));
       break;
     case 'mannequin': {
       // boutique dress form on a pedestal, wearing the print
