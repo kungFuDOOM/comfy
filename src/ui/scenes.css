@@ -10,17 +10,17 @@ body.scene .toasts { top: max(14px, env(safe-area-inset-top)); }
 .scene-fade.on { visibility: visible; }
 
 /* ================= Main menu ================= */
-.mm { position: absolute; inset: 0; z-index: 6; display: flex; align-items: center; padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) clamp(22px, 7vw, 120px); animation: mm-in 0.6s ease-out both; }
+.mm { position: absolute; inset: 0; z-index: 6; display: flex; align-items: center; padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(clamp(22px, 7vw, 120px), env(safe-area-inset-left)); animation: mm-in 0.6s ease-out both; }
 @keyframes mm-in { from { opacity: 0; } to { opacity: 1; } }
 /* soft blush wash behind the menu column so it reads over any time of day */
 .mm-veil { position: absolute; inset: 0; pointer-events: none; background:
   radial-gradient(ellipse 62% 95% at 12% 50%, rgba(255, 241, 247, 0.9) 0%, rgba(255, 233, 242, 0.62) 42%, rgba(255, 233, 242, 0) 72%),
   linear-gradient(rgba(255, 214, 231, 0.28), rgba(255, 214, 231, 0) 30%); }
-.mm-col { position: relative; display: flex; flex-direction: column; align-items: center; gap: clamp(14px, 3.4vh, 34px); width: min(430px, 100%); }
+.mm-col { position: relative; display: flex; flex-direction: column; align-items: center; gap: clamp(14px, 3.4vh, 34px); width: min(430px, 100%); min-width: 0; max-width: 100%; }
 
-.logo { display: flex; flex-direction: column; align-items: center; width: 100%; }
-.logo-word { position: relative; width: 100%; max-width: 430px; animation: logo-float 5.5s ease-in-out infinite; filter: drop-shadow(0 10px 14px rgba(160, 60, 105, 0.22)); }
-.logo-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.logo { display: flex; flex-direction: column; align-items: center; width: 100%; min-width: 0; max-width: 100%; }
+.logo-word { position: relative; width: 100%; max-width: min(430px, 100%); min-width: 0; animation: logo-float 5.5s ease-in-out infinite; filter: drop-shadow(0 10px 14px rgba(160, 60, 105, 0.22)); }
+.logo-svg { display: block; width: 100%; max-width: 100%; height: auto; aspect-ratio: 480 / 200; overflow: visible; }
 @keyframes logo-float { 0%, 100% { transform: translateY(0) rotate(-1.2deg); } 50% { transform: translateY(-7px) rotate(1deg); } }
 .logo-lily > g { transform-origin: 0 0; animation: lily-sway 4.2s ease-in-out infinite; }
 @keyframes lily-sway { 0%, 100% { transform: rotate(-10deg) scale(1); } 50% { transform: rotate(12deg) scale(1.06); } }
@@ -33,7 +33,7 @@ body.scene .toasts { top: max(14px, env(safe-area-inset-top)); }
 .logo.small .logo-word { max-width: 250px; animation: none; }
 .logo.small .logo-tag { font-size: 12px; }
 
-.mm-list { display: flex; flex-direction: column; gap: 13px; width: min(310px, 100%); }
+.mm-list { display: flex; flex-direction: column; gap: 13px; width: min(310px, 100%); min-width: 0; max-width: 100%; }
 .mm-btn { --a: #ffb9d3; --b: #f585b1; --edge: #d95f90; --deep: #c4527f; --ink: #fff;
   position: relative; display: flex; align-items: center; gap: 12px; height: 58px; padding: 0 20px 0 9px; border-radius: 999px; cursor: pointer;
   border: 3px solid #fff; background: linear-gradient(var(--a), var(--b)); color: var(--ink); font-family: var(--font); font-weight: 600; font-size: 21px; letter-spacing: 0.02em; text-align: left;
@@ -64,33 +64,55 @@ body.scene .toasts { top: max(14px, env(safe-area-inset-top)); }
 .mm-btn:active, .mm-btn.press { animation: mm-press 0.22s ease-out; }
 @keyframes mm-press { 0% { transform: translateX(12px) translateY(0) scale(1.045); } 45% { transform: translateX(12px) translateY(6px) scale(0.99); box-shadow: 0 0 0 3px var(--edge), 0 2px 0 0 var(--deep), 0 2px 0 3px var(--deep); } 100% { transform: translateX(12px) scale(1.045); } }
 
-.mm-foot { position: absolute; left: 0; right: 0; bottom: max(10px, env(safe-area-inset-bottom)); padding: 0 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 12px; font-weight: 600; color: var(--ink-l); pointer-events: none; }
+.mm-foot { position: absolute; left: 0; right: 0; bottom: max(10px, env(safe-area-inset-bottom)); padding: 0 max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left)); display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 12px; font-weight: 600; color: var(--ink-l); pointer-events: none; max-width: 100%; box-sizing: border-box; }
 .mm-hints { display: flex; gap: 14px; padding: 5px 12px; border-radius: 999px; background: rgba(255, 248, 243, 0.86); border: 2px solid #ffd6e6; }
 body.input-touch .mm-hints, body:not(.input-keyboard):not(.input-gamepad) .mm-hints { visibility: hidden; }
+body.input-touch .mm-hints { display: none; }
 .mm-ver { padding: 4px 12px; border-radius: 999px; background: rgba(255, 248, 243, 0.7); }
 
-/* tall screens: logo up top, buttons near the thumbs */
+/* tall screens: logo up top, buttons near the thumbs, the whole column centered */
 @media (max-aspect-ratio: 1/1) {
-  .mm { padding: max(26px, env(safe-area-inset-top)) 18px calc(58px + env(safe-area-inset-bottom)); justify-content: center; align-items: stretch; }
-  .mm-col { width: 100%; justify-content: space-between; }
+  .mm {
+    justify-content: center;
+    align-items: stretch;
+    overflow-x: clip;
+    padding:
+      max(26px, env(safe-area-inset-top))
+      max(18px, env(safe-area-inset-right))
+      calc(58px + env(safe-area-inset-bottom))
+      max(18px, env(safe-area-inset-left));
+  }
+  .mm-col { width: min(430px, 100%); margin-inline: auto; justify-content: space-between; }
   .mm-veil { background:
     linear-gradient(rgba(255, 238, 245, 0.92) 0%, rgba(255, 233, 242, 0.5) 24%, rgba(255, 233, 242, 0) 40%),
     linear-gradient(0deg, rgba(255, 238, 245, 0.94) 0%, rgba(255, 233, 242, 0.62) 34%, rgba(255, 233, 242, 0) 52%); }
-  .logo-word { max-width: min(380px, 88vw); }
+  .logo-word { width: min(100%, clamp(200px, 84vw, 380px)); max-width: 100%; }
+  .logo-tag { max-width: 100%; }
   .mm-btn.sel { transform: scale(1.045); }
   @keyframes mm-press { 0%, 100% { transform: scale(1.045); } 45% { transform: translateY(6px) scale(0.99); } }
 }
-/* short landscape (phones): two columns of buttons under a smaller logo */
+/* short landscape (phones): one centered column, smaller title, tighter buttons.
+   Side-by-side title / buttons would fit the short height, but the stack stays centered. */
 @media (max-height: 540px) and (min-aspect-ratio: 1/1) {
-  .mm-col { gap: 12px; width: min(400px, 54vw); }
-  .logo-word { max-width: min(290px, 62vh); }
-  .logo-tag { font-size: 11px; padding: 3px 12px 4px; }
-  .mm-list { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 14px; width: 100%; }
-  .mm-btn, .mm-settings, .mm-credits { height: 46px; font-size: 16px; padding-right: 10px; gap: 8px; }
-  .mm-ico, .mm-settings .mm-ico, .mm-credits .mm-ico { width: 30px; height: 30px; }
-  .mm-btn.sel { transform: scale(1.045); }
-  @keyframes mm-press { 0%, 100% { transform: scale(1.045); } 45% { transform: translateY(6px) scale(0.99); } }
-  .mm-list:not(:has(.mm-continue:not([hidden]))) .mm-new { grid-column: 1 / -1; }
+  .mm {
+    justify-content: center;
+    align-items: center;
+    overflow-x: clip;
+    padding:
+      max(8px, env(safe-area-inset-top))
+      max(14px, env(safe-area-inset-right))
+      calc(46px + env(safe-area-inset-bottom))
+      max(14px, env(safe-area-inset-left));
+  }
+  .mm-col { gap: clamp(6px, 1.4vh, 12px); width: min(400px, 100%); max-height: 100%; min-height: 0; margin-inline: auto; justify-content: center; }
+  .logo-word { width: min(100%, clamp(148px, 54vh, 280px)); max-width: 100%; }
+  .logo-tag { font-size: 11px; padding: 3px 12px 4px; max-width: 100%; white-space: normal; text-align: center; }
+  .mm-list { display: flex; flex-direction: column; gap: 8px; width: min(280px, 100%); }
+  .mm-btn, .mm-settings, .mm-credits { height: 40px; font-size: 15px; padding-right: 12px; gap: 8px; }
+  .mm-ico, .mm-settings .mm-ico, .mm-credits .mm-ico { width: 28px; height: 28px; }
+  .mm-btn.sel { transform: scale(1.03); }
+  @keyframes mm-press { 0%, 100% { transform: scale(1.03); } 45% { transform: translateY(4px) scale(0.99); } }
+  .mm-foot { justify-content: center; flex-wrap: wrap; gap: 6px 10px; }
 }
 
 /* ================= Settings ================= */
@@ -203,5 +225,36 @@ body.input-touch .mm-hints, body:not(.input-keyboard):not(.input-gamepad) .mm-hi
   .set-card { padding: 12px; gap: 12px; }
   .btn.vol-step { width: 44px; height: 44px; }
 }
-.mm-snd { padding: 4px 12px; border-radius: 999px; background: rgba(255, 248, 243, 0.86); border: 2px solid #ffd6e6; color: var(--pink-ink); animation: twinkle 2.4s ease-in-out infinite; }
+.mm-snd { padding: 4px 12px; border-radius: 999px; background: rgba(255, 248, 243, 0.86); border: 2px solid #ffd6e6; color: var(--pink-ink); animation: twinkle 2.4s ease-in-out infinite; max-width: 100%; text-align: center; }
 .mm-snd[hidden] { display: none; }
+/* twinkle scales up to 1.15, which shoves a full-width hint past the screen edge on a phone */
+@keyframes snd-soft { 0%, 100% { opacity: 0.7; } 50% { opacity: 1; } }
+@media (max-width: 720px), ((max-height: 540px) and (min-aspect-ratio: 1/1)) {
+  .mm-snd { animation-name: snd-soft; }
+}
+/* Short landscape: keep pause and settings centered inside the safe area, and scroll inside the card. */
+@media (max-height: 540px) and (min-aspect-ratio: 1/1) {
+  .panel-backdrop {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    padding:
+      max(10px, env(safe-area-inset-top))
+      max(10px, env(safe-area-inset-right))
+      max(10px, env(safe-area-inset-bottom))
+      max(10px, env(safe-area-inset-left));
+  }
+  .panel, .panel.wide {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    max-height: 100%;
+    max-width: 100%;
+    margin: auto;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .panel-body { min-height: 0; overflow: auto; }
+  .pause-list { width: min(260px, 100%); margin-inline: auto; gap: 8px; }
+  .btn.pause-btn { min-height: 40px; font-size: 16px; }
+}

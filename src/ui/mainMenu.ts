@@ -55,11 +55,17 @@ let logoSeq = 0;
  */
 export function hushbellLogo(small = false): HTMLElement {
   const id = 'cl' + logoSeq++;
-  const tilt: [string, number, number][] = [['H', -6, 0], ['u', 4, 5], ['s', -3, -6], ['h', 5, 4], ['b', -5, -4], ['e', 4, 6], ['l', -4, -3], ['l', 6, 3]];
-  const word = (attrs: string) => `<text x="236" y="142" text-anchor="middle" font-family="Fredoka, ui-rounded, system-ui, sans-serif" font-weight="700" font-size="92" textLength="404" lengthAdjust="spacing" ${attrs}>`
-    + tilt.map(([ch, r, dy]) => `<tspan rotate="${r}" dy="${dy}">${ch}</tspan>`).join('') + '</text>';
+  // Absolute x/y per letter (same spacing textLength used to force). Safari drops text-anchor="middle"
+  // and textLength when the word is split into tspans, so the letters start at the anchor and the
+  // end of "Hushbell" paints past the viewBox — on a phone that clips the title to "Hushbe".
+  const tilt: [string, number, number, number][] = [
+    ['H', 34, 142, -6], ['u', 99.6, 147, 4], ['s', 157.7, 141, -3], ['h', 205.5, 145, 5],
+    ['b', 263.1, 141, -5], ['e', 319.9, 147, 4], ['l', 374.9, 144, -4], ['l', 409.4, 147, 6],
+  ];
+  const word = (attrs: string) => `<text text-anchor="start" font-family="Fredoka, ui-rounded, system-ui, sans-serif" font-weight="700" font-size="92" ${attrs}>`
+    + tilt.map(([ch, x, y, r]) => `<tspan x="${x}" y="${y}" rotate="${r}">${ch}</tspan>`).join('') + '</text>';
   const petals = [0, 72, 144, 216, 288];
-  const svg = `<svg viewBox="0 0 480 200" class="logo-svg" aria-hidden="true">
+  const svg = `<svg viewBox="0 0 480 200" width="480" height="200" preserveAspectRatio="xMidYMid meet" class="logo-svg" aria-hidden="true">
 <defs>
 <linearGradient id="${id}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0.18" stop-color="#ffd0e1"/><stop offset="0.55" stop-color="#ff96bd"/><stop offset="0.95" stop-color="#ee6a9e"/></linearGradient>
 <pattern id="${id}p" width="46" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(-12)">
