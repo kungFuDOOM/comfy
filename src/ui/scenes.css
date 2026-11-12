@@ -375,7 +375,19 @@ body:not(.input-touch):not(.input-keyboard):not(.input-gamepad) .dress-hint .dh-
 .dress-desc { line-height: 1.35; }
 
 .dress-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
-.dress-tile { display: flex; align-items: center; gap: 8px; text-align: left; padding: 4px 8px 4px 4px; min-height: 54px; border-radius: 14px; background: #fff; border: 2px solid #ffd6e6; font-family: var(--font); color: var(--ink); cursor: pointer; transition: transform 0.08s, border-color 0.12s, background-color 0.12s; }
+.dress-tile { display: flex; flex-direction: column; text-align: left; border-radius: 14px; background: #fff; border: 2px solid #ffd6e6; font-family: var(--font); color: var(--ink); transition: transform 0.08s, border-color 0.12s, background-color 0.12s; }
+.dress-tile .dt-main { display: flex; align-items: center; gap: 8px; text-align: left; padding: 4px 8px 4px 4px; min-height: 54px; background: none; border: 0; font: inherit; color: inherit; cursor: pointer; }
+.dress-tile.locked { background: #faf4f7; border-style: dashed; }
+.dress-dots { display: flex; gap: 5px; flex-wrap: wrap; padding: 0 8px 6px; }
+.cdot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(110, 51, 80, 0.25); padding: 0; cursor: pointer; }
+.cdot.on { border-color: #ff8fb8; box-shadow: 0 0 0 2px rgba(255, 143, 184, 0.35); }
+.cdot.own::after { content: ''; }
+.dress-filter { display: flex; gap: 5px; overflow-x: auto; padding-bottom: 2px; flex: 0 0 auto; scrollbar-width: thin; }
+.dress-filter .chip-tab { white-space: nowrap; flex: 0 0 auto; padding: 5px 10px; border-radius: 999px; border: 2px solid #ffd6e6; background: #fff; color: var(--ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.dress-filter .chip-tab.small { font-size: 12px; padding: 3px 9px; }
+.dress-filter .chip-tab.on { border-color: #ff8fb8; background: #fff0f6; }
+.region-list { margin: 4px 0; padding-left: 4px; list-style: none; font-size: 13px; }
+.region-list li.done { color: #3f9a6c; font-weight: 600; }
 .dress-tile canvas { border-radius: 10px; flex: 0 0 auto; }
 .dress-tile:hover { background: var(--pink-l); transform: translateY(-1px); }
 .dress-tile:active { transform: translateY(1px); }

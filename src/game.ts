@@ -1,7 +1,8 @@
 // Game orchestration: loop, interaction, and hooking simulation up to the Three.js renderer.
 import { cheetahDataUrl } from './art/cheetah';
 import { setMood, sfx, updateDirector } from './audio';
-import { currentAccessory, currentOutfit } from './boutique';
+import { currentAccessory } from './boutique';
+import { currentLook } from './wardrobe';
 import { updateBrew } from './cafe';
 import { spawnOne, updateCollect } from './collect';
 import { decorHint, useYard } from './decorate';
@@ -13,7 +14,9 @@ import { initNpcs, npcs, presentNpcs, talkedToday, updateNpcs, type Npc } from '
 import { faceToward, frontTile, placePlayer, player, tileOf, updatePlayer, walkTo, cancelPath } from './player';
 import { count, selectedItem, selectSlot } from './inventory';
 import { nodeAtTile, nodeCenter, nodeHint, nodeNear, updateNodes, useNode } from './nodes';
-import { changed, toast } from './bus';
+import { bus, changed, toast } from './bus';
+import { tickAwards, checkRegions } from './regions';
+import { refreshEarned } from './wardrobe';
 import { sceneActive } from './render/stage';
 import { sharedWorld3D, type World3D } from './render/world3d';
 import { saveGame } from './save';
@@ -58,6 +61,7 @@ function openStation(s: Station) {
   else if (s.id === 'crafting') openCrafting();
   else if (s.id === 'market') openMarket();
   else if (s.id === 'chest') openChest();
+  else if (s.id === 'wardrobe') openBag('wardrobe');
   else openJournal('lanterns');
 }
 
@@ -175,6 +179,7 @@ function update(dt: number) {
   updateLanterns(dt);
   tickGarden();
   updateCollect(dt, player.x, player.y);
+  tickAwards(dt, panel);
   // hint
   const tgt = panel ? null : currentTarget();
   setHint(tgt ? `${glyph('interact')} · ${tgt.label}` : null);
@@ -214,7 +219,7 @@ function render(t: number, dt: number) {
   const dress = dressing.active;
   world3d.render({
     t, dt, hour: dress ? 12.5 : clock.hour, season: clock.season,
-    player: dress ? { x: player.x, y: player.y, facing: 'down', moving: false, running: false, surface: 'grass' } : { ...player, running: player.running, surface: surfaceUnder() }, outfit: currentOutfit(), accessory: currentAccessory(), npcs: presentNpcs(), talkedToday,
+    player: dress ? { x: player.x, y: player.y, facing: 'down', moving: false, running: false, surface: 'grass' } : { ...player, running: player.running, surface: surfaceUnder() }, look: currentLook(), accessory: currentAccessory(), npcs: presentNpcs(), talkedToday,
   });
 }
 
@@ -232,6 +237,8 @@ export function startGame() {
   if (!state.spawns.length) for (let i = 0; i < 10; i++) spawnOne(player.x, player.y);
   lastX = player.x; lastY = player.y; stepDist = 0;
   setMood('town');
+  refreshEarned(false); // pieces earned before this update, and any party hat already deserved (queued for the ceremony)
+  checkRegions();
   if (booted) {
     cancelPath();
     world3d.snapCamera(player.x, player.y);
@@ -242,6 +249,7 @@ export function startGame() {
   booted = true;
   document.documentElement.style.setProperty('--cheetah', `url(${cheetahDataUrl('classic')})`);
   document.documentElement.style.setProperty('--cheetah-pink', `url(${cheetahDataUrl('pink')})`);
+  bus.on('openWardrobe', () => { if (!isPanelOpen()) openBag('wardrobe'); });
   world3d = sharedWorld3D(canvas);
   world3d.resize();
   window.addEventListener('resize', () => world3d.resize());

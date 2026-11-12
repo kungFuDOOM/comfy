@@ -160,3 +160,10 @@ export function welcomeAt(at: THREE.Vector3) {
 export function welcomeTrickle(at: THREE.Vector3) {
   celebrate.burst(at, { count: 2, colors: ['#ff8fb6', '#ffb3cf', '#ffffff', '#fff3a8'], shapes: [Shape.Heart, Shape.Star], spread: 0.6, speed: 0.3, up: 1.1, gravity: -0.1, size: [0.14, 0.22], life: [1.4, 2.0] });
 }
+
+/** Party confetti: streamers and stars burst up from the player, then flutter down. */
+export function confettiAt(at: THREE.Vector3) {
+  const cols = ['#ff9ec0', '#ffe27a', '#8fe0c0', '#c9a8ff', '#9bd4ff', '#ffffff'];
+  celebrate.burst(at, { count: 90, colors: cols, shapes: [Shape.Dot, Shape.Dot, Shape.Heart], spread: 0.4, speed: 2.4, up: 5.2, gravity: 4.2, size: [0.14, 0.24], life: [1.4, 2.1], stagger: 0.25 });
+  celebrate.burst(at, { count: 40, colors: cols, shapes: [Shape.Star], spread: 0.6, speed: 2.0, up: 4.2, gravity: 2.4, size: [0.16, 0.28], life: [1.0, 1.6], stagger: 0.5 });
+}
