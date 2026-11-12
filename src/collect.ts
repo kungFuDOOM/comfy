@@ -43,6 +43,10 @@ function tileFits(kind: string, x: number, y: number): boolean {
   return false;
 }
 
+// spawns must be reachable: no water/unwalkable tile in the 4 neighbours
+const reachable = (x: number, y: number) =>
+  !isSolidTile(x + 1, y) && !isSolidTile(x - 1, y) && !isSolidTile(x, y + 1) && !isSolidTile(x, y - 1);
+
 export function spawnOne(px = -999, py = -999): boolean {
   const kind = pickKind();
   if (!kind) return false;
@@ -51,7 +55,7 @@ export function spawnOne(px = -999, py = -999): boolean {
     const near = px > -900;
     const x = near ? Math.round(px / TS + (Math.random() * 2 - 1) * 24) : (Math.random() * MAP_W) | 0;
     const y = near ? Math.round(py / TS + (Math.random() * 2 - 1) * 18) : (Math.random() * MAP_H) | 0;
-    if (!tileFits(kind, x, y)) continue;
+    if (!tileFits(kind, x, y) || !reachable(x, y)) continue;
     const wx = x * TS + 8 + Math.random() * 16, wy = y * TS + 14 + Math.random() * 14;
     if (Math.hypot(wx - px, wy - py) < 4 * TS) continue;
     if (state.spawns.some((s) => Math.hypot(s.x - wx, s.y - wy) < 20)) continue;
@@ -62,6 +66,11 @@ export function spawnOne(px = -999, py = -999): boolean {
 }
 
 export function updateCollect(dt: number, px: number, py: number) {
+  // drop spawns saved on tiles that are now water/solid (e.g. after the map changed)
+  for (let i = state.spawns.length - 1; i >= 0; i--) {
+    const s = state.spawns[i];
+    if (!tileFits(s.item, Math.floor(s.x / TS), Math.floor(s.y / TS))) state.spawns.splice(i, 1);
+  }
   timer -= dt;
   if (timer <= 0) {
     timer = 7 + Math.random() * 6;
