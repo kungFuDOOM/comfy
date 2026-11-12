@@ -4,6 +4,7 @@ import '@fontsource/fredoka/600.css';
 import '@fontsource/fredoka/700.css';
 import './styles.css';
 import './ui/toast';
+import './ui/levelUp';
 import { bootIntoGame, bootWithMenu } from './boot';
 import { initAudio } from './audio';
 import { startIntroCutscene } from './cutscene/intro';

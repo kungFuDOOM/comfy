@@ -137,6 +137,9 @@ export const sfx = {
     const t = g.ctx.currentTime;
     [76, 80, 83, 88, 92, 95].forEach((m, i) => tone(g, t + i * 0.07, M(m), 0.4, { type: 'triangle', peak: 0.14 }));
     tone(g, t + 0.42, M(100), 0.5, { type: 'sine', peak: 0.12 });
+    // a soft bell-ish shimmer on top: two quiet high twinkles that ring out
+    tone(g, t + 0.48, M(107), 0.7, { type: 'sine', peak: 0.05 });
+    tone(g, t + 0.58, M(112), 0.6, { type: 'sine', peak: 0.035 });
   },
   /** One footstep. `alt` alternates feet; run = quicker, snappier. */
   step(surface: FootSurface = 'grass', alt = false, run = false) {
