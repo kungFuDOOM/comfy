@@ -56,8 +56,9 @@ export function openShift(onExit?: () => void) {
 
   function customerHead(c: Customer) {
     const cv = document.createElement('canvas');
-    cv.width = 90; cv.height = 100; cv.style.width = '90px'; cv.style.height = '100px';
-    const g = cv.getContext('2d')!; g.fillStyle = '#fff0f6'; g.fillRect(0, 0, 90, 100);
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = 90 * dpr; cv.height = 100 * dpr; cv.style.width = '90px'; cv.style.height = '100px';
+    const g = cv.getContext('2d')!; g.scale(dpr, dpr); g.fillStyle = '#fff0f6'; g.fillRect(0, 0, 90, 100);
     drawVillager(g, c.def, 45, 90, performance.now() / 1000, 'down', false, 1.9);
     cv.className = 'portrait';
     return h('div', 'shift-customer', cv, h('div', 'grow', h('b', '', c.def.name), h('div', 'muted', c.def.personality)));
