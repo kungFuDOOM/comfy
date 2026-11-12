@@ -323,6 +323,37 @@ export function createStation(s: Station): THREE.Group {
       g.add(contactShadow(2.6, 1.4, 'rect', 0.22));
       break;
     }
+    case 'crafting': {
+      // Crafting Table: a chunky pink wooden worktable with a pale top, shelf, and little craft supplies
+      const WOOD = '#f4a9c4', WOOD_D = '#e58aae', TOP = '#ffd9e6';
+      for (const x of [-0.62, 0.62]) for (const z of [-0.3, 0.3]) k.v.add(G.box(0.14, 0.8, 0.14), WOOD_D, { x, y: 0.4, z });
+      k.v.add(G.box(1.5, 0.08, 0.1), WOOD, { y: 0.34, z: 0.3 });
+      k.v.add(G.box(1.5, 0.08, 0.1), WOOD, { y: 0.34, z: -0.3 });
+      k.v.add(G.box(1.46, 0.05, 0.56), WOOD, { y: 0.28 });
+      k.v.add(G.box(1.64, 0.12, 0.82), TOP, { y: 0.86 });
+      k.v.add(G.box(1.68, 0.05, 0.86), '#ffffff', { y: 0.8 });
+      // pegboard back with hanging tools
+      k.v.add(G.box(1.5, 0.7, 0.05), WOOD, { y: 1.3, z: -0.36 });
+      k.v.add(G.box(0.05, 0.76, 0.07), WOOD_D, { x: -0.76, y: 1.3, z: -0.36 });
+      k.v.add(G.box(0.05, 0.76, 0.07), WOOD_D, { x: 0.76, y: 1.3, z: -0.36 });
+      for (const [x, y] of [[-0.45, 1.4], [0, 1.3], [0.45, 1.45]]) k.v.add(G.ball(0.03, 8), PALETTE.gold, { x, y, z: -0.32 });
+      k.v.add(G.box(0.05, 0.3, 0.03), PALETTE.cocoa, { x: -0.45, y: 1.22, z: -0.32 }); // hammer handle
+      k.v.add(G.box(0.2, 0.1, 0.06), '#d8d0dc', { x: -0.45, y: 1.4, z: -0.32 });
+      k.v.add(G.torus(0.09, 0.016, 10), PALETTE.gold, { x: 0.45, y: 1.28, z: -0.32 }); // scissor loop
+      k.v.add(G.box(0.03, 0.26, 0.02), '#d8d0dc', { x: 0, y: 1.14, z: -0.32 });
+      // on the table: thread spools, a bow in progress, a plank stack, a tiny heart pincushion
+      k.v.add(G.cyl(0.07, 0.07, 0.14, 10), '#ffffff', { x: -0.55, y: 0.99, z: 0.1 });
+      k.v.add(G.cyl(0.075, 0.075, 0.07, 10), '#ff8fb6', { x: -0.55, y: 0.99, z: 0.1 });
+      k.v.add(G.cyl(0.06, 0.06, 0.12, 10), '#ffffff', { x: -0.38, y: 0.98, z: 0.2 });
+      k.v.add(G.cyl(0.065, 0.065, 0.06, 10), PALETTE.blush, { x: -0.38, y: 0.98, z: 0.2 });
+      for (const dx of [-0.1, 0.1]) k.v.add(G.ball(0.085, 10), '#ff8fb6', { x: 0.05 + dx, y: 0.97, z: 0.12, s: [1, 0.8, 0.6] });
+      k.v.add(G.ball(0.045, 8), '#ffffff', { x: 0.05, y: 0.97, z: 0.12 });
+      for (let i = 0; i < 3; i++) k.v.add(G.box(0.4, 0.045, 0.16), i % 2 ? '#e8c39a' : '#dcae80', { x: 0.55, y: 0.95 + i * 0.048, z: 0.08, ry: i * 0.12 });
+      k.v.add(G.ball(0.07, 8), '#ff5c8a', { x: 0.2, y: 0.96, z: -0.15, s: [1, 0.7, 1] });
+      const l = makeLabel('Crafting Table', 2.2); l.position.set(0, 1.95, 0.2); g.add(l);
+      g.add(contactShadow(2.0, 1.2, 'rect', 0.22));
+      break;
+    }
     case 'market': {
       const w = s.w;
       k.v.add(G.box(w - 0.2, 0.7, 0.8), '#f7d5b8', { y: 0.45 });

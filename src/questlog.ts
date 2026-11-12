@@ -34,10 +34,10 @@ export const LOG_QUESTS: LogQuest[] = [
   },
   {
     id: 'lq_bridge', title: 'Mend the Bridge', giver: 'mimsy',
-    steps: 'Gather Sugarwood Twigs from the stumps in Ribbon Meadow, craft 3 Sugarwood Planks (2 twigs each) at the boutique worktable, and bring them to Mimsy.',
+    steps: 'Gather Sugarwood Twigs from the stumps in Ribbon Meadow, craft 3 Sugarwood Planks (2 twigs each) at the Crafting Table, and bring them to Mimsy.',
     want: { item: 'plank', n: 3 },
     reward: 80,
-    offer: "There's a sweet little bridge north of the square that lost its planks in the Long Frost. If we mend it, the whole pond side of the island wakes up! Could you gather some sugarwood twigs from the stumps by the meadow, and craft three planks at the boutique worktable? I'll hold the ladder. Sleepily.",
+    offer: "There's a sweet little bridge north of the square that lost its planks in the Long Frost. If we mend it, the whole pond side of the island wakes up! Could you gather some sugarwood twigs from the stumps by the meadow, and craft three planks at the Crafting Table by the boutique? I'll hold the ladder. Sleepily.",
     thanks: 'Three perfect planks! Now go and give the bridge a good pat — I think it will mend itself out of pure joy.',
   },
   {

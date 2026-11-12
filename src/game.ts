@@ -22,7 +22,7 @@ import { getClock } from './time';
 import { isPanelOpen } from './ui/dom';
 import { buildHud, setHint, tickHud } from './ui/hud';
 import { openMap } from './ui/mapPanel';
-import { openBag, openBoutique, openCafe, openChest, openDialogue, openHelp, openJournal, openMarket } from './ui/panels';
+import { openBag, openBoutique, openCafe, openChest, openCrafting, openDialogue, openHelp, openJournal, openMarket } from './ui/panels';
 import { openPause } from './ui/menuPanels';
 import { barrierHint, barrierNear, syncUnlocks, useBarrier } from './unlocks';
 import { T, TS, barrierAtTile, buildWorld, inYard, isPlotTile, isSolidTile, stations, terrainAt, type Station } from './world';
@@ -31,6 +31,7 @@ const canvas = document.getElementById('game') as HTMLCanvasElement;
 let world3d: World3D;
 let saveTimer = 0;
 let seenHelpTimer = 0.8;
+let markerOn = false;
 
 // ---- Interaction ----
 type Target = { label: string; run: () => void } | null;
@@ -54,6 +55,7 @@ function npcNear(): Npc | null {
 function openStation(s: Station) {
   if (s.id === 'cafe') openCafe();
   else if (s.id === 'boutique') openBoutique();
+  else if (s.id === 'crafting') openCrafting();
   else if (s.id === 'market') openMarket();
   else if (s.id === 'chest') openChest();
   else openJournal('lanterns');
@@ -86,6 +88,7 @@ function interact() {
 
 function handleClick(sx: number, sy: number) {
   if (isPanelOpen()) return;
+  if (markerOn) { world3d.marker(null); markerOn = false; }
   // Raycast the 3D scene: villager / station / else the ground point (world px, 1 tile = TS).
   const pick = world3d.pick(sx, sy, presentNpcs());
   if (!pick) return;
@@ -104,6 +107,7 @@ function handleClick(sx: number, sy: number) {
     return;
   }
   const wx = pick.wx, wy = pick.wy;
+  const tapMarker = (ok: boolean) => { if (ok) { world3d.marker(wx, wy); markerOn = true; } else cancelPath(); };
   const tx = Math.floor(wx / TS), ty = Math.floor(wy / TS);
   // plot / yard tile
   if (isPlotTile(tx, ty) || inYard(tx, ty)) {
@@ -136,7 +140,7 @@ function handleClick(sx: number, sy: number) {
   }
   // plain walking
   const goals = isSolidTile(tx, ty) ? around(tx, ty) : [{ x: tx, y: ty }];
-  walkTo(goals);
+  tapMarker(walkTo(goals));
 }
 
 /** X / "use tool": act on the tile in front of the player with the selected hotbar item. */
@@ -162,6 +166,7 @@ function update(dt: number) {
   // camera-relative movement: input forward (-y) is away from the camera
   const mv = readMove(), yaw = world3d.yaw(), c = Math.cos(yaw), sn = Math.sin(yaw);
   updatePlayer(dt, c * mv.x + sn * mv.y, -sn * mv.x + c * mv.y, mv.run, mv.analog);
+  if (markerOn && !player.path.length) { world3d.marker(null); markerOn = false; }
   footsteps(player.running);
   updateDirector(dt);
   updateNpcs(dt);
