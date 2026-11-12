@@ -1,6 +1,6 @@
 // Player movement: smoothed analog/keyboard movement, plus tap/click-to-move with BFS pathfinding.
-import { MAP_H, MAP_W, TS, isWalkable } from './world';
-import { state } from './state';
+import { MAP_H, MAP_W, TS, areaAt, isWalkable } from './world';
+import { isAreaOpen, state } from './state';
 import type { Facing } from './art/characters';
 
 export const player = {
@@ -32,7 +32,8 @@ export function placePlayer() {
   player.x = state.px;
   player.y = state.py;
   player.facing = state.facing;
-  if (blockedAt(player.x, player.y)) { player.x = 30 * TS + 16; player.y = 24 * TS; }
+  // landed in water, a wall, or an area that is still locked (e.g. an old save): back to the square
+  if (blockedAt(player.x, player.y) || !isAreaOpen(areaAt(Math.floor(player.x / TS), Math.floor((player.y - 4) / TS)))) { player.x = 48 * TS + 16; player.y = 46 * TS; }
 }
 
 export function cancelPath() {

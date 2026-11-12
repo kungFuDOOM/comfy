@@ -16,7 +16,7 @@ export interface MenuSceneOptions {
   hour?: number;
 }
 
-const FOCUS = new THREE.Vector3(30, 0.6, 17.5); // between the café, the boutique and the square
+const FOCUS = new THREE.Vector3(48, 0.6, 39.5); // between the café, the boutique and the square
 let stop: (() => void) | null = null;
 let balloon: Balloon | null = null;
 let ambience: Ambience | null = null;
@@ -116,7 +116,7 @@ export function startMenuScene(opts: MenuSceneOptions = {}) {
       if (portrait) camera.setViewOffset(w, h, 0, -h * 0.06, w, h);
       else camera.setViewOffset(w, h, -w * 0.14, h * 0.02, w, h);
 
-      b.group.position.set(41 + Math.sin(t * 0.05) * 4, 8.2 + Math.sin(t * 0.33) * 0.35, 14 + Math.cos(t * 0.041) * 2.5);
+      b.group.position.set(59 + Math.sin(t * 0.05) * 4, 8.2 + Math.sin(t * 0.33) * 0.35, 36 + Math.cos(t * 0.041) * 2.5);
       b.group.rotation.y = t * 0.08;
       b.animate(f.t, 1);
       amb.update(t);

@@ -24,7 +24,7 @@ export const waterLight = {
 function bakeShore(): THREE.DataTexture {
   const w = MAP_W * RES, h = MAP_H * RES, data = new Uint8Array(w * h);
   const land: number[] = [];
-  for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) if (terrainAt(x, y) !== T.Water) land.push(x, y);
+  for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) if (terrainAt(x, y) !== T.Water && terrainAt(x, y) !== T.Bridge) land.push(x, y);
   // bucket land tiles by tile so each texel only checks its neighbourhood
   const isLand = new Uint8Array(MAP_W * MAP_H);
   for (let i = 0; i < land.length; i += 2) isLand[land[i + 1] * MAP_W + land[i]] = 1;

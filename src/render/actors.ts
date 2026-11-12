@@ -18,7 +18,7 @@ export interface ActorMesh {
 
 const FACE_ANGLE: Record<Facing, number> = { down: 0, right: Math.PI / 2, up: Math.PI, left: -Math.PI / 2 };
 
-type Kind = 'player' | 'dormouse' | 'hamster' | 'hedgehog' | 'bunny';
+type Kind = 'player' | 'dormouse' | 'hamster' | 'hedgehog' | 'bunny' | 'capybara' | 'moth' | 'axolotl' | 'seal';
 type Fill = string | CheetahKind; // hex color or a cheetah print
 const isPrint = (f: Fill): f is CheetahKind => f === 'classic' || f === 'pink';
 
@@ -176,6 +176,73 @@ function buildHead(kind: Kind, skin: string, accent: string): THREE.Mesh {
       b.add(G.ball(0.032, 8), '#f59ac0', { ...at(on(0, -10, 1.05)), s: [1.3, 0.85, 0.75] });
       const smile = on(0, -26, 1.03);
       b.add(G.torus(0.04, 0.009, 8, Math.PI * 0.85), '#e7a0c0', { x: smile[0], y: smile[1], z: smile[2], rz: Math.PI, rx: 0.3 });
+      break;
+    }
+    case 'capybara': {
+      // Brioche: a boxy, gentle capybara. Tiny ears set back, a big square snout with two nostrils.
+      const snout = '#dcb98c';
+      for (const sx of [-1, 1]) {
+        b.add(G.ball(0.1, 10), skin, { x: sx * 0.31, y: 0.3, z: -0.1, s: [1, 1, 0.6] });
+        b.add(G.ball(0.055, 8), '#d99a7d', { x: sx * 0.31, y: 0.3, z: -0.05, s: [1, 1, 0.4] });
+      }
+      b.add(G.ball(0.2, 14), snout, { ...at(on(0, -12, 0.98)), s: [1.55, 0.98, 1.0] });
+      b.add(G.ball(0.07, 10), '#7a4a3a', { ...at(on(0, -2, 1.03)), s: [1.5, 0.8, 0.8] });
+      for (const sx of [-1, 1]) b.add(G.ball(0.014, 6), '#5a3328', { ...at(on(sx * 8, -4, 1.12)) });
+      const smile = on(0, -26, 1.07);
+      b.add(G.torus(0.05, 0.01, 8, Math.PI * 0.9), '#a0714f', { x: smile[0], y: smile[1], z: smile[2], rz: Math.PI, rx: 0.3 });
+      // flat-topped fluff
+      b.add(G.ball(0.15, 10), skin, { ...at(on(0, 68, 1.0)), s: [1.5, 0.5, 1.0] });
+      break;
+    }
+    case 'moth': {
+      // Oolie: a fuzzy pastel moth. Feathery antennae with a curl and a tuft of cheek fluff.
+      const fuzz = '#ffffff';
+      for (const sx of [-1, 1]) {
+        const ax = sx * 0.12;
+        b.add(G.capsule(0.018, 0.34), '#c9b8ee', { x: ax + sx * 0.05, y: 0.52, z: 0.0, rz: -sx * 0.5 });
+        b.add(G.ball(0.04, 8), accent, { x: ax + sx * 0.2, y: 0.7, z: 0.0 });
+        for (let k = 0; k < 4; k++) b.add(G.capsule(0.009, 0.1), '#d9c9f5', { x: ax + sx * (0.08 + k * 0.034), y: 0.55 + k * 0.045, z: 0.0, rz: -sx * 1.0 });
+        b.add(G.ball(0.1, 10), fuzz, { x: sx * 0.34, y: -0.08, z: 0.08, s: [1, 1.1, 0.8] });
+      }
+      b.add(G.ball(0.16, 12), fuzz, { ...at(on(0, 58, 1.0)), s: [1.4, 0.62, 0.9] });
+      b.add(G.ball(0.07, 8), '#f59ac0', { ...at(on(0, -12, 1.05)), s: [1.1, 0.8, 0.6] });
+      // a pressed flower behind the ear
+      for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; b.add(G.ball(0.04, 8), '#ffb3cf', { x: -0.36 + Math.cos(a) * 0.05, y: 0.22 + Math.sin(a) * 0.05, z: 0.1, s: [1, 1, 0.5] }); }
+      b.add(G.ball(0.03, 6), '#fff3a8', { x: -0.36, y: 0.22, z: 0.12 });
+      break;
+    }
+    case 'axolotl': {
+      // Tuppi: wide head, three feathery gill stalks per side, a giggly grin and a frosting-dipped cap.
+      for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) {
+        const y = 0.06 + k * 0.12, ang = 0.55 + k * 0.28;
+        b.add(G.capsule(0.022, 0.2), accent, { x: sx * (0.5 + k * 0.01), y, z: -0.02, rz: -sx * (1.2 + k * 0.1) });
+        b.add(G.ball(0.045, 8), '#ffb3cf', { x: sx * (0.62 + k * 0.03), y: y + 0.08 + k * 0.04, z: -0.02 });
+        void ang;
+      }
+      const smile = on(0, -22, 1.04);
+      b.add(G.torus(0.13, 0.014, 12, Math.PI * 0.85), '#c0577d', { x: smile[0], y: smile[1] + 0.02, z: smile[2], rz: Math.PI, rx: 0.3 });
+      for (const sx of [-1, 1]) b.add(G.ball(0.014, 6), '#c0577d', { ...at(on(sx * 38, -20, 1.03)) });
+      b.add(G.ball(0.14, 12), '#ffffff', { ...at(on(0, 64, 1.0)), s: [1.5, 0.45, 1.1] }); // a baker's cap
+      b.add(G.ball(0.12, 12), '#ffffff', { ...at(on(0, 78, 1.0)), s: [1, 0.8, 1] });
+      b.add(G.ball(0.035, 8), '#ff6f9c', { ...at(on(10, 84, 1.07)) });
+      break;
+    }
+    case 'seal': {
+      // Marlo: a round, sugar-dusted seal. Whisker pad, big dark nose, whiskers, and a lavender keeper's cap.
+      const pad = '#fff6fa';
+      b.add(G.ball(0.17, 14), pad, { ...at(on(0, -14, 0.98)), s: [1.45, 0.95, 0.95] });
+      b.add(G.ball(0.055, 10), '#7a4a6a', { ...at(on(0, -4, 1.04)), s: [1.4, 0.8, 0.8] });
+      for (const sx of [-1, 1]) for (const tilt of [0.25, -0.15]) {
+        const len = 0.2, ox = sx * 0.1;
+        b.add(G.capsule(0.006, len), '#ffffff', { x: ox + sx * len * 0.5, y: -0.14 + tilt * len * 0.5, z: 0.35, rz: -sx * (Math.PI / 2 - tilt) });
+      }
+      for (const sx of [-1, 1]) b.add(G.ball(0.045, 8), skin, { x: sx * 0.3, y: 0.24, z: -0.04, s: [1, 1, 0.6] });
+      const cap = '#a98fd6';
+      b.add(G.cyl(0.4, 0.43, 0.05, 20), cap, { y: 0.31, z: 0.0, rx: -0.1 });
+      b.add(G.ball(0.3, 14), '#b9a3e6', { y: 0.34, z: -0.02, s: [1, 0.65, 1] });
+      b.add(G.torus(0.3, 0.02, 18), PALETTE.gold, { y: 0.34, rx: Math.PI / 2 });
+      b.add(G.ball(0.04, 8), PALETTE.gold, { y: 0.54 });
+      for (let i = 0; i < 9; i++) b.add(G.ball(0.011, 5), '#ffffff', { ...at(on(((i * 53) % 140) - 70, 10 + ((i * 37) % 50), 1.01)) }); // sugar dust
       break;
     }
   }
@@ -422,12 +489,16 @@ export function createPlayerMesh(): ActorMesh & { setOutfit(o: OutfitDef): void;
   });
 }
 
-const HEAD_COLORS: Record<string, string> = { dormouse: '#fbe3ea', hamster: '#f6d9a0', hedgehog: '#e8cfc0', bunny: '#ebe3fa' };
+const HEAD_COLORS: Record<string, string> = { dormouse: '#fbe3ea', hamster: '#f6d9a0', hedgehog: '#e8cfc0', bunny: '#ebe3fa', capybara: '#e9c9a0', moth: '#f4ecff', axolotl: '#ffc4d8', seal: '#f4d2e0' };
 const VILLAGER_LOOK: Record<string, { dress?: Fill; band: Fill; shoes: string; bow?: Fill }> = {
   dormouse: { band: 'classic', shoes: '#ffffff', bow: 'pink' },
   hamster: { dress: 'classic', band: '#ffffff', shoes: PALETTE.rose, bow: PALETTE.rose },
   hedgehog: { band: 'classic', shoes: '#c9a8e8' },
   bunny: { band: '#ffffff', shoes: '#c9b8ee' },
+  capybara: { band: 'classic', shoes: '#c98c5a' },
+  moth: { band: '#ffffff', shoes: '#d9c6ff' },
+  axolotl: { band: 'pink', shoes: '#ff8fb6' },
+  seal: { band: '#ffffff', shoes: '#a98fd6' },
 };
 
 /** Five-point gold star, used as Nimbus's ear clip. */
@@ -497,6 +568,72 @@ const VILLAGER_SHAPE: Partial<Record<string, Pick<Spec, 'scale' | 'headScale' | 
         const tw = 1 + Math.sin(t * 2.4) * 0.08;
         star.scale.setScalar(tw);
       };
+    },
+  },
+  capybara: {
+    scale: 1.04, headScale: [1.14, 1.0, 1.2], headDrop: -0.03, bodyScale: [1.2, 0.95, 1.2], eyeScale: 0.95,
+    // a warm croissant balanced on the head, and a stubby tail
+    extra({ model, head }) {
+      const cr = new Batch();
+      for (let i = -2; i <= 2; i++) cr.add(G.ball(0.1 - Math.abs(i) * 0.014, 10), i % 2 ? '#f2b765' : '#e49c5a', { x: i * 0.1, y: -Math.abs(i) * 0.03, z: 0, s: [1, 0.9, 1.1], rz: i * 0.25 });
+      const croissant = cr.build();
+      croissant.position.set(0.02, 0.47, 0.0);
+      head.add(croissant);
+      const tail = new Batch().add(G.ball(0.08, 8), '#dcb98c', {}).build();
+      tail.position.set(0, HIP_Y + 0.15, -0.34);
+      model.add(tail);
+    },
+  },
+  moth: {
+    scale: 0.96, headScale: [1.05, 1.02, 1.04], headDrop: -0.02, bodyScale: [1.0, 1.0, 1.0], eyeScale: 1.22,
+    // four pastel wings that flutter, with pressed-flower speckles
+    extra({ model }) {
+      const wing = (sx: number, up: boolean) => {
+        const b = new Batch();
+        b.add(G.ball(0.3, 14), up ? '#e6d4ff' : '#ffd9ea', { s: [up ? 1.2 : 0.95, up ? 1.1 : 0.9, 0.08], y: up ? 0.1 : -0.15 });
+        b.add(G.ball(0.1, 10), up ? '#ff9ec0' : '#c9b8ee', { x: sx * 0.14, y: up ? 0.12 : -0.15, z: 0.03, s: [1, 1, 0.3] });
+        b.add(G.ball(0.045, 8), '#ffffff', { x: sx * 0.32, y: up ? 0.18 : -0.2, z: 0.04, s: [1, 1, 0.4] });
+        const m = b.build();
+        const piv = new THREE.Group();
+        m.position.x = sx * 0.28;
+        piv.add(m);
+        piv.position.set(sx * 0.1, HIP_Y + 0.46, -0.2);
+        piv.rotation.y = sx * 0.5;
+        model.add(piv);
+        return piv;
+      };
+      const wings = [wing(-1, true), wing(1, true), wing(-1, false), wing(1, false)];
+      return (t, walk) => {
+        const f = Math.sin(t * (4 + walk * 8)) * (0.18 + walk * 0.2);
+        wings.forEach((w, i) => { const sx = i % 2 ? 1 : -1; w.rotation.y = sx * (0.5 + f); });
+      };
+    },
+  },
+  axolotl: {
+    scale: 0.96, headScale: [1.2, 1.0, 1.1], headDrop: -0.03, bodyScale: [1.08, 0.92, 1.08], eyeScale: 1.1,
+    // a wiggly fin tail that giggles when it moves
+    extra({ model }) {
+      const tail = new Batch()
+        .add(G.ball(0.16, 10), '#ffc4d8', { s: [0.5, 1.0, 1.4] })
+        .add(G.ball(0.1, 8), '#ff9ec0', { y: 0.08, z: -0.18, s: [0.35, 0.9, 1.2] })
+        .build();
+      tail.position.set(0, HIP_Y + 0.16, -0.36);
+      model.add(tail);
+      return (t, walk) => { tail.rotation.y = Math.sin(t * (3 + walk * 8)) * (0.35 + walk * 0.25); };
+    },
+  },
+  seal: {
+    scale: 1.02, headScale: [1.1, 1.0, 1.1], headDrop: -0.03, bodyScale: [1.18, 0.94, 1.18], eyeScale: 1.05,
+    // round flipper tail, and a lavender-and-gold scarf
+    extra({ model, body }) {
+      const flip = new Batch();
+      for (const sx of [-1, 1]) flip.add(G.ball(0.1, 10), '#e8bfd2', { x: sx * 0.1, s: [1.3, 0.35, 1.5], rz: sx * 0.3 });
+      const tail = flip.build();
+      tail.position.set(0, HIP_Y + 0.1, -0.34);
+      model.add(tail);
+      const scarf = new Batch().add(G.torus(0.2, 0.05, 18), '#a98fd6', { rx: Math.PI / 2 }).add(G.ball(0.055, 8), PALETTE.gold, { x: 0.06, y: -0.04, z: 0.19 }).build();
+      scarf.position.set(0, 0.56, 0.03);
+      body.add(scarf);
     },
   },
 };

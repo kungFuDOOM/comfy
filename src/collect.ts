@@ -10,7 +10,8 @@ import { bump } from './quests';
 import { grantXp } from './skills';
 import { state } from './state';
 import { getClock } from './time';
-import { MAP_H, MAP_W, T, TS, inMeadow, isSolidTile, terrainAt } from './world';
+import { isAreaOpen } from './state';
+import { MAP_H, MAP_W, T, TS, areaAt, inMeadow, isSolidTile, terrainAt } from './world';
 
 const MAX = 16;
 let timer = 0;
@@ -32,7 +33,7 @@ function pickKind(): string | null {
 
 function tileFits(kind: string, x: number, y: number): boolean {
   const t = terrainAt(x, y);
-  if (isSolidTile(x, y)) return false;
+  if (isSolidTile(x, y) || !isAreaOpen(areaAt(x, y))) return false;
   switch (kind) {
     case 'shell': return t === T.Sand;
     case 'blossom': return inMeadow(x, y);
@@ -46,7 +47,10 @@ export function spawnOne(px = -999, py = -999): boolean {
   const kind = pickKind();
   if (!kind) return false;
   for (let i = 0; i < 60; i++) {
-    const x = (Math.random() * MAP_W) | 0, y = (Math.random() * MAP_H) | 0;
+    // the island is big: spawn within a few screens of the player (anywhere when called without a position)
+    const near = px > -900;
+    const x = near ? Math.round(px / TS + (Math.random() * 2 - 1) * 24) : (Math.random() * MAP_W) | 0;
+    const y = near ? Math.round(py / TS + (Math.random() * 2 - 1) * 18) : (Math.random() * MAP_H) | 0;
     if (!tileFits(kind, x, y)) continue;
     const wx = x * TS + 8 + Math.random() * 16, wy = y * TS + 14 + Math.random() * 14;
     if (Math.hypot(wx - px, wy - py) < 4 * TS) continue;
