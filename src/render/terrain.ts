@@ -1,9 +1,10 @@
-// Ground: one instanced box per land tile, plus a big water plane. Heights are tiny so walking feels flat.
+// Ground: one instanced box per land tile, plus the stylized sea (water.ts). Heights are tiny so walking feels flat.
 import * as THREE from 'three';
 import { hash } from '../art/draw';
 import type { Season } from '../time';
 import { MAP_H, MAP_W, shoreDist, T, terrainAt } from '../world';
 import { makeToon, PALETTE, toon } from './materials';
+import { createWater } from './water';
 
 const HEIGHT: Record<number, number> = { [T.Water]: -0.4, [T.Sand]: 0, [T.Grass]: 0.05, [T.Path]: 0.08, [T.Hill]: 0.35, [T.Soil]: 0.04, [T.Lawn]: 0.07, [T.Plaza]: 0.1 };
 /** Sand dips gently toward the sea: waterline tiles sit lowest, the damp band a touch higher, dry sand at 0. */
@@ -70,12 +71,9 @@ export function createTerrain(): Terrain {
   wet.forEach((tl, i) => { m4.makeTranslation(tl.x + 0.5, tileHeight(tl.x, tl.y) + 0.004, tl.y + 0.5); sheen.setMatrixAt(i, m4); });
   group.add(sheen);
 
-  const waterMat = makeToon(PALETTE.water, { ground: true, transparent: true, opacity: 0.9 });
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(MAP_W + 120, MAP_H + 120), waterMat);
-  water.rotation.x = -Math.PI / 2;
-  water.position.set(MAP_W / 2, -0.25, MAP_H / 2);
-  water.receiveShadow = true;
-  group.add(water);
+  // stylized sea (waves, ripples, sparkles, shoreline foam) over the seabed
+  const water = createWater();
+  group.add(water.mesh);
   // seabed so the translucent water has something under it
   const bed = new THREE.Mesh(new THREE.PlaneGeometry(MAP_W + 120, MAP_H + 120), toon(PALETTE.seabed, { ground: true }));
   bed.rotation.x = -Math.PI / 2; bed.position.set(MAP_W / 2, -0.9, MAP_H / 2);
@@ -89,7 +87,7 @@ export function createTerrain(): Terrain {
       if (inst.instanceColor) inst.instanceColor.needsUpdate = true;
     },
     update(t) {
-      water.position.y = -0.25 + Math.sin(t * 0.8) * 0.03;
+      water.update(t);
       sheenMat.opacity = 0.1 + (0.5 + 0.5 * Math.sin(t * 0.8 + 1.2)) * 0.14;
     },
   };

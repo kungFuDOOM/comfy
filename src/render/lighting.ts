@@ -6,6 +6,7 @@ import { darkness, golden } from '../time';
 import { props } from '../world';
 import { applyNightToMaterials, lightPool, PALETTE, shadeUniforms } from './materials';
 import { tileHeight } from './terrain';
+import { waterLight } from './water';
 
 interface Look {
   key: THREE.Color; keyI: number;       // sun / moon
@@ -111,6 +112,12 @@ export function createLightRig(scene: THREE.Scene): LightRig {
       sun.target.position.copy(c);
       sun.position.copy(c).addScaledVector(dir, SHADOW_DIST);
       sun.target.updateMatrixWorld();
+
+      waterLight.uSunColor.value.copy(cur.key).multiplyScalar(cur.keyI / Math.PI);
+      waterLight.uSkyColor.value.copy(cur.sky).multiplyScalar(cur.fillI / Math.PI);
+      waterLight.uGroundColor.value.copy(cur.ground).multiplyScalar(cur.fillI / Math.PI);
+      waterLight.uSunDir.value.copy(dir);
+      waterLight.uNight.value = night;
     },
   };
   return rig;
