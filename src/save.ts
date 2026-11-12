@@ -1,4 +1,5 @@
 import { defaultState, state, type SaveData } from './state';
+import { TOWN_OFFSET, MAP_VERSION } from './world';
 
 const KEY = 'comfy.save.v1';
 
@@ -14,14 +15,35 @@ export function loadGame(): boolean {
     state.daily = { ...base.daily, ...(data.daily ?? {}) };
     if (!Array.isArray(state.hotbar) || state.hotbar.length !== 9) state.hotbar = base.hotbar;
     // fields added after the first release: old saves get fresh defaults, existing data stays untouched
-    for (const k of ['skills', 'bank', 'nodes', 'questLog'] as const) {
+    for (const k of ['skills', 'bank', 'nodes', 'questLog', 'unlocked'] as const) {
       const v = state[k] as unknown;
       if (!v || typeof v !== 'object' || Array.isArray(v)) (state as unknown as Record<string, unknown>)[k] = {};
     }
+    if ((data.mapV ?? 1) < MAP_VERSION) migrateMap();
+    state.mapV = MAP_VERSION;
     return true;
   } catch {
     return false;
   }
+}
+
+/**
+ * The island grew: the old 60x44 map now sits inside the bigger one, shifted by TOWN_OFFSET tiles. Saved positions
+ * move with it (the player, decor, garden plots and collectibles). Whether the player landed somewhere blocked or in
+ * a still-locked area is sorted out by placePlayer() when the game starts.
+ */
+function migrateMap() {
+  const ox = TOWN_OFFSET.x, oy = TOWN_OFFSET.y;
+  state.px += ox * 32; state.py += oy * 32;
+  state.decor = (state.decor ?? []).map((d) => ({ ...d, x: d.x + ox, y: d.y + oy }));
+  const plots: SaveData['plots'] = {};
+  for (const [k, v] of Object.entries(state.plots ?? {})) {
+    const [x, y] = k.split(',').map(Number);
+    plots[`${x + ox},${y + oy}`] = v;
+  }
+  state.plots = plots;
+  state.spawns = (state.spawns ?? []).map((s) => ({ ...s, x: s.x + ox * 32, y: s.y + oy * 32 }));
+  state.nodes = {}; // node ids belong to the old layout; everything simply starts ready
 }
 
 /** True when a saved island exists (show "Continue"). */

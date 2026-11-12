@@ -23,7 +23,7 @@ import { captureSceneKeys } from '../ui/sceneInput';
 export const INTRO_LINES = [
   "Oh…! A balloon? I thought I was dreaming again. I'm Mimsy — welcome to Sugarlily Isle!",
   'The Long Frost stayed too long and the Hush Bell in the lighthouse wound down. The whole island has been napping since.',
-  "Brioche, Dottie, Oolie, Tuppi and Nimbus are curled up somewhere warm. Small kindnesses will wake them.",
+  "Dottie, Bramble and I are up, but Brioche, Oolie, Tuppi and the lighthouse keeper are curled up somewhere warm, past the logs, the bridge and the gates. Small kindnesses will wake them.",
   'Cocoa Leaf season is here — perfect timing. Shall we start with a coffee? *yawn*',
 ];
 
@@ -38,11 +38,11 @@ export interface IntroOptions {
 }
 
 // ---- staging (tile units; x east, z south) ----
-const LAND = { x: 29.4, z: 17.0 };          // balloon touches down on the path in front of the café
-const PLAYER_AT = { x: 27.9, z: 16.9 };     // where the newcomer ends up (gameplay starts here)
-const MIMSY_FROM = { x: 25.5, z: 15.9 };
-const MIMSY_AT = { x: 26.75, z: 16.8 };
-const FLIGHT = [[39, 15, 56], [36.5, 12.5, 44], [33.2, 8.6, 31.5], [30.6, 4.0, 22], [LAND.x, 0, LAND.z]] as const;
+const LAND = { x: 47.4, z: 39.0 };          // balloon touches down on the path in front of the café
+const PLAYER_AT = { x: 45.9, z: 38.9 };     // where the newcomer ends up (gameplay starts here)
+const MIMSY_FROM = { x: 43.5, z: 37.9 };
+const MIMSY_AT = { x: 44.75, z: 38.8 };
+const FLIGHT = [[57, 15, 78], [54.5, 12.5, 66], [51.2, 8.6, 53.5], [48.6, 4.0, 44], [LAND.x, 0, LAND.z]] as const;
 
 // ---- timing (seconds) ----
 const T_FADE_IN = 1.4;
@@ -108,14 +108,14 @@ export function startIntroCutscene(onDone?: () => void, opts: IntroOptions = {})
   const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), wantPos = new THREE.Vector3(), wantLook = new THREE.Vector3();
   const v1 = new THREE.Vector3(), v2 = new THREE.Vector3();
   let camInit = false;
-  const ISLAND = new THREE.Vector3(30, 1, 20);
-  const TALK_LOOK = new THREE.Vector3(28.0, 0.62, 16.9);
+  const ISLAND = new THREE.Vector3(48, 1, 42);
+  const TALK_LOOK = new THREE.Vector3(46.0, 0.62, 38.9);
 
   function scriptCamera(aspect: number, t: number) {
     const narrow = aspect < 1.25 ? 1 + (1.25 - aspect) * 1.15 : 1; // pull back on tall screens
     // 1) high over the sea, sliding towards the island
     const a = smooth(0, 8.4, tt);
-    wantPos.set(lerp(55, 41, a), lerp(25, 13.5, a), lerp(70, 44, a));
+    wantPos.set(lerp(73, 59, a), lerp(25, 13.5, a), lerp(92, 66, a));
     wantLook.copy(ISLAND).lerp(v1.copy(bPos).setY(bPos.y + 2.2), smooth(2.2, 7.5, tt) * 0.85);
     // 2) swing in beside the balloon as it comes down
     const b = smooth(6.6, T_LAND + 0.6, tt);

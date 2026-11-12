@@ -6,7 +6,7 @@ import { MAP_H, MAP_W, shoreDist, T, terrainAt } from '../world';
 import { makeToon, PALETTE, toon } from './materials';
 import { createWater } from './water';
 
-const HEIGHT: Record<number, number> = { [T.Water]: -0.4, [T.Sand]: 0, [T.Grass]: 0.05, [T.Path]: 0.08, [T.Hill]: 0.35, [T.Soil]: 0.04, [T.Lawn]: 0.07, [T.Plaza]: 0.1 };
+const HEIGHT: Record<number, number> = { [T.Water]: -0.4, [T.Sand]: 0, [T.Grass]: 0.05, [T.Path]: 0.08, [T.Hill]: 0.35, [T.Soil]: 0.04, [T.Lawn]: 0.07, [T.Plaza]: 0.1, [T.Bridge]: 0.12 };
 /** Sand dips gently toward the sea: waterline tiles sit lowest, the damp band a touch higher, dry sand at 0. */
 const SAND_DIP = [0, -0.08, -0.04];
 export const tileHeight = (tx: number, ty: number) => {
@@ -31,6 +31,7 @@ function tileColor(t: number, x: number, y: number, s: Season): string {
     case T.Path: return alt ? '#f6ddc9' : '#f2d5c0';
     case T.Soil: return '#e2c4a8';
     case T.Lawn: return (x + y) % 2 === 0 ? '#c8ecbb' : '#bde6ae';
+    case T.Bridge: return '#f6ddc9';
     case T.Plaza: return (x + y) % 2 === 0 ? '#fbd5e2' : '#fde9ef';
     default: return PALETTE.sky;
   }
@@ -47,7 +48,7 @@ export function createTerrain(): Terrain {
   const tiles: { x: number; y: number; t: number }[] = [];
   for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
     const t = terrainAt(x, y);
-    if (t !== T.Water) tiles.push({ x, y, t });
+    if (t !== T.Water && t !== T.Bridge) tiles.push({ x, y, t }); // the bridge deck is drawn by the barrier layer
   }
   const geo = new THREE.BoxGeometry(1, 1, 1);
   const inst = new THREE.InstancedMesh(geo, makeToon('#ffffff', { ground: true }), tiles.length);

@@ -48,13 +48,17 @@ export interface SaveData {
   nodes: Record<string, number>;
   /** Quest-log quests (see questlog.ts): 'active' once accepted, 'done' once turned in. */
   questLog: Record<string, 'active' | 'done'>;
+  /** Areas that have been opened (see areas.ts / unlocks.ts). Missing = locked; the town is always open. */
+  unlocked: Record<string, boolean>;
+  /** Map layout version the saved positions belong to (1 = the original small island). */
+  mapV: number;
 }
 
 export function defaultState(): SaveData {
   return {
     v: 1,
-    px: 30 * 32 + 16,
-    py: 24 * 32,
+    px: 48 * 32 + 16,
+    py: 46 * 32,
     facing: 'down',
     coins: 120,
     inv: { trowel: 1, can: 1, seed_puffberry: 3, beans: 2, milk: 2, syrup: 1, honey: 1 },
@@ -80,10 +84,15 @@ export function defaultState(): SaveData {
     bank: {},
     nodes: {},
     questLog: {},
+    unlocked: {},
+    mapV: 2,
   };
 }
 
 export const state: SaveData = defaultState();
+
+/** The town is always open; everything else opens through unlocks.ts. */
+export const isAreaOpen = (id: string) => id === 'town' || !!state.unlocked[id];
 
 import { getClock } from './time';
 /** Rolls the per-day counters over when the (real) date changes. */

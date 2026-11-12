@@ -5,7 +5,7 @@ import type { Season } from '../time';
 import { contactGeometry, contactMaterial, makeToon, PALETTE, toon } from './materials';
 import { tileHeight } from './terrain';
 
-export interface Nature { group: THREE.Group; setSeason(s: Season): void; update(t: number): void }
+export interface Nature { group: THREE.Group; setSeason(s: Season): void; update(t: number, cx?: number, cz?: number): void }
 
 const PUFFS = 9;       // crown puffs per tree
 const SPECKS = 12;     // little blossoms dotted over the crown
@@ -21,7 +21,7 @@ export function createNature(): Nature {
   const n = trees.length;
   const trunkGeo = new THREE.CylinderGeometry(0.075, 0.16, 1, 8).translate(0, 0.5, 0);
   const trunk = new THREE.InstancedMesh(trunkGeo, toon(PALETTE.wood), n * 2); // trunk + one leaning branch
-  const puff = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 2), makeToon('#ffffff'), n * PUFFS);
+  const puff = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 12, 8), makeToon('#ffffff'), n * PUFFS); // ~180 tris per puff (was 320): a big island has hundreds of trees
   const speck = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), makeToon('#ffffff', { flatShading: true }), n * SPECKS);
   const petalGeo = new THREE.CircleGeometry(0.055, 5).scale(1, 0.62, 1);
   const petalMat = makeToon('#ffffff', { ground: true });
@@ -92,6 +92,7 @@ export function createNature(): Nature {
   });
   group.add(fl);
 
+  let primed = false; // the first update places every petal once so far trees don't leave theirs at the origin
   const white = new THREE.Color('#ffffff'), c = new THREE.Color(), blossom = new THREE.Color(PALETTE.blush);
   return {
     group,
@@ -118,10 +119,11 @@ export function createNature(): Nature {
       for (const im of [puff, speck, petal]) if (im.instanceColor) im.instanceColor.needsUpdate = true;
       fl.visible = !snowy;
     },
-    update(t) {
-      // a few petals drifting down from each crown
+    update(t, cx = 0, cz = 0) {
+      // a few petals drifting down from each crown (only the trees near the camera: far ones are fogged anyway)
       for (let i = 0; i < n; i++) {
         const cr = crowns[i];
+        if (primed && (cr.x - cx) ** 2 + (cr.z - cz) ** 2 > 30 * 30) continue;
         for (let j = 0; j < PETALS; j++) {
           const id = i * PETALS + j, r1 = h01(id + 0.5), r2 = h01(id * 3.7 + 9);
           const life = (t * (0.07 + r1 * 0.05) + r2) % 1;
@@ -134,6 +136,7 @@ export function createNature(): Nature {
         }
       }
       petal.instanceMatrix.needsUpdate = true;
+      primed = true;
     },
   };
 }

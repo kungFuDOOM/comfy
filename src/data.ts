@@ -1,4 +1,6 @@
 // Static content tables: items, outfits, recipes, villagers, quests, collectibles.
+import type { AreaId } from './areas';
+
 export type ItemKind = 'tool' | 'seed' | 'crop' | 'ingredient' | 'drink' | 'collectible' | 'decor' | 'fish' | 'treat' | 'accessory';
 
 export interface ItemDef {
@@ -44,6 +46,8 @@ add({ id: 'glowberry', name: 'Lanternberry', kind: 'crop', sell: 46, desc: 'A be
 add({ id: 'moonpetal', name: 'Moonpetal', kind: 'crop', sell: 52, desc: 'A pale petal that smells like a lullaby.' });
 add({ id: 'pearlshell', name: 'Rosepearl Shell', kind: 'collectible', sell: 58, desc: 'A rosy shell with a tiny pearl tucked inside.' });
 add({ id: 'rare_beans', name: 'Starfreckle Beans', kind: 'ingredient', sell: 30, desc: 'Speckled beans that roast up extra dreamy.' });
+add({ id: 'twig', name: 'Sugarwood Twig', kind: 'ingredient', sell: 3, desc: 'A sweet-smelling twig that snaps like a cracker.' });
+add({ id: 'plank', name: 'Sugarwood Plank', kind: 'ingredient', sell: 12, desc: 'A smooth pink-grained plank. Good for mending things.' });
 add({ id: 'minnow', name: 'Puddle Minnow', kind: 'fish', sell: 18, desc: 'Small, round, and always a little surprised.' });
 add({ id: 'perch', name: 'Ribbon Perch', kind: 'fish', sell: 42, desc: 'Stripes like a gift ribbon. Wiggles when it is happy.' });
 add({ id: 'koi', name: 'Mooncream Koi', kind: 'fish', sell: 90, desc: 'Creamy white with a moon-shaped blush on its cheek.' });
@@ -111,6 +115,7 @@ export const RECIPES: Recipe[] = [
   { id: 'cloud_cake', needs: { cottonbloom: 1, milk: 2, syrup: 1 }, seconds: 7, bench: 'bake', skill: 'baking', level: 8, xp: 60, stat: 'baked' },
   { id: 'bow_pin', needs: { blossom: 2 }, seconds: 4, bench: 'craft', skill: 'crafting', level: 1, xp: 16, stat: 'crafted' },
   { id: 'shell_charm', needs: { shell: 2, blossom: 1 }, seconds: 5, bench: 'craft', skill: 'crafting', level: 4, xp: 32, stat: 'crafted' },
+  { id: 'plank', needs: { twig: 2 }, seconds: 3, bench: 'craft', skill: 'crafting', level: 1, xp: 10, stat: 'crafted' },
   { id: 'petal_pin', needs: { moonpetal: 2, pearlshell: 1 }, seconds: 6, bench: 'craft', skill: 'crafting', level: 8, xp: 64, stat: 'crafted' },
 ];
 
@@ -137,7 +142,7 @@ export const OUTFITS: OutfitDef[] = [
 ];
 
 // --- Villagers ---
-export type Species = 'dormouse' | 'hamster' | 'hedgehog' | 'bunny';
+export type Species = 'dormouse' | 'hamster' | 'hedgehog' | 'bunny' | 'capybara' | 'moth' | 'axolotl' | 'seal';
 export interface VillagerDef {
   id: string;
   name: string;
@@ -151,6 +156,8 @@ export interface VillagerDef {
   radius: number;
   /** Day phases this villager is around for; omitted = always. */
   phases?: ('morning' | 'day' | 'evening' | 'night')[];
+  /** Area that must be open before this friend moves in. Omitted = lives in town from the start. */
+  area?: AreaId;
   bio: string;
   lines: [string[], string[], string[]]; // by friendship tier
   phase: Record<'morning' | 'day' | 'evening' | 'night', string>;
@@ -163,7 +170,7 @@ export const VILLAGERS: VillagerDef[] = [
   {
     id: 'mimsy', name: 'Mimsy Brindlewick', species: 'dormouse', speciesName: 'Fluff-eared Dormouse',
     personality: 'Sleepy sweetheart', color: '#f6c6d6', accent: '#ff9ec0',
-    likes: ['pink_latte', 'blossom'], home: { x: 25, y: 15 }, radius: 2,
+    likes: ['pink_latte', 'blossom'], home: { x: 43, y: 37 }, radius: 2,
     bio: 'Café regular who has never once been awake before ten.',
     lines: [
       ['Oh! Hi... sorry, I was napping with my eyes open.', 'Do you smell coffee? I always smell coffee.'],
@@ -181,7 +188,7 @@ export const VILLAGERS: VillagerDef[] = [
   {
     id: 'zuzu', name: 'Dottie Spotwhisk', species: 'hamster', speciesName: 'Cheetah-spotted Hamster',
     personality: 'Hat-opinionated boutique boss', color: '#fbe0ae', accent: '#7a4a3a',
-    likes: ['spot_mocha', 'moth'], home: { x: 37, y: 15 }, radius: 2.5,
+    likes: ['spot_mocha', 'moth'], home: { x: 55, y: 37 }, radius: 2.5,
     bio: 'Runs the Spot & Bow Boutique and has strong opinions about hats. Believes every day deserves a runway.',
     lines: [
       ['Darling, nice to meet you. The boutique is always open for dreamers.', 'Spots are not a pattern. They are a lifestyle. Also, nice head. Let\'s find it a hat.'],
@@ -199,7 +206,7 @@ export const VILLAGERS: VillagerDef[] = [
   {
     id: 'bramble', name: 'Bramble Tumbledown', species: 'hedgehog', speciesName: 'Marshmallow Hedgehog',
     personality: 'Grumpy-sweet gardener', color: '#fff0f5', accent: '#c9a8e8',
-    likes: ['puffberry', 'cottonbloom'], home: { x: 16, y: 22 }, radius: 2.5,
+    likes: ['puffberry', 'cottonbloom'], home: { x: 34, y: 44 }, radius: 2.5,
     bio: 'Pretends not to care about the garden. Names every sprout.',
     lines: [
       ['Hmph. Mind the sprouts. ...Hello.', 'I am not smiling. That is just my face.'],
@@ -217,7 +224,7 @@ export const VILLAGERS: VillagerDef[] = [
   {
     id: 'nimbus', name: 'Nimbus Hollowell', species: 'bunny', speciesName: 'Fog-puff Bunny',
     personality: 'Gentle dusk-time listener', color: '#d9ccf5', accent: '#ffd36e',
-    likes: ['button', 'honey_cap'], home: { x: 44, y: 11 }, radius: 1.5, phases: ['evening', 'night'],
+    likes: ['button', 'honey_cap'], home: { x: 62, y: 33 }, radius: 1.5, phases: ['evening', 'night'],
     bio: 'A fog-puff bunny who only appears at dusk, keeps the Afterglow Grove, and loves to hear about your day.',
     lines: [
       ['Oh, hello. I only drift in at dusk. Tell me about your day?', 'Each lantern remembers the moment it was born.'],
@@ -231,6 +238,78 @@ export const VILLAGERS: VillagerDef[] = [
       night: 'Look up. Isn\'t it wonderful?',
     },
     loved: 'A gift fit for the grove! My ears are all aflutter.', liked: 'How kind. The grove will remember this.', meh: 'Thank you, dear. Every gift is a small light.',
+  },
+  {
+    id: 'brioche', name: 'Brioche Crumbleton', species: 'capybara', speciesName: 'Pastry-minded Capybara', area: 'meadow',
+    personality: 'Warm-pastry problem solver', color: '#f3d3b0', accent: '#d9834f',
+    likes: ['berry_tart', 'honey_cap'], home: { x: 82, y: 36 }, radius: 3,
+    bio: 'A tubby capybara barista who believes every problem can be solved with a warm pastry. Sets up a picnic café in Sprinkle Meadow.',
+    lines: [
+      ['Oh, a visitor! Sit, sit. Is something wrong? Have a pastry. That usually fixes it.', 'Nothing a warm croissant cannot soothe. I keep one in each pocket. Do not tell the ants.'],
+      ['Tired feet? Pastry. Sad heart? Pastry. Lost your keys? ...Pastry, then we look.', 'The meadow tastes better with butter in the air, I always say.'],
+      ['You are my favorite person to share a blanket with. Pass the jam?', 'I baked a whole tray just in case you dropped by. I always bake just in case.'],
+    ],
+    phase: {
+      morning: 'Fresh batch! The whole meadow smells like butter.',
+      day: 'Picnic hour is the best hour. Every hour is picnic hour.',
+      evening: 'Golden light on a flaky crust. That is what dreams are made of.',
+      night: 'Shhh... the dough is proofing. Sleep well, dear.',
+    },
+    loved: 'A tart?! You are an angel in an apron. Warm pastry for the win!', liked: 'Oh, that is lovely! Pairs perfectly with a pastry, you know.', meh: 'How thoughtful! I will tuck it by the blanket.',
+  },
+  {
+    id: 'oolie', name: 'Oolie Wisperwing', species: 'moth', speciesName: 'Pastel Pressed-flower Moth', area: 'blossom',
+    personality: 'Shy whisper-collector', color: '#e6d4ff', accent: '#ff9ec0',
+    likes: ['moonpetal', 'blossom'], home: { x: 10, y: 40 }, radius: 3,
+    bio: 'A shy pastel moth who collects pressed flowers and whispers her favorite ones. Lives among the blossoms.',
+    lines: [
+      ['Oh! Um... hello. I am Oolie. I... press flowers. ...That is all.', '*whispers* The tall pink one is my favorite. Do not tell the others.'],
+      ['I saved you a pressed petal. It is a little bit crumpled. I hope you like it...', 'The grove hums when it is quiet. Can you hear it? Shhh.'],
+      ['You are the only one I whisper to loudly. Which is still quite quietly.', 'Every flower has a secret name. I will tell you one. ...Later. Maybe.'],
+    ],
+    phase: {
+      morning: 'The dew makes the petals extra soft. Perfect for pressing.',
+      day: 'Sunlight through the blossoms looks like confetti. Shy confetti.',
+      evening: 'The moonpetals are waking up. They are my favorite, I think.',
+      night: 'I like the night. It is quiet in a good way.',
+    },
+    loved: 'A moonpetal?! I... I am going to press this one forever. Thank you.', liked: 'Oh... this one is lovely. I will press it with care.', meh: 'Th-thank you. I will find the right book for it.',
+  },
+  {
+    id: 'tuppi', name: 'Tuppi Frostwiggle', species: 'axolotl', speciesName: 'Blush-cheeked Axolotl', area: 'pond',
+    personality: 'Giggly frosting dreamer', color: '#ffc4d8', accent: '#ff8fb6',
+    likes: ['cloud_cake', 'puffberry'], home: { x: 45, y: 16 }, radius: 2.5,
+    bio: 'A blush-cheeked axolotl baker who dreams in frosting and giggles when it wiggles. Bakes beside the pond.',
+    lines: [
+      ['Hee! Oh, hi! Sorry, I was dreaming of frosting. Pink frosting. With sprinkles.', 'Do you hear that wiggle? Hee hee! That is the frosting getting excited.'],
+      ['I dreamed of a cake that floated away. I chased it all night. It was delicious.', 'The pond is full of wiggles today. I giggle every time.'],
+      ['You are the sprinkles on my cake, friend. Hee hee!', 'I made you a tiny cake. It wiggled. It is still wiggling. Hee!'],
+    ],
+    phase: {
+      morning: 'Good morning! The frosting is whipping itself!',
+      day: 'Wiggle, wiggle, bake! That is my song!',
+      evening: 'The pond turns pink at this hour. Just like frosting!',
+      night: 'Goodnight, cakes. Goodnight, wiggles. Hee.',
+    },
+    loved: 'A cloud cake!! It is so fluffy I might giggle all the way to bed!', liked: 'Ooh! Sweet! Wiggle wiggle!', meh: 'Hee, thank you! I will find it a frosting buddy.',
+  },
+  {
+    id: 'marlo', name: 'Marlo Seaglass', species: 'seal', speciesName: 'Sugar-dusted Seal', area: 'lighthouse',
+    personality: 'Dreamy lighthouse keeper', color: '#f4c9dc', accent: '#a98fd6',
+    likes: ['shell', 'perch'], home: { x: 53, y: 9 }, radius: 2,
+    bio: 'A plump sugar-dusted seal who tends the lighthouse and hums to the Hush Bell. Collects sea glass and sunsets.',
+    lines: [
+      ['Ahoy-hoy! I keep the light. And, er, the Bell. It is sleeping, but I hum to it.', 'You came all the way up here? The view is worth it. Look at that sea!'],
+      ['The Bell does not ring yet, but sometimes I think it hums back.', 'I collect sea glass. Pink ones are rare. Orange ones are shy.'],
+      ['When the Bell rings again, I hope you are standing right here beside me.', 'You have been so kind to the island. The light feels brighter with you around.'],
+    ],
+    phase: {
+      morning: 'Morning mist on the sea. I made a little wish on it.',
+      day: 'The lighthouse is sparkling. I polished it. Twice.',
+      evening: 'Time to light the lamp! It is my favorite part of the day.',
+      night: 'The sea is dreaming. I stay up so it does not feel alone.',
+    },
+    loved: 'Oh! This is a treasure from the sea. My heart is doing little flippers!', liked: 'How lovely. The lighthouse shelf will get a new friend today.', meh: 'Thank you, friend. Every gift shines a little.',
   },
 ];
 
@@ -261,7 +340,7 @@ export const QUESTS: QuestDef[] = [
 ];
 
 // --- Gathering nodes ---
-export type NodeKind = 'berry' | 'flower' | 'shell' | 'coffee' | 'fish';
+export type NodeKind = 'berry' | 'flower' | 'shell' | 'coffee' | 'fish' | 'wood';
 export interface NodeTier {
   name: string;
   level: number;
@@ -291,6 +370,9 @@ export const NODE_KINDS: Record<NodeKind, NodeTier[]> = {
     { name: 'Coffee Shrub', level: 2, item: 'beans', xp: 14, respawn: 75, skill: 'foraging', verb: 'Pick coffee cherries' },
     { name: 'Starfreckle Shrub', level: 9, item: 'rare_beans', xp: 38, respawn: 120, skill: 'foraging', verb: 'Pick coffee cherries' },
   ],
+  wood: [
+    { name: 'Sugarwood Stump', level: 1, item: 'twig', xp: 8, respawn: 40, skill: 'foraging', verb: 'Gather twigs' },
+  ],
   fish: [
     { name: 'Puddle Spot', level: 1, item: 'minnow', xp: 10, respawn: 45, skill: 'fishing', verb: 'Cast a line' },
     { name: 'Ribbon Spot', level: 6, item: 'perch', xp: 30, respawn: 80, skill: 'fishing', rod: true, verb: 'Cast a line' },
@@ -299,22 +381,51 @@ export const NODE_KINDS: Record<NodeKind, NodeTier[]> = {
 };
 
 export interface NodeDef { id: string; kind: NodeKind; tier: number; x: number; y: number }
-const n = (kind: NodeKind, tier: number, pts: [number, number][]): NodeDef[] =>
-  pts.map(([x, y], i) => ({ id: `${kind}${tier}_${i}`, kind, tier, x, y }));
-export const NODES: NodeDef[] = [
-  // Ribbon Meadow
-  ...n('berry', 0, [[11, 14], [10, 13], [12, 10], [15, 12], [9, 15]]),
-  ...n('berry', 1, [[7, 13], [18, 13]]),
-  ...n('flower', 0, [[6, 15], [11, 11], [16, 15], [8, 16], [13, 14]]),
-  ...n('flower', 1, [[9, 12], [19, 10]]),
-  // beaches
-  ...n('shell', 0, [[4, 16], [4, 20], [4, 24], [6, 12], [19, 39], [27, 40]]),
-  ...n('shell', 1, [[38, 40], [55, 22]]),
-  // the coffee grove, south-east of the square
-  ...n('coffee', 0, [[47, 24], [49, 24], [48, 26]]),
-  ...n('coffee', 1, [[50, 26], [51, 23]]),
-  // Dewdrop Shore and the west coast
-  ...n('fish', 0, [[24, 41], [28, 41], [2, 18], [3, 22]]),
-  ...n('fish', 1, [[34, 42], [37, 41], [3, 26]]),
-  ...n('fish', 2, [[41, 40], [11, 36]]),
+
+/**
+ * Where gathering nodes live. The island generator (world.ts) turns these into real NODES on valid tiles of the
+ * right terrain, so a node can never end up inside a wall or the wrong kind of ground.
+ * `on` is the ground it needs; fish spots sit in water next to a walkable bank.
+ */
+export interface NodeSpec { area: AreaId; kind: NodeKind; tier: number; n: number; on: 'grass' | 'sand' | 'water'; /** Optional tile rect to keep it to one corner of the area. */ rect?: [number, number, number, number] }
+export const NODE_SPECS: NodeSpec[] = [
+  // Town: starter tier only (Ribbon Meadow, the south shore)
+  { area: 'town', kind: 'berry', tier: 0, n: 4, on: 'grass', rect: [24, 30, 40, 38] },
+  { area: 'town', kind: 'flower', tier: 0, n: 4, on: 'grass', rect: [24, 30, 40, 38] },
+  { area: 'town', kind: 'wood', tier: 0, n: 3, on: 'grass', rect: [24, 30, 40, 38] },
+  { area: 'town', kind: 'coffee', tier: 0, n: 3, on: 'grass', rect: [62, 44, 72, 52] },
+  { area: 'town', kind: 'shell', tier: 0, n: 6, on: 'sand', rect: [22, 56, 74, 78] },
+  { area: 'town', kind: 'fish', tier: 0, n: 3, on: 'water', rect: [22, 56, 74, 79] },
+  // Blossom Grove
+  { area: 'blossom', kind: 'berry', tier: 0, n: 2, on: 'grass' },
+  { area: 'blossom', kind: 'berry', tier: 1, n: 3, on: 'grass' },
+  { area: 'blossom', kind: 'flower', tier: 0, n: 3, on: 'grass' },
+  { area: 'blossom', kind: 'flower', tier: 1, n: 4, on: 'grass' },
+  { area: 'blossom', kind: 'wood', tier: 0, n: 2, on: 'grass' },
+  { area: 'blossom', kind: 'coffee', tier: 1, n: 2, on: 'grass' },
+  { area: 'blossom', kind: 'shell', tier: 0, n: 3, on: 'sand' },
+  // Pond and river
+  { area: 'pond', kind: 'fish', tier: 0, n: 2, on: 'water' },
+  { area: 'pond', kind: 'fish', tier: 1, n: 3, on: 'water' },
+  { area: 'pond', kind: 'fish', tier: 2, n: 1, on: 'water' },
+  { area: 'pond', kind: 'flower', tier: 0, n: 2, on: 'grass' },
+  { area: 'pond', kind: 'wood', tier: 0, n: 2, on: 'grass' },
+  // Flower Meadow
+  { area: 'meadow', kind: 'flower', tier: 0, n: 4, on: 'grass' },
+  { area: 'meadow', kind: 'flower', tier: 1, n: 4, on: 'grass' },
+  { area: 'meadow', kind: 'berry', tier: 0, n: 3, on: 'grass' },
+  { area: 'meadow', kind: 'berry', tier: 1, n: 2, on: 'grass' },
+  { area: 'meadow', kind: 'coffee', tier: 1, n: 2, on: 'grass' },
+  // Hush Bell overlook
+  { area: 'lighthouse', kind: 'flower', tier: 1, n: 2, on: 'grass' },
+  { area: 'lighthouse', kind: 'berry', tier: 1, n: 1, on: 'grass' },
+  { area: 'lighthouse', kind: 'fish', tier: 1, n: 2, on: 'water' },
+  { area: 'lighthouse', kind: 'fish', tier: 2, n: 1, on: 'water' },
+  // Far beach
+  { area: 'farbeach', kind: 'shell', tier: 0, n: 3, on: 'sand' },
+  { area: 'farbeach', kind: 'shell', tier: 1, n: 6, on: 'sand' },
+  { area: 'farbeach', kind: 'fish', tier: 1, n: 3, on: 'water' },
+  { area: 'farbeach', kind: 'fish', tier: 2, n: 3, on: 'water' },
 ];
+/** Filled in by buildWorld() from NODE_SPECS. */
+export const NODES: NodeDef[] = [];

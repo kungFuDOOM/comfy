@@ -79,7 +79,7 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(PALETTE.sky); // sky + fog colors are driven by the light rig
   scene.fog = new THREE.Fog(PALETTE.sky, 45, 95);
-  const camera = new THREE.PerspectiveCamera(FOV, 1, 0.5, 200);
+  const camera = new THREE.PerspectiveCamera(FOV, 1, 0.5, 260);
   const rig = createLightRig(scene); // day/night key + fill, lamp point lights, glow materials
   const post = createPost(renderer, scene, camera); // HDR -> lamp/lantern bloom -> tone map
 
@@ -96,7 +96,7 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   const villagers = new Map<string, ActorMesh>();
 
   let seasonId = '';
-  const target = new THREE.Vector3(30, 0, 24);
+  const target = new THREE.Vector3(48, 0, 46);
   const camPos = new THREE.Vector3();
   let aspect = 1;
   const actorY = new Map<ActorMesh, number>();
@@ -180,7 +180,7 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
         v.setAlert?.(!f.talkedToday(n.def.id));
       }
       dynamic.update(f.t);
-      nature.update(f.t);
+      nature.update(f.t, target.x, target.z);
       terrain.update(f.t);
 
       director?.stage?.(f);
