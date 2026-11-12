@@ -10,6 +10,10 @@ export interface ItemDef {
   buy?: number;
   sell?: number;
   desc: string;
+  /** Seasonal event this item belongs to (events.ts). Event-only goods can only be made, found or earned while it is on. */
+  event?: string;
+  /** Every villager adores it as a gift (pies), whatever their usual likes. */
+  loved?: boolean;
 }
 
 export const CURRENCY = 'pips';
@@ -68,6 +72,15 @@ add({ id: 'woven_sunhat', name: 'Woven Sunhat', kind: 'garment', sell: 70, desc:
 add({ id: 'moonpetal_cape', name: 'Moonpetal Cape', kind: 'garment', sell: 110, desc: 'A short lilac cape. Find it in your wardrobe.' });
 add({ id: 'pearl_tiara', name: 'Pearlshell Tiara', kind: 'garment', sell: 160, desc: 'Rosy pearls on silver. Find it in your wardrobe.' });
 add({ id: 'petal_pin', name: 'Moonpetal Pin', kind: 'accessory', sell: 96, desc: 'A pressed petal pin that shimmers softly.' });
+// Harvest Hush Feast (Nov 2026, see events/harvest.ts): ingredients, pies, and the exclusive decor
+add({ id: 'pumpkin', name: 'Sugar Pumpkin', kind: 'crop', buy: 14, sell: 20, event: 'harvest', desc: 'A small, round, blush-orange pumpkin. Smells like a warm kitchen.' });
+add({ id: 'apple', name: 'Rosy Apple', kind: 'crop', buy: 9, sell: 14, event: 'harvest', desc: 'Crisp and pink-cheeked, straight from the orchard trees.' });
+add({ id: 'cinnamon', name: 'Cinnamon Stick', kind: 'ingredient', buy: 5, sell: 2, event: 'harvest', desc: 'A curl of warm spice. The Moths adore it.' });
+add({ id: 'pumpkin_pie', name: 'Pumpkin Cloud Pie', kind: 'treat', sell: 60, event: 'harvest', loved: true, desc: 'Silky pumpkin custard under a ribbon of whipped cream. Everyone loves a slice.' });
+add({ id: 'apple_pie', name: 'Rosy Apple Pie', kind: 'treat', sell: 56, event: 'harvest', loved: true, desc: 'A lattice-topped pie with cinnamon apples. Still warm.' });
+add({ id: 'd_cornucopia', name: 'Overflowing Cornucopia', kind: 'decor', event: 'harvest', desc: 'A woven horn of plenty, spilling pumpkins, apples and ribbons.' });
+add({ id: 'd_haybale', name: 'Cozy Hay Bale', kind: 'decor', event: 'harvest', desc: 'A round hay bale with a pink gingham bow. Surprisingly comfy.' });
+add({ id: 'd_pieshelf', name: 'Pie Cooling Shelf', kind: 'decor', event: 'harvest', desc: 'A little shelf of cooling pies, steam curling up forever.' });
 // decor
 add({ id: 'd_pouf', name: 'Pink Pouf', kind: 'decor', buy: 60, desc: 'A squashy seat in bubblegum pink.' });
 add({ id: 'd_rug', name: 'Cheetah Rug', kind: 'decor', buy: 120, desc: 'A flat, cheetah-print rug. Very plush.' });
@@ -83,6 +96,10 @@ export const SEED_CROP: Record<string, { crop: string; need: number }> = {
 
 export const SHOP_SEEDS = ['seed_puffberry', 'seed_cottonbloom'];
 export const SHOP_INGREDIENTS = ['beans', 'milk', 'syrup', 'honey', 'cocoa'];
+/** Extra café pantry stock while a seasonal event is on (event id to item ids). */
+export const EVENT_PANTRY: Record<string, string[]> = { harvest: ['cinnamon', 'pumpkin', 'apple'] };
+/** Seasonal items that also turn up as collectibles around the island while the event is on (event id to item ids). */
+export const EVENT_COLLECTIBLES: Record<string, string[]> = { harvest: ['pumpkin', 'apple'] };
 export const SHOP_DECOR = ['d_pouf', 'd_rug', 'd_lamp', 'd_shelf', 'd_teacup', 'd_chair'];
 
 // --- Skills ---
@@ -109,6 +126,8 @@ export interface Recipe {
   xp: number;
   /** Quest stat bumped when one is made. */
   stat: string;
+  /** Only available while this seasonal event is active (see events.ts). */
+  event?: string;
 }
 export const RECIPES: Recipe[] = [
   { id: 'pink_latte', needs: { beans: 1, milk: 1, syrup: 1 }, seconds: 3, bench: 'brew', skill: 'brewing', level: 1, xp: 12, stat: 'brewed' },
@@ -119,6 +138,9 @@ export const RECIPES: Recipe[] = [
   { id: 'berry_tart', needs: { puffberry: 2, milk: 1, honey: 1 }, seconds: 5, bench: 'bake', skill: 'baking', level: 1, xp: 16, stat: 'baked' },
   { id: 'blossom_scone', needs: { blossom: 2, milk: 1, honey: 1 }, seconds: 5, bench: 'bake', skill: 'baking', level: 4, xp: 30, stat: 'baked' },
   { id: 'cloud_cake', needs: { cottonbloom: 1, milk: 2, syrup: 1 }, seconds: 7, bench: 'bake', skill: 'baking', level: 8, xp: 60, stat: 'baked' },
+  // seasonal pies: baked with the little timing game in events/pieBake.ts
+  { id: 'pumpkin_pie', needs: { pumpkin: 1, cinnamon: 1, milk: 1 }, seconds: 0, bench: 'bake', skill: 'baking', level: 1, xp: 30, stat: 'baked', event: 'harvest' },
+  { id: 'apple_pie', needs: { apple: 2, cinnamon: 1, honey: 1 }, seconds: 0, bench: 'bake', skill: 'baking', level: 1, xp: 30, stat: 'baked', event: 'harvest' },
   { id: 'bow_pin', needs: { blossom: 2 }, seconds: 4, bench: 'craft', skill: 'crafting', level: 1, xp: 16, stat: 'crafted' },
   { id: 'shell_charm', needs: { shell: 2, blossom: 1 }, seconds: 5, bench: 'craft', skill: 'crafting', level: 4, xp: 32, stat: 'crafted' },
   { id: 'plank', needs: { twig: 2 }, seconds: 3, bench: 'craft', skill: 'crafting', level: 1, xp: 10, stat: 'crafted' },

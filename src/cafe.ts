@@ -2,17 +2,20 @@
 import { sfx } from './audio';
 import { RECIPES, ITEMS, type Recipe } from './data';
 import { changed, toast } from './bus';
+import { isEventActive } from './events';
 import { addItem, count, removeItem } from './inventory';
 import { bump } from './quests';
 import { grantXp, skillLevel } from './skills';
 
 export const recipeById = (id: string) => RECIPES.find((x) => x.id === id)!;
-export const recipesFor = (bench: Recipe['bench']) => RECIPES.filter((r) => r.bench === bench);
-export const isUnlocked = (r: Recipe) => skillLevel(r.skill) >= r.level;
+/** Seasonal recipes only show up while their event is on. */
+export const recipeAvailable = (r: Recipe) => !r.event || isEventActive(r.event);
+export const recipesFor = (bench: Recipe['bench']) => RECIPES.filter((r) => r.bench === bench && recipeAvailable(r));
+export const isUnlocked = (r: Recipe) => skillLevel(r.skill) >= r.level && recipeAvailable(r);
 
 export const canBrew = (id: string) => {
   const r = recipeById(id);
-  return isUnlocked(r) && Object.entries(r.needs).every(([k, n]) => count(k) >= n);
+  return isUnlocked(r) && !r.event && Object.entries(r.needs).every(([k, n]) => count(k) >= n);
 };
 
 export const brewing = { id: '', left: 0, total: 0 };

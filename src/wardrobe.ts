@@ -14,6 +14,7 @@ import { skillLevel, skillName } from './skills';
 import { state } from './state';
 import { getClock } from './time';
 import { areaById } from './areas';
+import { dateRange, eventById, eventPhase } from './events';
 
 export { lookKey };
 const SLOT_IDS: Slot[] = ['hat', 'top', 'bottom', 'dress', 'shoes', 'bag', 'face'];
@@ -185,8 +186,14 @@ export function howToGet(c: ClothDef): string {
     }
     case 'skill': return `Reach ${skillName(s.skill)} level ${s.level}`;
     case 'craft': { const r = RECIPES.find((x) => x.id === s.recipe); return `Craft it at the Crafting Table${r ? ` (Crafting level ${r.level})` : ''}`; }
+    case 'event': return eventHowTo(s.event);
     case 'region': return s.area === 'all' ? 'Complete all six regions' : `Complete ${areaById(s.area).name} (Journal › Island)`;
   }
+}
+function eventHowTo(id: string): string {
+  const e = eventById(id);
+  if (!e) return 'A seasonal event exclusive';
+  return eventPhase(e) === 'active' ? `${e.name} exclusive: earn it from the event activities (Journal › Events)` : `${e.name} exclusive, only earned during the event (${dateRange(e)})`;
 }
 export const isSold = (c: ClothDef) => c.src.k === 'shop';
 

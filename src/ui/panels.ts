@@ -13,7 +13,7 @@ import { buyCloth, canTakeOff, dailyStock, endPreview, equipOn, howToGet, isSold
 import { PARTY_HAT, checklist, regionComplete } from '../regions';
 import { dragSpin, dressing, nudgeSpin } from '../dressing';
 import { startDressingRoom, stopDressingRoom } from '../render/dressingRoom';
-import { CURRENCY, ITEMS, QUESTS, SHOP_DECOR, SKILLS, type Bench, type Recipe, SHOP_INGREDIENTS, SHOP_SEEDS, VILLAGERS, type VillagerDef } from '../data';
+import { CURRENCY, EVENT_PANTRY, ITEMS, QUESTS, SHOP_DECOR, SKILLS, type Bench, type Recipe, SHOP_INGREDIENTS, SHOP_SEEDS, VILLAGERS, type VillagerDef } from '../data';
 import { addItem, assignHotbar, BAG_SLOTS, BANK_SLOTS, count, earn, moveStack, removeItem, spend, tidyBag } from '../inventory';
 import { LOG_QUESTS, questsFrom, questStatus, questVisible, startQuest, statusText, turnIn } from '../questlog';
 import { AREA_LIST } from '../areas';
@@ -28,6 +28,9 @@ import { state } from '../state';
 import { getClock } from '../time';
 import { glyphEl } from '../input/prompts';
 import { btn, h, openPanel, type PanelApi } from './dom';
+import { renderEventsTab } from './eventsUi';
+import { getActiveEvents } from '../events';
+import { canBakePie, openPieBake } from '../events/pieBake';
 import { openPause } from './menuPanels';
 import { npcs } from '../npc';
 import { GROVE } from '../world';
@@ -134,14 +137,15 @@ function recipeList(body: HTMLElement, api: PanelApi, bench: Bench) {
   body.append(h('div', 'muted', BENCH_INTRO[bench]));
   for (const r of recipesFor(bench) as Recipe[]) {
     const def = ITEMS[r.id], open = isUnlocked(r);
-    const ok = canBrew(r.id) && !brewing.id;
+    const seasonal = !!r.event;
+    const ok = seasonal ? canBakePie(r) : canBrew(r.id) && !brewing.id;
     body.append(h('div', 'card row-card' + (open ? '' : ' locked'),
       itemIcon(r.id, 40),
       h('div', 'grow', h('b', '', def.name), h('div', 'muted', def.desc),
         open ? null : h('div', 'lock-note', `🔒 Needs ${skillName(r.skill)} level ${r.level}`),
         h('div', 'needs', ...Object.entries(r.needs).map(([k, n]) => h('span', count(k) >= n ? 'need ok' : 'need no', itemIcon(k, 16), `${ITEMS[k].name} ${count(k)}/${n}`))),
-        open ? h('div', 'muted small', `+${r.xp} ${skillName(r.skill)} XP`) : null),
-      btn(BENCH_VERB[bench], () => { if (startBrew(r.id)) api.rerender(); }, '', !ok || !open),
+        open ? h('div', 'muted small', `${seasonal ? 'Seasonal pie, a little timing game · ' : ''}+${r.xp} ${skillName(r.skill)} XP`) : null),
+      btn(seasonal ? 'Bake 🥧' : BENCH_VERB[bench], () => { if (seasonal) openPieBake(r.id); else if (startBrew(r.id)) api.rerender(); }, '', !ok || !open),
     ));
   }
   if (brewing.id) {
@@ -165,6 +169,10 @@ export function openCafe() {
     else {
       body.append(h('div', 'muted', 'Fresh ingredients for the counter.'));
       for (const id of SHOP_INGREDIENTS) body.append(shopRow(id, ITEMS[id].buy!, () => buyItem(id, api)));
+      for (const e of getActiveEvents()) {
+        const extra = EVENT_PANTRY[e.id] ?? [];
+        if (extra.length) body.append(h('div', 'ev-sec', `${e.icon} ${e.name} specials`), ...extra.map((id) => shopRow(id, ITEMS[id].buy!, () => buyItem(id, api))));
+      }
     }
   }, () => leavePlace());
 }
@@ -452,7 +460,7 @@ export function openJournal(start = 'quests') {
   let tab = start;
   openPanel('Journal', (body, api) => {
     const t = (id: string, label: string) => tabBtn(label, tab === id, () => { tab = id; api.rerender(); });
-    body.append(h('div', 'tabs', t('quests', 'Quests'), t('skills', 'Skills'), t('collection', 'Collection'), t('friends', 'Friends'), t('island', 'Island'), t('map', 'Map'), t('lanterns', 'Lanterns')));
+    body.append(h('div', 'tabs', t('quests', 'Quests'), t('skills', 'Skills'), t('collection', 'Collection'), t('friends', 'Friends'), t('island', 'Island'), t('map', 'Map'), t('lanterns', 'Lanterns'), t('events', getActiveEvents().length ? 'Events 🍂' : 'Events')));
     // the card widens / goes two-column for skills on phones (scenes.css); other tabs keep their usual size
     body.parentElement?.classList.toggle('skills-open', tab === 'skills');
     if (tab === 'skills') {
@@ -513,6 +521,8 @@ export function openJournal(start = 'quests') {
           h('div', 'grow', h('b', '', v.name), h('div', 'muted', `${v.speciesName} · ${v.personality}`), h('div', 'muted small', v.bio)),
           h('div', 'hearts', hearts5(v.id))));
       }
+    } else if (tab === 'events') {
+      renderEventsTab(body, clothThumb);
     } else if (tab === 'map') {
       renderMap(body, api);
     } else if (tab === 'island') {

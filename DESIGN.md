@@ -170,6 +170,17 @@ The island is now 96×80 tiles (~2.7× the original land). Only **Sugarlily Town
 - Celebration hooks for a polish pass: `onAreaUnlocked(id)` and `onFriendArrived(id)` in `unlocks.ts`, plus the open/close switch in `render/barriers.ts`.
 - Saves from the 60×44 island are migrated on load: the old map sits inside the new one shifted by `TOWN_OFFSET`, and positions, decor and garden plots move with it. A player who lands somewhere blocked or locked is placed back in the square.
 
+## 7d. Seasonal events
+
+Events are declarative (`src/events.ts`): id, name, real start and end dates (local time, inclusive), a peak day, banner text, a list of exclusive wardrobe and decor ids, activities with milestone rewards, an optional in-world decoration (`world`) and interactable `spots`. Register a new event in `src/events/index.ts`.
+
+- **Helpers:** `getActiveEvents()`, `isEventActive(id)`, `isPeakDay(id)`, `getUpcomingEvents()`, `bumpEvent()`, `grantEventItem()` (refuses when the event is off, so exclusives can only be earned while it runs and are kept forever).
+- **Save:** `state.events[id]` holds counters, claimed milestones and flags. It is created on demand, so older saves load untouched (key stays `comfy.save.v1`).
+- **UI:** a HUD banner with "Ends in N days" (tap to open the journal), and a journal Events tab listing current, upcoming and past events with dates.
+- **QA preview:** `?event=<id>` forces an event on and treats its peak day as today; `?date=YYYY-MM-DD` pretends it is that day (also moves seasons and the daily stock). Example: `?event=harvest&date=2026-11-22` previews a regular event day.
+
+**Harvest Hush Feast** (`id: harvest`, Nov 20 to Nov 30 2026, feast day Nov 26): autumn dressing of Sugarlily Square (leaf garlands, paper-lantern strings, pumpkins, a long feast table); pumpkins, apples and cinnamon (found around the island or in the café pantry); pie baking at the café oven as a three-step timing game with no failing (two perfects bake a Golden Pie); every villager adores pies as gifts; on Nov 26 all friends sit at the table and the feast scene plays, ending in a group thank-you and rewards. 10 exclusive outfits and 3 decor pieces.
+
 ## 8. Roadmap beyond v0.1
 
 - **v0.2 — Nooks.** Unlock the Moonlit Reading Nook and Lantern Terrace from lantern sets; a proper walk-in house interior with room-by-room decorating.

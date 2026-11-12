@@ -3,7 +3,8 @@ import { sfx } from './audio';
 import { circle, ellipse } from './art/draw';
 import { drawItem } from './art/icons';
 import { changed, toast } from './bus';
-import { ITEMS } from './data';
+import { EVENT_COLLECTIBLES, ITEMS } from './data';
+import { bumpEvent, getActiveEvents, isEventActive } from './events';
 import { addItem } from './inventory';
 import { moment } from './lanterns';
 import { bump } from './quests';
@@ -26,6 +27,8 @@ function pickKind(): string | null {
     ['moth', night ? 3 * (s === 'sunsip' ? 1.5 : 1) : 0],
     ['button', 1.5 * (s === 'snowfluff' ? 2.5 : 1)],
   ];
+  // seasonal finds join the pool while their event is on
+  for (const e of getActiveEvents()) for (const id of EVENT_COLLECTIBLES[e.id] ?? []) w.push([id, 3]);
   let total = w.reduce((a, b) => a + b[1], 0), r = Math.random() * total;
   for (const [k, v] of w) { if ((r -= v) <= 0 && v > 0) return k; }
   return null;
@@ -33,12 +36,15 @@ function pickKind(): string | null {
 
 function tileFits(kind: string, x: number, y: number): boolean {
   const t = terrainAt(x, y);
+  const ev = ITEMS[kind]?.event;
+  if (ev && !isEventActive(ev)) return false; // seasonal finds vanish when their event ends
   if (isSolidTile(x, y) || !isAreaOpen(areaAt(x, y))) return false;
   switch (kind) {
     case 'shell': return t === T.Sand;
     case 'blossom': return inMeadow(x, y);
     case 'moth': return t === T.Grass || t === T.Path || t === T.Lawn || t === T.Plaza;
     case 'button': return t === T.Hill;
+    case 'pumpkin': case 'apple': return t === T.Grass || (kind === 'pumpkin' && t === T.Lawn);
   }
   return false;
 }
@@ -92,6 +98,8 @@ export function updateCollect(dt: number, px: number, py: number) {
       toast(first ? `New find! ${ITEMS[s.item].name} added to your collection ✿` : `Found a ${ITEMS[s.item].name}`);
       sfx.pickup();
       bump('collected');
+      const ev = ITEMS[s.item].event;
+      if (ev) bumpEvent(ev, 'gathered');
       grantXp('foraging', 3);
       moment('collect', s.x, s.y);
       changed();

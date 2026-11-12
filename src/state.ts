@@ -15,6 +15,18 @@ export interface Daily {
   lanternKinds: Record<string, number>;
 }
 
+/** Per-event progress (see events.ts). Created on demand, so saves from before events existed need no migration. */
+export interface EventProgress {
+  /** Named counters bumped by event activities (pies baked, pies gifted, ...). */
+  counters: Record<string, number>;
+  /** Milestone ids already paid out. Items earned stay for good. */
+  claimed: string[];
+  /** Free-form one-shot flags (feast attended, ...). */
+  flags: Record<string, boolean>;
+  /** Day key the welcome toast last showed, so it greets once per day. */
+  announced: string;
+}
+
 export interface SaveData {
   v: number;
   px: number;
@@ -58,6 +70,8 @@ export interface SaveData {
   questLog: Record<string, 'active' | 'done'>;
   /** Areas that have been opened (see areas.ts / unlocks.ts). Missing = locked; the town is always open. */
   unlocked: Record<string, boolean>;
+  /** Seasonal event progress by event id. */
+  events: Record<string, EventProgress>;
   /** Map layout version the saved positions belong to (1 = the original small island). */
   mapV: number;
 }
@@ -95,6 +109,7 @@ export function defaultState(): SaveData {
     nodes: {},
     questLog: {},
     unlocked: {},
+    events: {},
     mapV: 2,
   };
 }

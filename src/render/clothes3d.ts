@@ -175,6 +175,13 @@ const HATS: Record<string, HatFn> = {
     else for (const sx of [-1, 1]) p.t(G.ball(0.03, 6), { x: sx * 0.09, y: 0.2, z: 0.46 }, '#4f2b40');
     void c;
   },
+  acorn(p) {
+    // a scaly acorn cap with a little stem, worn like a snug beret
+    p.f(G.ball(0.46, 18), { y: 0.05, s: [1, 0.78, 1.0], uv: [3, 2] });
+    p.t(G.torus(0.4, 0.05, 22), { y: -0.01, rx: Math.PI / 2, s: [1.12, 1.0, 1.12] });
+    p.t(G.cyl(0.028, 0.04, 0.14, 8), { y: 0.44, rz: 0.2 });
+    for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; p.t(G.ball(0.032, 6), { x: Math.cos(a) * 0.3, y: 0.2, z: Math.sin(a) * 0.3 }); }
+  },
   bucket(p, _c, d) {
     p.f(G.cyl(0.3, 0.38, 0.22, 20), { y: 0.3 }); p.f(G.cyl(0.37, 0.56, 0.06, 24), { y: 0.17, s: [1, 1, 1.0] });
     if (d('long')) p.f(G.ball(0.3, 10), { y: 0.1, z: -0.4, s: [1.3, 0.2, 0.9] });
@@ -267,6 +274,7 @@ const HAT_SPOT: Record<string, { at: [number, number, number]; rot: [number, num
   bunnyears: { at: [0, 0.0, -0.02], rot: [0, 0, 0] },
   flowercrown: { at: [0, 0.27, 0.0], rot: [0.05, 0, 0] },
   beanie: { at: [0, 0.1, 0], rot: [-0.05, 0, 0] },
+  acorn: { at: [0, 0.1, 0], rot: [-0.05, 0, 0] },
   bucket: { at: [0, 0.07, 0], rot: [-0.05, 0, 0] },
   cap: { at: [0, 0.15, 0], rot: [-0.05, 0, 0] },
   tiara: { at: [0, 0.0, 0.0], rot: [0, 0, 0] },
@@ -394,6 +402,11 @@ function bodyExtras(p: Piece, c: ClothDef, d: (k: string) => boolean, hemY: numb
     p.t(G.ball(0.035, 8), { y: 0.43, z: 0.2 }, '#ff6f84');
   }
   if (d('turtle')) p.f(G.cyl(0.13, 0.16, 0.1), { y: 0.57 });
+  if (d('scarf')) {
+    p.t(G.torus(0.18, 0.058, 18), { y: neck - 0.01, z: 0.03, rx: Math.PI / 2.15 });
+    p.t(G.box(0.075, 0.24, 0.03), { x: 0.09, y: 0.4, z: r(0.42) + 0.03, rz: 0.12 });
+    p.t(G.box(0.075, 0.18, 0.03), { x: 0.15, y: 0.36, z: r(0.4) + 0.034, rz: -0.1 });
+  }
   if (d('fur')) { p.t(G.torus(0.17, 0.06, 18), { y: neck, z: 0.02, rx: Math.PI / 2.2 }, '#ffffff'); }
   if (d('hood')) { p.f(G.ball(0.2, 14), { y: 0.6, z: -0.12, s: [1.25, 0.95, 0.75] }); p.t(G.torus(0.16, 0.025, 14), { y: 0.57, z: 0.03, rx: Math.PI / 2.2 }, c.trim); }
   if (d('bow')) { const g = new Piece(c, 3); bowParts(g, 0.7); const m = g.group(); m.position.set(0, isTop ? 0.46 : 0.4, r(0.42) + 0.04); p.extras.push(m); }

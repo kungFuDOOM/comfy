@@ -154,6 +154,52 @@ export function drawItem(ctx: CanvasRenderingContext2D, id: string) {
       if (id === 'star_brew') { star(ctx, 11, 21, 1.6, '#fff3a8'); star(ctx, 19, 19, 1.4, '#fff3a8'); }
       break;
     }
+    case 'pumpkin':
+      ellipse(ctx, 16, 27, 9.5, 2.2, 'rgba(120,70,100,0.16)');
+      ellipse(ctx, 9.6, 18.4, 6.4, 8.2, '#ffa763'); ellipse(ctx, 22.4, 18.4, 6.4, 8.2, '#ffa763');
+      ellipse(ctx, 13, 18.4, 6.6, 8.8, '#ffb877'); ellipse(ctx, 19, 18.4, 6.6, 8.8, '#ffb877');
+      ellipse(ctx, 16, 18.4, 5.4, 9, '#ffc88c');
+      ctx.strokeStyle = '#f08d4e'; ctx.lineWidth = 1; for (const x of [10.4, 16, 21.6]) { ctx.beginPath(); ctx.moveTo(16 + (x - 16) * 0.35, 10.5); ctx.quadraticCurveTo(x - (16 - x) * 0.2, 18.5, 16 + (x - 16) * 0.45, 26.5); ctx.stroke(); }
+      rr(ctx, 14.4, 5.2, 3.2, 6, 1.4); ctx.fillStyle = '#86c279'; ctx.fill();
+      ctx.strokeStyle = '#86c279'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(17.6, 8); ctx.quadraticCurveTo(23, 5.5, 22.5, 10); ctx.stroke();
+      circle(ctx, 11.6, 20.4, 1.7, 'rgba(255,128,160,0.55)'); circle(ctx, 20.4, 20.4, 1.7, 'rgba(255,128,160,0.55)');
+      break;
+    case 'apple':
+      ellipse(ctx, 16, 27.4, 8, 1.8, 'rgba(120,70,100,0.16)');
+      circle(ctx, 11.6, 18.4, 7.4, '#ff7f93'); circle(ctx, 20.4, 18.4, 7.4, '#ff7f93'); ellipse(ctx, 16, 20, 8.6, 7.4, '#ff7f93');
+      circle(ctx, 11.4, 15.6, 2.2, '#ffc4cf'); circle(ctx, 20.4, 22, 1.2, '#ff9aab');
+      ctx.strokeStyle = '#a8704f'; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.moveTo(16, 11.6); ctx.quadraticCurveTo(16.4, 8.6, 18.4, 6.4); ctx.stroke();
+      ctx.fillStyle = '#86c279'; ctx.beginPath(); ctx.moveTo(18, 8.6); ctx.quadraticCurveTo(23, 4.2, 26.4, 7.4); ctx.quadraticCurveTo(22, 11, 18, 8.6); ctx.fill();
+      break;
+    case 'cinnamon':
+      for (const [dy, rot] of [[-3, -0.12], [3.4, 0.1]] as number[][]) {
+        ctx.save(); ctx.translate(16, 16 + dy); ctx.rotate(rot);
+        rr(ctx, -11, -3.6, 22, 7.2, 3.6); ctx.fillStyle = '#c98a5e'; ctx.fill();
+        circle(ctx, 11, 0, 3.6, '#b87648'); circle(ctx, 11, 0, 1.9, '#d9a279'); circle(ctx, 11, 0, 0.7, '#a2653d');
+        ctx.strokeStyle = '#a87049'; ctx.lineWidth = 0.9; ctx.beginPath(); ctx.moveTo(-8, -1.2); ctx.lineTo(7, -1.2); ctx.stroke();
+        ctx.restore();
+      }
+      ctx.strokeStyle = '#ff8fb6'; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(14.4, 8.6); ctx.lineTo(14.4, 24); ctx.stroke();
+      heart(ctx, 14.4, 12.4, 2.6, '#ff8fb6');
+      break;
+    case 'pumpkin_pie': case 'apple_pie': {
+      const pump = id === 'pumpkin_pie';
+      ellipse(ctx, 16, 25, 13, 3.4, 'rgba(120,70,100,0.16)');
+      ellipse(ctx, 16, 20.4, 13, 6.6, '#e7b27a'); ellipse(ctx, 16, 19, 13, 6.4, '#f5cf9c');
+      for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; circle(ctx, 16 + Math.cos(a) * 12.4, 19 + Math.sin(a) * 6, 1.5, '#f5cf9c'); }
+      ellipse(ctx, 16, 19, 10.6, 4.9, pump ? '#ffa14f' : '#f0b565');
+      if (pump) {
+        ellipse(ctx, 16, 18.4, 8, 3.2, '#ffb36a');
+        for (const [x, y] of [[10, 18], [14.5, 16.4], [19.5, 16.6], [22.4, 19]] as number[][]) circle(ctx, x, y, 2.3, '#fff'); circle(ctx, 16.4, 18.6, 3, '#fff');
+        heart(ctx, 16.4, 18.6, 1.8, '#ff9ec0');
+      } else {
+        ctx.strokeStyle = '#f5cf9c'; ctx.lineWidth = 2.1;
+        for (const k of [-6, -2, 2, 6]) { ctx.beginPath(); ctx.moveTo(16 + k - 3.6, 15.2); ctx.lineTo(16 + k + 3.6, 22.6); ctx.stroke(); ctx.beginPath(); ctx.moveTo(16 + k + 3.6, 15.2); ctx.lineTo(16 + k - 3.6, 22.6); ctx.stroke(); }
+        circle(ctx, 16, 19, 2.4, '#ff7f93'); circle(ctx, 15.4, 18.3, 0.8, '#ffc4cf');
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.6)'; for (const x of [12, 16, 20]) { ctx.beginPath(); ctx.moveTo(x, 12); ctx.quadraticCurveTo(x + 2, 9, x, 6.4); ctx.lineWidth = 1.2; ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.stroke(); }
+      break;
+    }
     case 'twig': {
       ctx.strokeStyle = '#c99a86'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(6, 25); ctx.lineTo(25, 8); ctx.stroke();
       ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(14, 18); ctx.lineTo(10, 11); ctx.moveTo(19, 14); ctx.lineTo(24, 18); ctx.stroke();
