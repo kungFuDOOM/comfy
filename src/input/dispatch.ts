@@ -4,7 +4,7 @@ import { closePanel, isPanelOpen } from '../ui/dom';
 import { dismissLevelUp } from '../ui/levelUp';
 import { confirmFocus, cycleTab, moveFocus, type Dir } from '../ui/focus';
 
-export type Action = 'interact' | 'tool' | 'cancel' | 'bag' | 'journal' | 'skills' | 'lantern' | 'help' | 'menu' | 'hotbarPrev' | 'hotbarNext' | 'camReset';
+export type Action = 'interact' | 'tool' | 'cancel' | 'bag' | 'journal' | 'skills' | 'lantern' | 'help' | 'map' | 'menu' | 'hotbarPrev' | 'hotbarNext' | 'camReset';
 
 export interface Handlers {
   interact(): void;
@@ -15,6 +15,7 @@ export interface Handlers {
   bag(): void;
   journal(tab: string): void;
   help(): void;
+  map(): void;
   hotbarStep(d: number): void;
   hotbarSet(i: number): void;
   click(sx: number, sy: number): void;
@@ -62,6 +63,7 @@ export function trigger(a: Action) {
     case 'skills': H.journal('skills'); break;
     case 'lantern': H.journal('lanterns'); break;
     case 'help': H.help(); break;
+    case 'map': H.map(); break;
     case 'hotbarPrev': H.hotbarStep(-1); break;
     case 'hotbarNext': H.hotbarStep(1); break;
     case 'camReset': H.camReset(); break;
