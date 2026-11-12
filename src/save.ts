@@ -24,6 +24,8 @@ export function loadGame(): boolean {
     Object.assign(state, migrateWardrobe(data as Parameters<typeof migrateWardrobe>[0]));
     delete (state as unknown as Record<string, unknown>).outfit;
     delete (state as unknown as Record<string, unknown>).ownedOutfits;
+    state.cafe = { ...base.cafe, ...(data.cafe && typeof data.cafe === 'object' ? data.cafe : {}) };
+    if (typeof state.daily.shifts !== 'number') state.daily.shifts = 0;
     if (!state.regionSeen || typeof state.regionSeen !== 'object' || Array.isArray(state.regionSeen)) state.regionSeen = {};
     if (!Array.isArray(state.partyHats)) state.partyHats = [];
     if ((data.mapV ?? 1) < MAP_VERSION) migrateMap();

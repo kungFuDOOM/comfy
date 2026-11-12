@@ -91,6 +91,20 @@ export function drawDecor(ctx: CanvasRenderingContext2D, id: string, x: number, 
       }
       heart(ctx, 0, -33, 3, '#ff8fb6');
       break;
+    case 'd_cafe_menu':
+      ellipse(ctx, 0, -1, 10, 3, 'rgba(120,70,100,0.18)');
+      ctx.strokeStyle = '#c99a7a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-8, -1); ctx.lineTo(-4, -26); ctx.moveTo(8, -1); ctx.lineTo(4, -26); ctx.stroke();
+      rr(ctx, -8, -27, 16, 18, 2.5); ctx.fillStyle = '#5a4048'; ctx.fill(); ctx.strokeStyle = '#ffb3cf'; ctx.lineWidth = 1.6; ctx.stroke();
+      heart(ctx, 0, -19, 3.4, '#ffd0e2');
+      ctx.fillStyle = '#ffe6ef'; ctx.fillRect(-5, -14, 10, 1.3); ctx.fillRect(-4, -12, 7, 1.3);
+      break;
+    case 'd_cafe_succulent':
+      ellipse(ctx, 0, -1, 8, 2.6, 'rgba(120,70,100,0.18)');
+      ctx.beginPath(); ctx.moveTo(-7, -13); ctx.lineTo(7, -13); ctx.quadraticCurveTo(6, -2, 0, -2); ctx.quadraticCurveTo(-6, -2, -7, -13); ctx.fillStyle = '#ffd0e2'; ctx.fill(); ctx.strokeStyle = '#ff9ec0'; ctx.lineWidth = 1.3; ctx.stroke();
+      ctx.strokeStyle = '#ff9ec0'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(8, -8, 3, -1.4, 1.6); ctx.stroke();
+      for (const [x, y, r] of [[-4, -17, 4.5], [4, -17, 4.5], [0, -20, 5]] as [number, number, number][]) ellipse(ctx, x, y, r * 0.8, r, '#9fdcb4');
+      heart(ctx, 0, -23, 1.6, '#ff8fb6');
+      break;
     case 'd_tw_cocoa':
       ellipse(ctx, 0, -1, 12, 3, 'rgba(120,70,100,0.18)');
       rr(ctx, -11, -16, 22, 3, 1.4); ctx.fillStyle = '#e8b98a'; ctx.fill(); rr(ctx, -11, -28, 22, 3, 1.4); ctx.fill();
