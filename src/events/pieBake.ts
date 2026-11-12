@@ -27,7 +27,7 @@ export function openPieBake(recipeId: string) {
   const found = RECIPES.find((x) => x.id === recipeId);
   if (!found || !canBakePie(found)) { toast('Bring the ingredients to bake this pie.'); return; }
   const r: Recipe = found;
-  let step = 0, ratings: Rating[] = [], made: number | null = null, locked = false;
+  let step = 0, ratings: Rating[] = [], made: number | null = null, locked = false, closed = false;
   let zoneC = 0.5, pos = 0, t0 = performance.now(), resultText = '';
   const newZone = () => { zoneC = 0.22 + Math.random() * 0.56; t0 = performance.now(); pos = 0; };
   newZone();
@@ -76,6 +76,7 @@ export function openPieBake(recipeId: string) {
       note.textContent = resultText; note.classList.add(rating);
       sfx.tick();
       setTimeout(() => {
+        if (closed) return; // window closed mid-step: bake nothing (ingredients stay in the bag), don't revive the panel
         locked = false;
         step++;
         if (step >= STEPS.length) finish();
@@ -83,7 +84,7 @@ export function openPieBake(recipeId: string) {
         api.rerender();
       }, 650);
     }
-  }, undefined);
+  }, () => { closed = true; });
 
   function finish() {
     const perfects = ratings.filter((x) => x === 'perfect').length;
