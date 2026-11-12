@@ -15,7 +15,7 @@ export const currentOutfit = () => outfitById(preview.id ?? state.outfit);
 /** Show an owned outfit in the dressing room without wearing it (Bag › Wardrobe). No quest / lantern bumps. */
 export function previewOutfit(id: string) { preview.id = id === state.outfit ? null : id; twirl(); changed(); }
 
-/** Handmade accessories you own (crafted at the worktable) can be worn as a small visible prop. */
+/** Handmade accessories you own (crafted at the Crafting Table) can be worn as a small visible prop. */
 export const ownedAccessories = () => Object.keys(ITEMS).filter((id) => ITEMS[id].kind === 'accessory' && count(id) > 0);
 /** The accessory shown on the player: only while it is still in the bag (gifting / selling it takes it off). */
 export const currentAccessory = (): string | null => (state.accessory && count(state.accessory) > 0 ? state.accessory : null);
