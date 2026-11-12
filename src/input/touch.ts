@@ -32,6 +32,7 @@ function setJoy(dx: number, dy: number) {
 }
 
 function endJoy(tap: boolean, x: number, y: number) {
+  if (joy.id === -1) return;
   const quick = performance.now() - joy.t0 < TAP_MS && joy.travel < TAP_PX;
   joy.id = -1; joy.x = joy.y = 0;
   base.classList.remove('on');
@@ -67,12 +68,19 @@ export function initTouch(canvas: HTMLCanvasElement) {
   base = h('div', 'joy-base', h('div', 'joy-ring'), knob);
   ui.append(base);
 
+  // Every touch on the world is either the joystick (left half, first finger), or a tap candidate.
+  // A tap only counts if the finger lifts quickly without travelling, so drags never become move taps.
+  const taps = new Map<number, { x: number; y: number; t: number; moved: boolean }>();
   canvas.addEventListener('pointerdown', (e) => {
     if (e.pointerType !== 'touch') return;
     e.preventDefault();
     markInput('touch');
     if (isPanelOpen()) return;
-    if (e.clientX >= window.innerWidth / 2 || joy.id !== -1) { click(e.clientX, e.clientY); return; }
+    if (e.clientX >= window.innerWidth / 2 || joy.id !== -1) {
+      taps.set(e.pointerId, { x: e.clientX, y: e.clientY, t: performance.now(), moved: false });
+      try { canvas.setPointerCapture(e.pointerId); } catch { /* pointer already gone */ }
+      return;
+    }
     joy.id = e.pointerId; joy.t0 = performance.now(); joy.travel = 0;
     const m = 68; // keep the whole base on screen
     joy.ox = Math.min(window.innerWidth - m, Math.max(m, e.clientX));
@@ -80,15 +88,35 @@ export function initTouch(canvas: HTMLCanvasElement) {
     base.style.left = joy.ox + 'px'; base.style.top = joy.oy + 'px';
     setJoy(e.clientX - joy.ox, e.clientY - joy.oy);
     base.classList.add('on');
-    canvas.setPointerCapture(e.pointerId);
+    try { canvas.setPointerCapture(e.pointerId); } catch { /* pointer already gone */ }
   });
   canvas.addEventListener('pointermove', (e) => {
+    const t = taps.get(e.pointerId);
+    if (t && Math.hypot(e.clientX - t.x, e.clientY - t.y) > TAP_PX) t.moved = true;
     if (e.pointerId !== joy.id) return;
+    e.preventDefault();
     joy.travel = Math.max(joy.travel, Math.hypot(e.clientX - joy.ox, e.clientY - joy.oy));
     setJoy(e.clientX - joy.ox, e.clientY - joy.oy);
   });
-  canvas.addEventListener('pointerup', (e) => { if (e.pointerId === joy.id) endJoy(true, e.clientX, e.clientY); });
-  canvas.addEventListener('pointercancel', (e) => { if (e.pointerId === joy.id) endJoy(false, 0, 0); });
+  const lift = (e: PointerEvent, cancelled: boolean) => {
+    if (e.pointerId === joy.id) endJoy(!cancelled, e.clientX, e.clientY);
+    const t = taps.get(e.pointerId);
+    if (t) {
+      taps.delete(e.pointerId);
+      if (!cancelled && !t.moved && performance.now() - t.t < TAP_MS + 120) click(e.clientX, e.clientY);
+    }
+  };
+  canvas.addEventListener('pointerup', (e) => lift(e, false));
+  canvas.addEventListener('pointercancel', (e) => lift(e, true));
+  canvas.addEventListener('lostpointercapture', (e) => lift(e, true));
+  // belt and braces: a finger that ends outside the canvas (or the page) must never leave the stick held
+  window.addEventListener('pointerup', (e) => { if (e.pointerId === joy.id) endJoy(false, 0, 0); taps.delete(e.pointerId); });
+  window.addEventListener('pointercancel', (e) => { if (e.pointerId === joy.id) endJoy(false, 0, 0); taps.delete(e.pointerId); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { taps.clear(); if (joy.id !== -1) endJoy(false, 0, 0); } });
+  // no page scroll / pinch / double-tap zoom while playing
+  canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+  document.addEventListener('gesturestart', (e) => e.preventDefault());
+  document.addEventListener('gesturechange', (e) => e.preventDefault());
 
   // ---- face buttons: Xbox diamond (Y top, X left, B right, A bottom). No shoulder or menu buttons:
   // the hotbar is tapped directly and the journal lives on the HUD. ----
@@ -101,6 +129,7 @@ export function initTouch(canvas: HTMLCanvasElement) {
   window.addEventListener('blur', () => {
     heldRun = false;
     for (const b of [A, B, X, Y]) b.classList.remove('down');
+    taps.clear();
     if (joy.id !== -1) endJoy(false, 0, 0);
   });
 }
