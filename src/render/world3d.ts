@@ -9,6 +9,7 @@ import { createPlayerMesh, createVillagerMesh, type ActorMesh } from './actors';
 import { createDynamic } from './dynamic';
 import { createLightRig } from './lighting';
 import { PALETTE } from './materials';
+import { createBeach } from './beach';
 import { createNature } from './nature';
 import { createParticles } from './particles';
 import { createPost } from './post';
@@ -82,10 +83,11 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
 
   const terrain = createTerrain();
   const nature = createNature();
+  const beach = createBeach();
   const structures = createStructures();
   const dynamic = createDynamic();
   const particles = createParticles(); // after structures: reads the café steam vents
-  scene.add(terrain.group, nature.group, structures, dynamic.group, particles.group);
+  scene.add(terrain.group, nature.group, beach, structures, dynamic.group, particles.group);
 
   const player = createPlayerMesh();
   scene.add(player.root);
