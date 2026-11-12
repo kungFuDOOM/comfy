@@ -27,6 +27,7 @@ import { btn, h, openPanel, type PanelApi } from './dom';
 import { openPause } from './menuPanels';
 import { npcs } from '../npc';
 import { GROVE } from '../world';
+import { renderMap } from './mapPanel';
 
 const price = (n: number) => h('span', 'price', coinIcon(14), String(n));
 const hearts5 = (id: string) => { const n = hearts(id); return '♥'.repeat(n) + '♡'.repeat(5 - n); };
@@ -384,7 +385,7 @@ export function openJournal(start = 'quests') {
   let tab = start;
   openPanel('Journal', (body, api) => {
     const t = (id: string, label: string) => tabBtn(label, tab === id, () => { tab = id; api.rerender(); });
-    body.append(h('div', 'tabs', t('quests', 'Quests'), t('skills', 'Skills'), t('collection', 'Collection'), t('friends', 'Friends'), t('island', 'Island'), t('lanterns', 'Lanterns')));
+    body.append(h('div', 'tabs', t('quests', 'Quests'), t('skills', 'Skills'), t('collection', 'Collection'), t('friends', 'Friends'), t('island', 'Island'), t('map', 'Map'), t('lanterns', 'Lanterns')));
     // the card widens / goes two-column for skills on phones (scenes.css); other tabs keep their usual size
     body.parentElement?.classList.toggle('skills-open', tab === 'skills');
     if (tab === 'skills') {
@@ -445,6 +446,8 @@ export function openJournal(start = 'quests') {
           h('div', 'grow', h('b', '', v.name), h('div', 'muted', `${v.speciesName} · ${v.personality}`), h('div', 'muted small', v.bio)),
           h('div', 'hearts', hearts5(v.id))));
       }
+    } else if (tab === 'map') {
+      renderMap(body, api);
     } else if (tab === 'island') {
       body.append(h('div', 'muted', 'Sugarlily Isle is bigger than it looks. Cute barriers keep the farther corners shut until you are ready.'));
       for (const a of AREA_LIST) {
