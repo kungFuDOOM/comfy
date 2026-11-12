@@ -1,13 +1,13 @@
 // The Christmas Eve (Dec 24) and Christmas Day (Dec 25) gatherings: every villager stands round the town tree, the
 // camera visits each one for a short wish (Eve) or gift (Day), everyone cheers together, the tree lights up and the
-// player is rewarded. Skippable and replayable (no second reward). A close cousin of the harvest feast scene, with
+// player is rewarded. Skippable (skipping still pays) and replayable (no second reward). A close cousin of the harvest feast scene, with
 // its own seats and words; nothing here is shared with the feast logic.
 import * as THREE from 'three';
 import { sfx } from '../audio';
 import { currentAccessory } from '../boutique';
 import { toast } from '../bus';
 import { VILLAGERS, type VillagerDef } from '../data';
-import { bumpEvent, setEventFlag } from '../events';
+import { bumpEvent, hasClaimed, isEventActive, setEventFlag } from '../events';
 import { presentNpcs } from '../npc';
 import { cancelPath, player } from '../player';
 import { confettiAt, twinkleAt, welcomeAt } from '../render/celebrate';
@@ -141,12 +141,16 @@ export function startGathering(kind: 'eve' | 'day', replay = false, onDone?: () 
     cancelPath();
     world.snapCamera(player.x, player.y - 1.2 * TS);
     playing = false;
-    if (!replay && endAt >= 0) {
-      setEventFlag('twinkle', `${kind}Done`);
+    // Watching to the end and skipping both count as attending: the reward is never lost to a skip. It is paid once,
+    // keyed on the milestone itself (not the `replay` hint), and only while the event is on so the flag never gets
+    // set without the payout.
+    const attended = endAt >= 0 || skipAt >= 0;
+    if (attended && !hasClaimed('twinkle', kind) && isEventActive('twinkle')) {
       bumpEvent('twinkle', kind, 1); // pays the finale milestone: pips, outfits and decor
+      setEventFlag('twinkle', `${kind}Done`);
       toast(kind === 'eve' ? 'The tree is glowing! ✨ Check your wardrobe and bag for Eve gifts.' : 'Merry Christmas! 🎄 Check your wardrobe and bag for presents.');
       sfx.quest();
-    } else if (replay && endAt >= 0) toast(kind === 'eve' ? 'What a lovely Eve. Merry Christmas! ✨' : 'What a lovely day. Merry Christmas! 🎄');
+    } else if (attended && (replay || hasClaimed('twinkle', kind))) toast(kind === 'eve' ? 'What a lovely Eve. Merry Christmas! ✨' : 'What a lovely day. Merry Christmas! 🎄');
     saveGame();
     setFade(1);
     onDone?.();
