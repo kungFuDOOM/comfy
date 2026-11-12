@@ -12,6 +12,10 @@ export interface ItemDef {
   desc: string;
   /** Seasonal event this item belongs to (events.ts). Event-only goods can only be made, found or earned while it is on. */
   event?: string;
+  /** Chapter of that event in which it becomes available (events.ts); missing = the whole event. */
+  chapter?: string;
+  /** Relative chance to turn up as a seasonal find (default 3). */
+  findWeight?: number;
   /** Every villager adores it as a gift (pies), whatever their usual likes. */
   loved?: boolean;
 }
@@ -81,6 +85,23 @@ add({ id: 'apple_pie', name: 'Rosy Apple Pie', kind: 'treat', sell: 56, event: '
 add({ id: 'd_cornucopia', name: 'Overflowing Cornucopia', kind: 'decor', event: 'harvest', desc: 'A woven horn of plenty, spilling pumpkins, apples and ribbons.' });
 add({ id: 'd_haybale', name: 'Cozy Hay Bale', kind: 'decor', event: 'harvest', desc: 'A round hay bale with a pink gingham bow. Surprisingly comfy.' });
 add({ id: 'd_pieshelf', name: 'Pie Cooling Shelf', kind: 'decor', event: 'harvest', desc: 'A little shelf of cooling pies, steam curling up forever.' });
+// Twinkle Season (Nov 27 to Dec 26 2026, see events/twinkle.ts): spices and cookies (week 2), ornaments and cocoa (week 3),
+// keepsakes (week 4) and the exclusive decor
+add({ id: 'ginger', name: 'Gingersnap Spice', kind: 'ingredient', buy: 5, sell: 2, event: 'twinkle', chapter: 'wk2', desc: 'Warm, sparkly ginger. Smells like a snowed-in kitchen.' });
+add({ id: 'peppermint', name: 'Peppermint Sprinkles', kind: 'ingredient', buy: 5, sell: 2, event: 'twinkle', chapter: 'wk2', desc: 'Pink and white crunchy flecks that tingle on your tongue.' });
+add({ id: 'gingerbread', name: 'Gingerbread Heart Cookie', kind: 'treat', sell: 54, event: 'twinkle', chapter: 'wk2', loved: true, desc: 'A honey-brown heart with pink icing frills. Everyone loves one.' });
+add({ id: 'peppermint_cookie', name: 'Peppermint Swirl Cookie', kind: 'treat', sell: 56, event: 'twinkle', chapter: 'wk2', loved: true, desc: 'A swirly pink-and-cream cookie with a peppermint crunch.' });
+add({ id: 'ornament', name: 'Lost Twinkle Ornament', kind: 'collectible', sell: 10, event: 'twinkle', chapter: 'wk3', findWeight: 6, desc: 'A little glass bauble that rolled off the town tree. It still glows a bit.' });
+add({ id: 'cocoa_pink', name: 'Marshmallow Cloud Cocoa', kind: 'drink', buy: 18, sell: 36, event: 'twinkle', chapter: 'wk3', desc: 'Strawberry cocoa under a pillow of marshmallow.' });
+add({ id: 'cocoa_mint', name: 'Peppermint Hush Cocoa', kind: 'drink', buy: 18, sell: 36, event: 'twinkle', chapter: 'wk3', desc: 'Cool mint, warm cocoa, one tiny candy cane.' });
+add({ id: 'cocoa_star', name: 'Starlight Cocoa', kind: 'drink', buy: 26, sell: 48, event: 'twinkle', chapter: 'wk3', desc: 'Golden cocoa with star sprinkles that twinkle as they melt.' });
+add({ id: 'candy_charm', name: 'Candy Cane Charm', kind: 'accessory', sell: 30, event: 'twinkle', chapter: 'wk4', desc: 'A tiny striped charm a friend gave you in return. Keep it, or sell it.' });
+add({ id: 'd_tw_tree', name: 'Tiny Twinkle Tree', kind: 'decor', event: 'twinkle', desc: 'A knee-high pine with pink baubles and a star that blinks, just for you.' });
+add({ id: 'd_tw_cookies', name: 'Cookie Jar Tower', kind: 'decor', event: 'twinkle', desc: 'A stack of three cookie jars. Do not count the cookies.' });
+add({ id: 'd_tw_cocoa', name: 'Cocoa Mug Stand', kind: 'decor', event: 'twinkle', desc: 'Three mugs on a stand, steaming forever.' });
+add({ id: 'd_tw_gifts', name: 'Ribbon Gift Stack', kind: 'decor', event: 'twinkle', desc: 'Three wrapped boxes, pink, cream and mint, with enormous bows.' });
+add({ id: 'd_tw_star', name: 'Eve Wishing Star', kind: 'decor', event: 'twinkle', desc: 'A soft golden star on a stand. It listens when you whisper.' });
+add({ id: 'd_tw_wreath', name: 'Twinkle Wreath', kind: 'decor', event: 'twinkle', desc: 'A snowy wreath with berries, bows and little lights.' });
 // decor
 add({ id: 'd_pouf', name: 'Pink Pouf', kind: 'decor', buy: 60, desc: 'A squashy seat in bubblegum pink.' });
 add({ id: 'd_rug', name: 'Cheetah Rug', kind: 'decor', buy: 120, desc: 'A flat, cheetah-print rug. Very plush.' });
@@ -97,9 +118,9 @@ export const SEED_CROP: Record<string, { crop: string; need: number }> = {
 export const SHOP_SEEDS = ['seed_puffberry', 'seed_cottonbloom'];
 export const SHOP_INGREDIENTS = ['beans', 'milk', 'syrup', 'honey', 'cocoa'];
 /** Extra café pantry stock while a seasonal event is on (event id to item ids). */
-export const EVENT_PANTRY: Record<string, string[]> = { harvest: ['cinnamon', 'pumpkin', 'apple'] };
+export const EVENT_PANTRY: Record<string, string[]> = { harvest: ['cinnamon', 'pumpkin', 'apple'], twinkle: ['ginger', 'peppermint'] };
 /** Seasonal items that also turn up as collectibles around the island while the event is on (event id to item ids). */
-export const EVENT_COLLECTIBLES: Record<string, string[]> = { harvest: ['pumpkin', 'apple'] };
+export const EVENT_COLLECTIBLES: Record<string, string[]> = { harvest: ['pumpkin', 'apple'], twinkle: ['ornament'] };
 export const SHOP_DECOR = ['d_pouf', 'd_rug', 'd_lamp', 'd_shelf', 'd_teacup', 'd_chair'];
 
 // --- Skills ---
@@ -128,6 +149,8 @@ export interface Recipe {
   stat: string;
   /** Only available while this seasonal event is active (see events.ts). */
   event?: string;
+  /** ...and once this chapter of it has started. */
+  chapter?: string;
 }
 export const RECIPES: Recipe[] = [
   { id: 'pink_latte', needs: { beans: 1, milk: 1, syrup: 1 }, seconds: 3, bench: 'brew', skill: 'brewing', level: 1, xp: 12, stat: 'brewed' },
@@ -141,6 +164,9 @@ export const RECIPES: Recipe[] = [
   // seasonal pies: baked with the little timing game in events/pieBake.ts
   { id: 'pumpkin_pie', needs: { pumpkin: 1, cinnamon: 1, milk: 1 }, seconds: 0, bench: 'bake', skill: 'baking', level: 1, xp: 30, stat: 'baked', event: 'harvest' },
   { id: 'apple_pie', needs: { apple: 2, cinnamon: 1, honey: 1 }, seconds: 0, bench: 'bake', skill: 'baking', level: 1, xp: 30, stat: 'baked', event: 'harvest' },
+  // Twinkle cookies: baked with the little timing game in events/cookieBake.ts (week 2 on)
+  { id: 'gingerbread', needs: { ginger: 1, honey: 1, milk: 1 }, seconds: 0, bench: 'bake', skill: 'baking', level: 1, xp: 30, stat: 'baked', event: 'twinkle', chapter: 'wk2' },
+  { id: 'peppermint_cookie', needs: { peppermint: 1, syrup: 1, milk: 1 }, seconds: 0, bench: 'bake', skill: 'baking', level: 1, xp: 30, stat: 'baked', event: 'twinkle', chapter: 'wk2' },
   { id: 'bow_pin', needs: { blossom: 2 }, seconds: 4, bench: 'craft', skill: 'crafting', level: 1, xp: 16, stat: 'crafted' },
   { id: 'shell_charm', needs: { shell: 2, blossom: 1 }, seconds: 5, bench: 'craft', skill: 'crafting', level: 4, xp: 32, stat: 'crafted' },
   { id: 'plank', needs: { twig: 2 }, seconds: 3, bench: 'craft', skill: 'crafting', level: 1, xp: 10, stat: 'crafted' },

@@ -5,7 +5,7 @@ import { sfx } from '../audio';
 import { itemIcon } from '../art/icons';
 import { changed, toast } from '../bus';
 import { ITEMS, RECIPES, type Recipe } from '../data';
-import { bumpEvent, isEventActive } from '../events';
+import { bumpEvent, chapterOpen } from '../events';
 import { addItem, count, removeItem } from '../inventory';
 import { bump } from '../quests';
 import { grantXp } from '../skills';
@@ -19,7 +19,8 @@ const STEPS = [
 type Rating = 'perfect' | 'nice' | 'cozy';
 const RATING_TEXT: Record<Rating, string> = { perfect: 'Perfect! ✿', nice: 'Nice!', cozy: 'Cozy and close' };
 
-export const canBakePie = (r: Recipe) => !!r.event && isEventActive(r.event) && Object.entries(r.needs).every(([k, n]) => count(k) >= n);
+/** Seasonal oven recipe with everything in the bag (and its event and chapter open). Shared by the pie and cookie games. */
+export const canBakePie = (r: Recipe) => !!r.event && chapterOpen(r.event, r.chapter) && Object.entries(r.needs).every(([k, n]) => count(k) >= n);
 const pieRecipes = () => RECIPES.filter((r) => r.event === 'harvest' && r.bench === 'bake');
 
 /** Open the baking window for a pie recipe id. */

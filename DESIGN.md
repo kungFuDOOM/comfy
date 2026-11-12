@@ -181,6 +181,20 @@ Events are declarative (`src/events.ts`): id, name, real start and end dates (lo
 
 **Harvest Hush Feast** (`id: harvest`, Nov 20 to Nov 30 2026, feast day Nov 26): autumn dressing of Sugarlily Square (leaf garlands, paper-lantern strings, pumpkins, a long feast table); pumpkins, apples and cinnamon (found around the island or in the café pantry); pie baking at the café oven as a three-step timing game with no failing (two perfects bake a Golden Pie); every villager adores pies as gifts; on Nov 26 all friends sit at the table and the feast scene plays, ending in a group thank-you and rewards. 10 exclusive outfits and 3 decor pieces.
 
+**Twinkle Season** (`id: twinkle`, Nov 27 to Dec 26 2026, `peakDay` Dec 25): a snowy winter event in dated chapters. The island looks snow-covered for the whole season (the event's `season: 'snowfluff'` makes the renderer use the Snowfluff look, visual only, so late November is snowy too) and twinkle lights are strung from the lamps and along slim posts beside the main roads. Chapters (`EventDef.chapters`, gated by `eventDay()`, so `?date=` and `?event=` work; earlier weeks' activities stay open to catch up, new content only unlocks on its start date, and every reward is only granted while the event is active):
+- **Week 1, Nov 27:** the town tree appears in the square; decorate it in three steps (garland, ornaments, topper; each a pick of three, saved and shown on the tree). Outfits and the Tiny Twinkle Tree.
+- **Week 2, Dec 4:** cookie baking at the café oven (`events/cookieBake.ts`, its own three-tray heat-timing game; two golden trays bake a bonus cookie; closing the window clears every timer and bakes nothing). Gingersnap spice and peppermint appear in the pantry.
+- **Week 3, Dec 11:** the ornament hunt (finds on dry walkable ground only, same rules as other finds) and the cocoa market stall south of the square (three cups for pips).
+- **Week 4, Dec 18:** gift exchange: a gift to a friend (once per friend) earns a Candy Cane Charm and pips back.
+- **Dec 24 and Dec 25:** Christmas Eve and Christmas Day gatherings: every villager stands round the tree (`events/twinkleSeats.ts`, separate from the harvest feast seating) and a short cutscene plays (`events/gathering.ts`) with a reward set each. Dec 26 ("Afterglow") keeps the snow, lights and every earlier activity but has no gathering.
+Each chapter pays an exclusive outfit and a decor piece (10 outfits and 6 decor pieces in all).
+
+Generic framework pieces added for it: optional `EventDef.chapters` / `EventActivity.chapter` (the journal shows the current chapter and what is locked, the HUD banner uses the chapter line), `EventDef.season`, `EventWorld.signature()` (the event layer rebuilds a world when the calendar day or that signature changes), and per-event banner copy (`peakTitle`, `peakSub`; two active events show two banner lines, e.g. Harvest and Twinkle overlap Nov 27 to 30).
+
+QA preview examples:
+- `?event=twinkle` is Christmas Day (peak); `?event=twinkle&date=2026-11-27` week 1; `...&date=2026-12-04` week 2; `...&date=2026-12-11` week 3; `...&date=2026-12-18` week 4; `...&date=2026-12-24` Christmas Eve; `...&date=2026-12-25` Christmas Day; `...&date=2026-12-26` Afterglow.
+- `?date=2026-11-27` shows both Harvest and Twinkle (overlap); `?date=2026-11-19` shows neither.
+
 ## 8. Roadmap beyond v0.1
 
 - **v0.2 — Nooks.** Unlock the Moonlit Reading Nook and Lantern Terrace from lantern sets; a proper walk-in house interior with room-by-room decorating.

@@ -13,7 +13,7 @@ import { clothById } from './clothes';
 import { ITEMS } from './data';
 import { addItem, earn } from './inventory';
 import { state, type EventProgress } from './state';
-import { hasDateOverride, today } from './time';
+import { hasDateOverride, SEASONS, today, type Season } from './time';
 
 /** A one-time reward paid out when an activity counter reaches its goal while the event is on. */
 export interface EventMilestone {
@@ -33,6 +33,22 @@ export interface EventActivity {
   desc: string;
   counter?: string;
   goal?: number;
+  /** Chapter (EventDef.chapters) in which this activity unlocks. Missing = from the start. */
+  chapter?: string;
+}
+
+/** A dated chapter of a long event (a weekly unlock). Earlier chapters' activities stay open; new ones wait for `start`. */
+export interface EventChapter {
+  id: string;
+  title: string;
+  /** First local calendar day of the chapter, 'YYYY-MM-DD'. It runs until the next chapter starts. */
+  start: string;
+  /** One line for the journal. */
+  blurb: string;
+  /** Short HUD banner line while this chapter is current. */
+  hud?: string;
+  /** Welcome toast when the chapter begins (or the game opens during it). */
+  toast?: string;
 }
 
 /** A spot in the world the player can interact with while the event is on. */
@@ -54,6 +70,11 @@ export interface EventWorld {
   build(): THREE.Group;
   /** Called every frame with the elapsed time (s). Optional shimmer, flicker, sway. */
   update?(t: number): void;
+  /**
+   * A cheap string that changes whenever the decorations should be rebuilt (a new chapter, a decorated tree...).
+   * The layer also rebuilds whenever the calendar day changes.
+   */
+  signature?(): string;
 }
 
 export interface EventDef {
@@ -71,6 +92,13 @@ export interface EventDef {
   banner: string;
   /** Banner text on the peak day. */
   peakBanner?: string;
+  /** HUD banner headline suffix on the peak day ("Feast Day!") and its second line. Each event brings its own copy. */
+  peakTitle?: string;
+  peakSub?: string;
+  /** Optional weekly / dated chapters (see EventChapter). */
+  chapters?: EventChapter[];
+  /** While active, the island looks like this season (a Season id from time.ts), e.g. 'snowfluff'. Visual only. */
+  season?: string;
   /** Wardrobe ids and item ids that can only be earned while the event is active (kept forever once earned). */
   items: string[];
   activities: EventActivity[];
@@ -127,6 +155,41 @@ export const getActiveEvents = (): EventDef[] => registry.filter((e) => eventPha
 export const getUpcomingEvents = (): EventDef[] =>
   registry.filter((e) => eventPhase(e) === 'upcoming').sort((a, b) => a.start.localeCompare(b.start));
 export const getPastEvents = (): EventDef[] => registry.filter((e) => eventPhase(e) === 'ended');
+// ---------- chapters ----------
+/** The chapter that is current today: the latest one whose start day has come (undefined before the first). */
+export function currentChapter(ev: EventDef | string): EventChapter | undefined {
+  const def = typeof ev === 'string' ? eventById(ev) : ev;
+  if (!def?.chapters) return undefined;
+  const d = eventDay();
+  let cur: EventChapter | undefined;
+  for (const c of def.chapters) if (dayDiff(d, parseDay(c.start)) >= 0) cur = c;
+  return cur;
+}
+/** Has this chapter started? (Only while the event is active, so nothing opens before or after the season.) */
+export function chapterOpen(eventId: string, chapterId: string | undefined): boolean {
+  if (!isEventActive(eventId)) return false;
+  if (!chapterId) return true;
+  const c = eventById(eventId)?.chapters?.find((x) => x.id === chapterId);
+  return !!c && dayDiff(eventDay(), parseDay(c.start)) >= 0;
+}
+/** Is this the current (latest unlocked) chapter? */
+export const inChapter = (eventId: string, chapterId: string) => isEventActive(eventId) && currentChapter(eventId)?.id === chapterId;
+/** "Dec 4" */
+export const dayLabel = prettyDay;
+/** Can this seasonal item be found / sold / baked right now? (Its event is on and its chapter, if any, has started.) */
+export function eventItemOpen(itemId: string): boolean {
+  const it = ITEMS[itemId];
+  return !!it?.event && chapterOpen(it.event, it.chapter);
+}
+
+let visAt = -1e9, visId: string | undefined;
+/** The season the island should LOOK like: an active event can dress it (Twinkle Season is snowy from late November). */
+export function visualSeason(base: Season): Season {
+  const now = performance.now();
+  if (now - visAt > 400) { visAt = now; visId = registry.find((e) => e.season && eventPhase(e) === 'active')?.season; }
+  return (visId && SEASONS.find((x) => x.id === visId)) || base;
+}
+
 /** True on the event's highlight day (the feast), while it is active. */
 export const isPeakDay = (id: string) => {
   const e = eventById(id);
@@ -247,9 +310,12 @@ export function tickEvents() {
   for (const e of active) {
     const p = eventProgress(e.id);
     if (!startedFor.has(e.id)) { startedFor.add(e.id); e.onStart?.(); }
-    if (p.announced !== dayKey) {
-      p.announced = dayKey;
-      toast(`${e.icon} ${isPeakDay(e.id) && e.peakBanner ? e.peakBanner : e.banner}`);
+    // events with chapters greet once per chapter, the others once a day
+    const ch = currentChapter(e), peak = isPeakDay(e.id);
+    const key = e.chapters ? `${ch?.id ?? ''}|${peak}` : dayKey;
+    if (p.announced !== key) {
+      p.announced = key;
+      toast(`${e.icon} ${peak && e.peakBanner ? e.peakBanner : ch?.toast ?? e.banner}`);
     }
   }
   startedFor = new Set([...startedFor].filter((id) => active.some((e) => e.id === id)));
