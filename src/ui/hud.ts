@@ -8,6 +8,7 @@ import { getClock } from '../time';
 import { state } from '../state';
 import { glyphEl, type PromptKey } from '../input/prompts';
 import { h } from './dom';
+import { buildEventBanner, refreshEventBanner } from './eventsUi';
 
 let clockEl: HTMLElement, seasonEl: HTMLElement, coinEl: HTMLElement, lanternEl: HTMLElement, hotbarEl: HTMLElement, hintEl: HTMLElement, lanternCanvas: HTMLCanvasElement;
 
@@ -31,6 +32,7 @@ export function buildHud(actions: { skills(): void; journal(tab: string): void; 
   hotbarEl = h('div', 'hotbar');
   hintEl = h('div', 'hint');
   ui.append(top, quick, hotbarEl, hintEl);
+  buildEventBanner(() => actions.journal('events'));
   bus.on('change', refreshHud);
   refreshHud();
 }
@@ -45,6 +47,7 @@ export function tickHud() {
   clockEl.textContent = `${c.label} · ${c.phaseName}`;
   seasonEl.textContent = `${c.weekday}, ${c.dayOfMonth}/${c.month} · ${c.season.name}`;
   seasonEl.title = c.season.blurb;
+  refreshEventBanner();
   const g = lanternCanvas.getContext('2d')!;
   g.clearRect(0, 0, 56, 56);
   g.save(); g.scale(1.6, 1.6); drawLantern(g, 'gift', 17.5, 17.5, 0.9, performance.now() / 1000, 0.7); g.restore();

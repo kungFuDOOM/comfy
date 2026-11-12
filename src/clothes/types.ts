@@ -64,7 +64,9 @@ export type Source =
   | { k: 'quest'; quest: string }
   | { k: 'skill'; skill: SkillId; level: number }
   | { k: 'craft'; recipe: string }
-  | { k: 'region'; area: AreaId | 'all' };
+  | { k: 'region'; area: AreaId | 'all' }
+  /** Exclusive to a seasonal event (events.ts): handed out by its activities while it is on, kept forever. */
+  | { k: 'event'; event: string };
 
 export interface ClothDef {
   id: string;
