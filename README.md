@@ -8,6 +8,8 @@ decorate your yard, make friends with animal neighbors, collect little treasures
 
 All art is **drawn in code** (Three.js, canvas, CSS) — there are no image files or downloaded art assets. The only bundled font is Fredoka (SIL Open Font License).
 
+**Trailer:** [trailer/hushbell-trailer.mp4](trailer/hushbell-trailer.mp4) (74 s, made entirely in-engine; see [tools/trailer](tools/trailer/README.md)).
+
 See [DESIGN.md](DESIGN.md) for the design, the lantern hook, villagers, seasons and roadmap.
 
 ## Play locally
