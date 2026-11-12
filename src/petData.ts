@@ -72,8 +72,8 @@ export function sanitizePet(raw: unknown): PetSave | null {
   if (!raw || typeof raw !== 'object') return null;
   const r = raw as Record<string, unknown>;
   if (r.kind !== 'kitten' && r.kind !== 'puppy') return null;
-  const name = cleanPetName(typeof r.name === 'string' ? r.name : '');
-  if (!name) return null;
+  // a valid pet whose name got mangled keeps living with a default name (never drop a real pet over its name)
+  const name = cleanPetName(typeof r.name === 'string' ? r.name : '') || (r.kind === 'kitten' ? 'Mochi' : 'Biscuit');
   const coat = typeof r.coat === 'string' && PET_COATS.some((c) => c.id === r.coat) ? r.coat : PET_COATS[0].id;
   const owned = Array.isArray(r.owned) ? [...new Set(r.owned.filter((x): x is string => typeof x === 'string' && !!petItemById(x)))] : [];
   const w = (r.worn && typeof r.worn === 'object' ? r.worn : {}) as Record<string, unknown>;

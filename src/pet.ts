@@ -68,25 +68,39 @@ function lineClear(x0: number, y0: number, x1: number, y1: number) {
   return true;
 }
 
-/** The spot just behind (and a little to the side of) the player, where a well-behaved pet trots. */
-function heel(): { x: number; y: number } {
+/**
+ * The spot just behind (and a little to the side of) the player, where a well-behaved pet trots. In a tight spot
+ * (fence, doorway, bridge) it tries her other sides; null when there is truly no room, so the pet waits instead of
+ * pushing into the player (the old fallback was the player's own feet, which fought the personal-space nudge = jitter).
+ */
+function heel(): { x: number; y: number } | null {
   const f = FACE_VEC[player.facing];
-  const hx = player.x - f[0] * HEEL - f[1] * 12, hy = player.y - f[1] * HEEL + f[0] * 12;
-  return blockedAt(hx, hy) ? { x: player.x, y: player.y } : { x: hx, y: hy };
+  const spots = [
+    [-f[0] * HEEL - f[1] * 12, -f[1] * HEEL + f[0] * 12], // behind, a little to the side
+    [-f[0] * HEEL, -f[1] * HEEL], // straight behind
+    [-f[1] * HEEL, f[0] * HEEL], // beside
+    [f[1] * HEEL, -f[0] * HEEL], // other side
+  ];
+  for (const [ox, oy] of spots) {
+    const hx = player.x + ox, hy = player.y + oy;
+    if (!blockedAt(hx, hy) && lineClear(player.x, player.y, hx, hy)) return { x: hx, y: hy };
+  }
+  return null;
 }
 
 function setMode(m: PetMode) { if (pet.mode !== m) { pet.mode = m; pet.modeT = 0; } }
 
 /** Put the pet on the nearest free tile beside the player (behind her, never on water / walls). Never leaves her missing. */
 function warpToPlayer(fx = false) {
-  const h = heel(), pt = tileOfXY(player.x, player.y);
+  const h = heel() ?? { x: player.x, y: player.y }, pt = tileOfXY(player.x, player.y);
+  // prefer a tile she can see / walk to in a straight line, so the pet never lands behind a fence or across water
   let best: { x: number; y: number } | null = null, bd = Infinity;
   for (let dy = -6; dy <= 6; dy++) for (let dx = -6; dx <= 6; dx++) {
     const tx = pt.x + dx, ty = pt.y + dy;
     if (!isWalkable(tx, ty) || (dx === 0 && dy === 0)) continue;
     const cx = tx * TS + TS / 2, cy = ty * TS + TS - 4;
     if (blockedAt(cx, cy)) continue;
-    const d = Math.hypot(cx - h.x, cy - h.y);
+    const d = Math.hypot(cx - h.x, cy - h.y) + (lineClear(player.x, player.y, cx, cy) ? 0 : 1000);
     if (d < bd) { bd = d; best = { x: cx, y: cy }; }
   }
   const to = best ?? { x: player.x, y: player.y };
@@ -108,8 +122,12 @@ export function resetPet() {
 
 function steerPoint(): { x: number; y: number } | null {
   const h = heel();
-  if (lineClear(pet.x, pet.y, h.x, h.y)) { pet.path = []; return h; }
-  if (lineClear(pet.x, pet.y, player.x, player.y)) { pet.path = []; return { x: player.x, y: player.y }; }
+  if (h && lineClear(pet.x, pet.y, h.x, h.y)) { pet.path = []; return h; }
+  if (lineClear(pet.x, pet.y, player.x, player.y)) {
+    pet.path = [];
+    // no free heel spot: close the gap, but never walk into her feet
+    return !h && Math.hypot(player.x - pet.x, player.y - pet.y) < FOLLOW_NEAR ? null : { x: player.x, y: player.y };
+  }
   const pt = tileOfXY(player.x, player.y);
   if (pet.repath <= 0 || !pet.path.length) {
     pet.repath = 0.7;
@@ -149,7 +167,8 @@ export function updatePet(dt: number) {
     }
   }
   // gentle personal space: nudge away from the player and any villager that is too close
-  const others = [{ x: player.x, y: player.y, r: 13 }, ...presentNpcs().map((n) => ({ x: n.x, y: n.y, r: 20 }))];
+  // (the player's radius is wider than TOO_CLOSE so a parked pet always drifts clear instead of re-triggering a follow)
+  const others = [{ x: player.x, y: player.y, r: TOO_CLOSE + 3 }, ...presentNpcs().map((n) => ({ x: n.x, y: n.y, r: 20 }))];
   for (const o of others) {
     const ox = pet.x - o.x, oy = pet.y - o.y, od = Math.hypot(ox, oy);
     if (od < o.r && od > 0.01) { wantVx += (ox / od) * (o.r - od) * 5; wantVy += (oy / od) * (o.r - od) * 5; }
@@ -159,7 +178,12 @@ export function updatePet(dt: number) {
   pet.vx += (wantVx - pet.vx) * k;
   pet.vy += (wantVy - pet.vy) * k;
   const sp = Math.hypot(pet.vx, pet.vy);
-  if (sp < 3 && !wantVx && !wantVy) { pet.vx = pet.vy = 0; }
+  if (sp < 3 && !wantVx && !wantVy) {
+    pet.vx = pet.vy = 0;
+    // wants to follow but has no route (e.g. she crossed somewhere the pet cannot): count it as stuck
+    pet.stuck = pet.following && pet.happy <= 0 && d > 90 ? pet.stuck + dt : 0;
+    if (pet.stuck > 2.2) warpToPlayer(true);
+  }
   else {
     const mx = pet.vx * dt, my = pet.vy * dt, bx = pet.x, by = pet.y;
     if (!blockedAt(pet.x + mx, pet.y)) pet.x += mx;
@@ -167,7 +191,7 @@ export function updatePet(dt: number) {
     const moved = Math.hypot(pet.x - bx, pet.y - by);
     pet.stuck = pet.following && moved < sp * dt * 0.25 ? pet.stuck + dt : Math.max(0, pet.stuck - dt);
     if (pet.stuck > 2.2 && d > 90) warpToPlayer(true); // wedged somewhere: skip to her side
-    else if (pet.stuck > 0.6) pet.repath = 0; // try a fresh route
+    else if (pet.stuck > 0.6 && pet.repath < 0.35) pet.repath = 0; // try a fresh route (at most ~3x/s, not A* every frame)
   }
   pet.speed = Math.min(1, Math.hypot(pet.vx, pet.vy) / 192);
 
@@ -210,7 +234,7 @@ let lastLine = -1;
 /** The short default interact: hearts, a happy hop and a cozy toast with the pet's name. */
 export function petThePet() {
   const s = state.pet;
-  if (!s || !pet.active) return;
+  if (!s || !pet.active || pet.happy > 1.3) return; // mashing the button: one pat at a time
   pet.happy = 1.7; pet.still = 0; pet.vx = pet.vy = 0; pet.path = [];
   pet.heading = Math.atan2(player.x - pet.x, player.y - pet.y);
   bus.emit('petHearts', { x: pet.x, y: pet.y });

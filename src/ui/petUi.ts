@@ -7,6 +7,7 @@ import { cleanPetName, PET_COATS, PET_ITEMS, PET_KINDS, PET_NAME_MAX, petItemByI
 import { state } from '../state';
 import { CURRENCY } from '../data';
 import { btn, closePanel, h, isPanelOpen, openPanel, type PanelApi } from './dom';
+import { sceneActive } from '../render/stage';
 import './pet.css';
 
 /** The boutique's try-on: an item previewed on the portrait (not owned, not saved). */
@@ -20,18 +21,23 @@ function nameField(initial: string, onInput: (v: string) => void, onEnter: () =>
   const input = h('input', 'pet-input');
   input.type = 'text';
   input.value = initial;
-  input.maxLength = PET_NAME_MAX + 6; // typed length; cleanPetName trims to PET_NAME_MAX
+  input.maxLength = PET_NAME_MAX; // what she types is what she gets (cleanPetName also caps it)
   input.placeholder = 'Type a name…';
   input.autocomplete = 'off';
   input.spellcheck = false;
   input.enterKeyHint = 'done';
   input.setAttribute('autocapitalize', 'words');
   input.setAttribute('aria-label', 'Pet name');
+  // deliberately NOT in the panel focus ring (no tabindex): auto-focusing it on open would pop the phone keyboard
+  // and swallow hotkeys. Gamepad players get the "Suggest a name" button instead.
   input.addEventListener('input', () => onInput(input.value));
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); onEnter(); } });
   const wrap = h('div', 'pet-field', h('label', '', `Name (up to ${PET_NAME_MAX} letters)`), input);
   return { wrap, input };
 }
+
+// A few original suggestions, so a gamepad-only player (no keyboard) can still name her friend.
+const NAME_IDEAS = ['Mochi', 'Biscuit', 'Peaches', 'Dumpling', 'Clover', 'Sprinkle', 'Puffin', 'Marshmallow', 'Tofu', 'Pudding', 'Bean', 'Truffle'];
 
 // ---------- adoption ----------
 export function openAdopt() {
@@ -63,7 +69,12 @@ export function openAdopt() {
       })),
     );
     const f = nameField(name, (v) => { name = v; check(false); }, submit);
-    body.append(f.wrap, err);
+    const idea = btn('✿ Suggest a name', () => {
+      const pool = NAME_IDEAS.filter((n) => n !== name);
+      name = pool[Math.floor(Math.random() * pool.length)];
+      f.input.value = name; check(false);
+    }, 'small ghost');
+    body.append(f.wrap, idea, err);
     go.className = 'btn';
     go.append('Adopt ♡');
     go.addEventListener('click', (e) => { e.stopPropagation(); submit(); });
@@ -76,7 +87,12 @@ export function openAdopt() {
 export function openPetPanel() {
   const p = state.pet;
   if (!p) { openAdopt(); return; }
-  openPanel(`${p.name}'s Corner`, (body, api) => renderPetBody(body, api, false));
+  openPanel(`${p.name}'s Corner`, (body, api) => {
+    renderPetBody(body, api, false);
+    // keep the window title in step with a rename
+    const t = body.parentElement?.querySelector('.panel-title');
+    if (t && state.pet) t.textContent = `${state.pet.name}'s Corner`;
+  });
 }
 
 /** The pet's dressing list. `shop` = the boutique rack (everything for sale, try-on, buy); otherwise just what she owns. */
@@ -134,7 +150,10 @@ export function showPetCard() {
   if (!p || !hasPet()) return;
   hidePetCard();
   const c = h('div', 'pet-card', petPortrait(p.kind, p.coat, p.worn.head, p.worn.body, 44), h('b', '', p.name),
-    btn('Pet ♡', () => { if (petNear(60)) petThePet(); else bus.emit('toast', `${p.name} is a little too far away.`); }, 'small'),
+    btn('Pet ♡', () => {
+      if (isPanelOpen() || sceneActive()) { hidePetCard(); return; } // never pat through a window or a cutscene
+      if (petNear(60)) petThePet(); else bus.emit('toast', `${p.name} is a little too far away.`);
+    }, 'small'),
     btn('Dress up', () => { hidePetCard(); if (!isPanelOpen()) openPetPanel(); }, 'small ghost'));
   document.getElementById('ui')!.append(c);
   card = c;
