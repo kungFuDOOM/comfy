@@ -263,6 +263,10 @@ export function drawVillager(
     case 'hamster': hamster(ctx, def, p, t); break;
     case 'hedgehog': hedgehog(ctx, def, p, t); break;
     case 'bunny': bunny(ctx, def, p, t); break;
+    case 'capybara': capybara(ctx, def, p, t); break;
+    case 'moth': moth(ctx, def, p, t); break;
+    case 'axolotl': axolotl(ctx, def, p, t); break;
+    case 'seal': seal(ctx, def, p, t); break;
   }
   ctx.restore();
   if (bubble) {
@@ -518,6 +522,155 @@ function bunny(ctx: CanvasRenderingContext2D, def: VillagerDef, p: Pose, t: numb
   mouth(ctx, mx, ey + 5.1, 'w', 0.7);
   star(ctx, hx - 6.8, hy - 6.4, 1.9, a, 0.6); // gold star clip
 }
+
+
+// --- Brioche: tubby capybara barista (a croissant on the head, an apron with a cheetah hem) ---
+function capybara(ctx: CanvasRenderingContext2D, def: VillagerDef, p: Pose, t: number) {
+  const c = def.color, a = def.accent, belly = '#fff1de', fur = '#e9c9a0';
+  feet(ctx, p, shade(fur, -0.12), 3.6, 2.8);
+  applyBody(ctx, p);
+  oc(ctx, p.side ? -p.side * 8 : 8, -5.6, 2, fur, LW);
+  body(ctx, c, p.back ? null : belly, 10.4, 8.8, -10.2);
+  arms(ctx, fur, p);
+  if (!p.back) {
+    ctx.beginPath(); rr(ctx, -6, -14, 12, 10.4, 3.6); fs(ctx, '#ffffff', 0.85);
+    ctx.save(); ctx.beginPath(); rr(ctx, -6, -6.6, 12, 3, 1.5); ctx.clip(); ctx.fillStyle = cheetahPattern(ctx, 'classic', 0.3); ctx.fillRect(-6, -6.6, 12, 3); ctx.restore();
+    // pastry pocket
+    oe(ctx, 0, -10, 2.2, 1.4, '#f2b765', 0.6);
+  }
+  const hx = p.side * 0.8, hy = -24.2;
+  // tiny round ears set far back
+  for (const d of [-1, 1]) { if (p.side === -d && !p.back) continue; oc(ctx, hx + d * 8.2, hy - 7.6, 2.6, fur, LW); circle(ctx, hx + d * 8.2, hy - 7.4, 1.3, '#d99a7d'); }
+  oe(ctx, hx, hy, 13, 10.6, fur, LW);
+  // croissant on the crown
+  ctx.save(); ctx.translate(hx + 1, hy - 11);
+  oe(ctx, 0, 0, 5.4, 2.8, '#f2b765', LW);
+  oc(ctx, -4.6, 0.8, 1.9, '#e49c5a', 0.6); oc(ctx, 4.6, 0.8, 1.9, '#e49c5a', 0.6);
+  ctx.beginPath(); ctx.moveTo(-2, -2.4); ctx.lineTo(-1.2, 2.2); ctx.moveTo(2, -2.4); ctx.lineTo(1.2, 2.2); ink(ctx, 0.55, '#b9753f');
+  ctx.restore();
+  if (p.back) return;
+  const ey = hy + 0.6;
+  const mx = faceEyes(ctx, p, hx, ey, 5, 1.9, 2.4);
+  // big square snout with two nostrils
+  oe(ctx, mx, ey + 5, 6.2, 4.4, '#dcb98c', 0.9);
+  oe(ctx, mx, ey + 3, 2, 1.4, '#7a4a3a', 0.5);
+  circle(ctx, mx - 0.6, ey + 2.6, 0.45, '#fff');
+  mouth(ctx, mx, ey + 6.6, 'w', 0.8);
+  // sleepy content smile lines
+  for (const d of [-1, 1]) circle(ctx, mx + d * 3.6, ey + 4.6, 0.55, '#a0714f');
+}
+
+// --- Oolie: shy pastel moth with feathery antennae and pressed-flower wings ---
+function moth(ctx: CanvasRenderingContext2D, def: VillagerDef, p: Pose, t: number) {
+  const c = def.color, a = def.accent, belly = '#fff8ff', fuzz = '#f4ecff';
+  const flap = Math.sin(t * 5) * 0.12;
+  // wings behind the body (a soft four-petal fan)
+  for (const d of [-1, 1]) {
+    ctx.save(); ctx.translate(d * 6, -15); ctx.rotate(d * (0.55 + flap));
+    oe(ctx, d * 6, -2, 8.4, 5.4, shade(c, 0.1), LW, INK, 0.2 * d);
+    oe(ctx, d * 5, 4.4, 6, 4, shade(a, 0.35), LW, INK, -0.3 * d);
+    circle(ctx, d * 8, -2, 1.5, a); circle(ctx, d * 4.6, -3.2, 0.9, '#ffffff'); circle(ctx, d * 5, 4.6, 1.1, a);
+    ctx.restore();
+  }
+  feet(ctx, p, shade(fuzz, -0.1), 3.2, 2.5);
+  applyBody(ctx, p);
+  body(ctx, c, p.back ? null : belly, 8.2, 8.4, -10.6);
+  arms(ctx, fuzz, p);
+  // fluffy collar
+  for (let i = -3; i <= 3; i++) oc(ctx, i * 2.6, -16.4 + Math.abs(i) * 0.5, 2.6, i % 2 ? '#ffffff' : fuzz, 0.7);
+  const hx = p.side * 0.8, hy = -25.6;
+  // feathery antennae
+  for (const d of [-1, 1]) {
+    if (p.side === -d && !p.back) continue;
+    ctx.beginPath(); ctx.moveTo(hx + d * 3, hy - 8.4); ctx.quadraticCurveTo(hx + d * 8, hy - 15 + Math.sin(t * 2 + d) * 0.6, hx + d * 10.4, hy - 13); ink(ctx, 1.1);
+    for (let k = 0; k < 3; k++) { const fx = hx + d * (6 + k * 1.5), fy = hy - 12.4 - k * 0.4; ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx + d * 1.6, fy + 1.8); ink(ctx, 0.6); }
+    oc(ctx, hx + d * 10.4, hy - 13, 1.1, a, 0.6);
+  }
+  oe(ctx, hx, hy, 10.8, 9.8, fuzz, LW);
+  if (p.back) return;
+  for (const [dx, dy] of [[-8, 3], [8, 3], [-5, 8], [5, 8]]) oc(ctx, hx + dx + p.side, hy + dy - 2, 2.2, '#ffffff', 0.6);
+  const ey = hy + 1.2;
+  const mx = faceEyes(ctx, p, hx, ey, 4.2, 2.3, 3);
+  mouth(ctx, mx, ey + 5.2, 'o', 0.6);
+  // a pressed flower tucked behind the ear
+  const fx = hx - 7 * (p.side || 1), fy = hy - 4;
+  for (let i = 0; i < 5; i++) { const an = (i / 5) * Math.PI * 2; circle(ctx, fx + Math.cos(an) * 1.6, fy + Math.sin(an) * 1.6, 1.2, '#ffb3cf'); }
+  circle(ctx, fx, fy, 0.9, '#fff3a8');
+}
+
+// --- Tuppi: blush-cheeked axolotl baker (feathery gills, wide smile, a frosting-dipped hat) ---
+function axolotl(ctx: CanvasRenderingContext2D, def: VillagerDef, p: Pose, t: number) {
+  const c = def.color, a = def.accent, belly = '#fff0f4';
+  feet(ctx, p, shade(c, -0.1), 3.4, 2.7);
+  applyBody(ctx, p);
+  // wiggly tail fin
+  const tw = Math.sin(t * 4) * 1.5;
+  ctx.beginPath(); ctx.moveTo(0, -5); ctx.quadraticCurveTo((p.side ? -p.side * 8 : 8) + tw, -6, (p.side ? -p.side * 12 : 11) + tw, -9); ctx.quadraticCurveTo(7 + tw, -3, 0, -3.5); fs(ctx, shade(c, 0.1), LW);
+  body(ctx, c, p.back ? null : belly, 8.8, 8.4, -10.4);
+  arms(ctx, c, p);
+  if (!p.back) {
+    // chef apron with a frosting swirl
+    ctx.beginPath(); rr(ctx, -5.4, -14.2, 10.8, 10, 3.4); fs(ctx, '#ffffff', 0.85);
+    ctx.beginPath(); ctx.moveTo(-3, -9.6); ctx.quadraticCurveTo(0, -12.8, 3, -9.6); ctx.quadraticCurveTo(0, -8.4, -3, -9.6); fs(ctx, a, 0.5);
+  }
+  const hx = p.side * 0.8, hy = -24.8;
+  // feathery gills, three each side
+  for (const d of [-1, 1]) {
+    if (p.side === -d && !p.back) continue;
+    for (let k = 0; k < 3; k++) {
+      const gy = hy - 3 + k * 3.4, wob = Math.sin(t * 3 + k + d) * 0.7;
+      ctx.beginPath(); ctx.moveTo(hx + d * 9.4, gy); ctx.quadraticCurveTo(hx + d * (13 + k * 0.4), gy - 2 + wob, hx + d * (16 - k * 0.5), gy - 2.6 + wob); ink(ctx, 2.6, INK); ink(ctx, 1.4, a);
+      oc(ctx, hx + d * (16 - k * 0.5), gy - 2.6 + wob, 1.4, shade(a, 0.2), 0.6);
+    }
+  }
+  if (p.side && !p.back) for (let k = 0; k < 3; k++) { oc(ctx, hx - p.side * (10 + k), hy - 3 + k * 3.2, 1.8, a, 0.6); }
+  oe(ctx, hx, hy, 12.2, 10, c, LW);
+  // a baker's cap dipped in frosting
+  oe(ctx, hx, hy - 9, 8, 2.8, '#ffffff', LW);
+  oe(ctx, hx - 1, hy - 12.4, 5.6, 3.4, '#ffffff', LW);
+  oc(ctx, hx + 1.6, hy - 14.6, 1.1, '#ff6f9c', 0.5);
+  if (p.back) return;
+  const ey = hy + 0.8;
+  const mx = faceEyes(ctx, p, hx, ey, 4.8, 1.8, 2.2);
+  // very wide giggly smile
+  ctx.beginPath(); ctx.moveTo(mx - 4, ey + 3.4); ctx.quadraticCurveTo(mx, ey + 8.2, mx + 4, ey + 3.4); ink(ctx, 0.9, '#c0577d');
+  for (const d of [-1, 1]) circle(ctx, mx + d * 5.4, ey + 3.4, 0.55, '#c0577d');
+}
+
+// --- Marlo: sugar-dusted seal who keeps the lighthouse (a lavender keeper's cap, whiskers, round flippers) ---
+function seal(ctx: CanvasRenderingContext2D, def: VillagerDef, p: Pose, t: number) {
+  const c = def.color, a = def.accent, belly = '#fff6fa';
+  // tail flippers peeking out behind
+  for (const d of [-1, 1]) oe(ctx, d * 3.6, -3.2 + Math.sin(t * 3 + d) * 0.3, 3.4, 1.8, shade(c, -0.08), LW, INK, d * 0.5);
+  applyBody(ctx, p);
+  body(ctx, c, p.back ? null : belly, 10, 9, -10.2);
+  // flipper arms
+  const sw = p.step * 2;
+  oe(ctx, -9.6, -11 + sw * 0.5, 3.4, 2.2, shade(c, -0.05), LW, INK, 0.7);
+  oe(ctx, 9.6, -11 - sw * 0.5, 3.4, 2.2, shade(c, -0.05), LW, INK, -0.7);
+  // sugar-dust freckles
+  if (!p.back) for (const [x, y] of [[-5, -13], [4, -14], [6, -9], [-6, -8.4], [0, -5.4]]) circle(ctx, x, y, 0.7, '#ffffff');
+  // sailor scarf
+  if (!p.back) { ctx.beginPath(); ctx.moveTo(-5.6, -16.4); ctx.quadraticCurveTo(0, -13.4, 5.6, -16.4); ink(ctx, 3, INK); ink(ctx, 1.8, a); oe(ctx, 0, -13.6, 1.5, 1.4, a, 0.6); }
+  const hx = p.side * 0.8, hy = -24.6;
+  for (const d of [-1, 1]) { if (p.side === -d && !p.back) continue; oc(ctx, hx + d * 8.4, hy - 6.4, 1.7, shade(c, -0.1), LW); }
+  oe(ctx, hx, hy, 12.4, 10.2, c, LW);
+  // keeper's cap
+  oe(ctx, hx, hy - 8.4, 9.4, 2.8, a, LW);
+  ctx.beginPath(); ctx.ellipse(hx, hy - 9.4, 7, 5, 0, Math.PI, 0); ctx.closePath(); fs(ctx, shade(a, 0.1), LW);
+  oc(ctx, hx, hy - 10.6, 1.4, PALETTE_GOLD, 0.5);
+  if (p.back) return;
+  const ey = hy + 0.8;
+  const mx = faceEyes(ctx, p, hx, ey, 4.6, 2.1, 2.7);
+  oe(ctx, mx, ey + 4.8, 5.2, 3.6, belly, 0.8);
+  oe(ctx, mx, ey + 3.1, 1.7, 1.2, '#7a4a6a', 0.5);
+  circle(ctx, mx - 0.5, ey + 2.7, 0.4, '#fff');
+  mouth(ctx, mx, ey + 5.8, 'w', 0.8);
+  ctx.beginPath();
+  for (const d of [-1, 1]) { ctx.moveTo(mx + d * 3, ey + 4.6); ctx.lineTo(mx + d * 8.4, ey + 3.4); ctx.moveTo(mx + d * 3, ey + 5.6); ctx.lineTo(mx + d * 8.4, ey + 6.6); }
+  ink(ctx, 0.5, INK);
+}
+const PALETTE_GOLD = '#ffd36e';
 
 const INK_W = 'rgba(91,58,78,0.6)';
 

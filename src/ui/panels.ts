@@ -11,7 +11,11 @@ import { dragSpin, dressing, nudgeSpin } from '../dressing';
 import { startDressingRoom, stopDressingRoom } from '../render/dressingRoom';
 import { CURRENCY, ITEMS, OUTFITS, QUESTS, SHOP_DECOR, SKILLS, type Bench, type Recipe, SHOP_INGREDIENTS, SHOP_SEEDS, VILLAGERS, type VillagerDef } from '../data';
 import { addItem, assignHotbar, BAG_SLOTS, BANK_SLOTS, count, earn, moveStack, removeItem, spend, tidyBag } from '../inventory';
-import { LOG_QUESTS, questsFrom, questStatus, startQuest, STATUS_TEXT, turnIn } from '../questlog';
+import { LOG_QUESTS, questsFrom, questStatus, questVisible, startQuest, statusText, turnIn } from '../questlog';
+import { AREA_LIST } from '../areas';
+import { barrierForArea, requirementMet, requirementText } from '../unlocks';
+import { hasMovedIn } from '../npc';
+import { isAreaOpen } from '../state';
 import { skillName, skillProgress } from '../skills';
 import { lanternCounts, SETS, slotPos } from '../lanterns';
 import { give, hearts, talk } from '../npc';
@@ -106,7 +110,7 @@ function questBlock(q: (typeof LOG_QUESTS)[number], say: (line: string) => void)
   } else if (st === 'active') {
     card.append(h('div', 'muted', q.steps), h('div', 'needs', h('span', 'need no', itemIcon(q.want.item, 16), want)));
   } else {
-    card.append(h('div', 'muted', 'You have everything she asked for!'),
+    card.append(h('div', 'muted', 'You have everything they asked for!'),
       btn(h('span', 'inline', 'Hand it over ', price(q.reward)), () => { if (turnIn(q)) say(q.thanks); }, 'small'));
   }
   return card;
@@ -380,7 +384,7 @@ export function openJournal(start = 'quests') {
   let tab = start;
   openPanel('Journal', (body, api) => {
     const t = (id: string, label: string) => tabBtn(label, tab === id, () => { tab = id; api.rerender(); });
-    body.append(h('div', 'tabs', t('quests', 'Quests'), t('skills', 'Skills'), t('collection', 'Collection'), t('friends', 'Friends'), t('lanterns', 'Lanterns')));
+    body.append(h('div', 'tabs', t('quests', 'Quests'), t('skills', 'Skills'), t('collection', 'Collection'), t('friends', 'Friends'), t('island', 'Island'), t('lanterns', 'Lanterns')));
     // the card widens / goes two-column for skills on phones (scenes.css); other tabs keep their usual size
     body.parentElement?.classList.toggle('skills-open', tab === 'skills');
     if (tab === 'skills') {
@@ -399,10 +403,10 @@ export function openJournal(start = 'quests') {
       }
       body.append(list);
     } else if (tab === 'quests') {
-      for (const q of LOG_QUESTS) {
+      for (const q of LOG_QUESTS.filter(questVisible)) {
         const st = questStatus(q);
         body.append(h('div', 'card quest' + (st === 'done' ? ' done' : ''),
-          h('div', 'grow', h('b', '', (st === 'done' ? '✓ ' : '✿ ') + q.title), h('div', 'muted', st === 'available' ? STATUS_TEXT.available : q.steps), h('div', 'muted small', STATUS_TEXT[st])),
+          h('div', 'grow', h('b', '', (st === 'done' ? '✓ ' : '✿ ') + q.title), h('div', 'muted', st === 'available' ? statusText(q, st) : q.steps), h('div', 'muted small', statusText(q, st))),
           h('span', 'tag', 'Errand'), h('span', 'price', coinIcon(14), String(q.reward))));
       }
       for (const q of QUESTS) {
@@ -420,15 +424,41 @@ export function openJournal(start = 'quests') {
         cell.title = n ? ITEMS[id].desc : 'Not found yet';
         grid.append(cell);
       }
-      const hint = { shell: 'Beaches', blossom: 'Ribbon Meadow', moth: 'Dusk & night', button: 'The grove hillside' };
+      const hint = { shell: 'Beaches', blossom: 'Meadows & the grove', moth: 'Dusk & night', button: 'The grove hillside' };
       body.append(grid, h('div', 'muted small', `Where to look — ${Object.entries(hint).map(([k, v]) => `${ITEMS[k].name}: ${v}`).join(' · ')}.`));
       body.append(h('div', 'muted small', `Season (${getClock().season.name}): ${getClock().season.blurb}`));
     } else if (tab === 'friends') {
       for (const v of VILLAGERS) {
+        if (!hasMovedIn(v)) {
+          // not moved in yet: a soft silhouette and a hint where to find them
+          const area = AREA_LIST.find((a) => a.id === v.area)!;
+          const sil = canvasEl(52, 56, (g) => { drawVillager(g, v, 26, 52, 0, 'down', false, 1.2); }, 'silhouette');
+          sil.style.filter = 'brightness(0) opacity(0.22)';
+          body.append(h('div', 'card row-card locked',
+            sil,
+            h('div', 'grow', h('b', '', 'Still napping…'), h('div', 'muted', `Somebody is curled up somewhere in ${area.name}.`), h('div', 'lock-note', `🔒 Open ${area.name} to wake them`)),
+            h('div', 'hearts', '???')));
+          continue;
+        }
         body.append(h('div', 'card row-card',
           canvasEl(52, 56, (g) => { drawVillager(g, v, 26, 52, 0, 'down', false, 1.2); }),
           h('div', 'grow', h('b', '', v.name), h('div', 'muted', `${v.speciesName} · ${v.personality}`), h('div', 'muted small', v.bio)),
           h('div', 'hearts', hearts5(v.id))));
+      }
+    } else if (tab === 'island') {
+      body.append(h('div', 'muted', 'Sugarlily Isle is bigger than it looks. Cute barriers keep the farther corners shut until you are ready.'));
+      for (const a of AREA_LIST) {
+        const open = isAreaOpen(a.id);
+        const b = barrierForArea(a.id);
+        const friend = VILLAGERS.find((v) => v.area === a.id);
+        body.append(h('div', 'card row-card' + (open ? '' : ' locked'),
+          h('div', 'skill-icon', open ? '🌸' : '🔒'),
+          h('div', 'grow',
+            h('b', '', a.name),
+            h('div', 'muted', a.blurb),
+            open
+              ? h('div', 'muted small', a.id === 'town' ? 'Open — always' : `Open ✓${friend ? ` · ${friend.name.split(' ')[0]} lives here` : ''}`)
+              : h('div', 'lock-note', `🔒 ${b!.name}: needs ${requirementText(a.req!)}${requirementMet(a.req!) ? ' — you can open it now!' : ''}`))));
       }
     } else {
       renderLanternTab(body, api);

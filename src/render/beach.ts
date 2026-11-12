@@ -8,7 +8,7 @@ import { tileHeight } from './terrain';
 import { Batch, G } from './util';
 
 /** Hard caps so a bigger island never balloons the instance counts on phones. */
-const CAP = { shell: 48, star: 18, wood: 10, tuft: 36 };
+const CAP = { shell: 110, star: 40, wood: 22, tuft: 80 };
 
 const SHELL_COLS = ['#ffd1e1', '#ffe3ee', '#ffc7a6', '#fff4e6', '#f9c2d9'];
 const STAR_COLS = ['#ff9ec0', '#ffab94', '#ffb38a', '#ff8fb6'];

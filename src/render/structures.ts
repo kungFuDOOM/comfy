@@ -367,6 +367,7 @@ export function createProp(p: Prop): THREE.Group | null {
   const k = new Kit();
   switch (p.type) {
     case 'fence':
+      if (p.v === 1) g.rotation.y = Math.PI / 2; // runs north-south (a border fence)
       k.v.add(G.box(1, 0.1, 0.1), '#ffc3da', { y: 0.45 });
       for (const x of [-0.4, -0.13, 0.13, 0.4]) { k.v.add(G.box(0.12, 0.7, 0.12), '#ffffff', { x, y: 0.35 }); k.v.add(G.ball(0.08, 8), '#ffffff', { x, y: 0.72 }); }
       break;
@@ -419,6 +420,74 @@ export function createProp(p: Prop): THREE.Group | null {
     case 'sign': {
       k.v.add(G.box(0.08, 0.7, 0.08), PALETTE.wood, { y: 0.35 });
       const l = makeLabel(p.text ?? '', 1.5); l.position.set(0, 0.95, 0.05); g.add(l);
+      break;
+    }
+    case 'lighthouse': {
+      // The Hush Bell lighthouse: a plump pink-and-cream tower, a gold gallery, a glowing lantern room and a tiny bell on top.
+      k.v.add(G.cyl(1.35, 1.5, 0.5, 20), '#f3e4ee', { y: 0.25 });
+      k.v.add(G.cyl(1.15, 1.3, 0.3, 20), '#ffd0e2', { y: 0.62 });
+      const bands = ['#ffffff', '#ffc3da', '#ffffff', '#ffc3da', '#ffffff'];
+      bands.forEach((c, i) => k.v.add(G.cyl(0.95 - i * 0.07, 1.05 - i * 0.07, 0.8, 20), c, { y: 1.25 + i * 0.8 }));
+      for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; k.v.add(G.ball(0.1, 8), '#ff8fb6', { x: Math.cos(a) * 0.62, y: 2.2 + (i % 2) * 1.2, z: Math.sin(a) * 0.62 + 0.4, s: [1, 1, 0.3] }); }
+      k.v.add(G.cyl(0.9, 0.7, 0.18, 20), PALETTE.gold, { y: 5.35 });
+      for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; k.v.add(G.cyl(0.03, 0.03, 0.34, 6), '#ffffff', { x: Math.cos(a) * 0.84, y: 5.62, z: Math.sin(a) * 0.84 }); }
+      k.v.add(G.torus(0.84, 0.03, 24), '#ffffff', { y: 5.8, rx: Math.PI / 2 });
+      k.v.add(G.cyl(0.5, 0.55, 0.12, 16), '#f3e4ee', { y: 5.5 });
+      k.v.add(G.cone(0.72, 0.8, 18), '#ff9ec0', { y: 6.75 });
+      k.v.add(G.ball(0.12, 8), PALETTE.gold, { y: 7.22 });
+      k.v.add(G.cyl(0.04, 0.04, 0.3, 6), PALETTE.wood, { y: 7.1 });
+      // door with a heart window
+      k.v.add(G.box(0.46, 0.7, 0.1), '#c9a8e8', { y: 0.95, z: 1.33, s: 1 }).add(G.ball(0.07, 8), '#fff3a8', { x: -0.03, y: 1.12, z: 1.4 }).add(G.ball(0.07, 8), '#fff3a8', { x: 0.03, y: 1.12, z: 1.4 });
+      const lantern = ball(0.4, mat('#fff3c4', PALETTE.lampGlow, 'lamp'), 0, 5.85, 0);
+      lantern.castShadow = false;
+      lantern.scale.set(1, 1.1, 1);
+      g.add(lantern);
+      { const pool = lightPool(6, 6, '#ffe6b0', 0.28); pool.position.y = 0.1; g.add(pool); }
+      { const l = makeLabel('Hush Bell Lighthouse', 3.2); l.position.set(0, 8.0, 0.6); g.add(l); }
+      g.add(contactShadow(3.4, 3.4, 'round', 0.24));
+      break;
+    }
+    case 'picnic': {
+      // Brioche's picnic: a checkered blanket, a basket of pastries, a teapot and a cheetah cushion
+      for (let i = 0; i < 6; i++) for (let j = 0; j < 4; j++) k.v.add(G.box(0.4, 0.025, 0.4), (i + j) % 2 ? '#ffffff' : '#ffb3cf', { x: -1.0 + i * 0.4 + 0.2, y: 0.013, z: -0.6 + j * 0.4 + 0.2 });
+      k.v.add(G.cyl(0.26, 0.22, 0.2, 14), '#e0b27c', { x: -0.55, y: 0.13, z: -0.1 });
+      k.v.add(G.torus(0.25, 0.025, 16, Math.PI), '#c8955f', { x: -0.55, y: 0.24, z: -0.1, ry: 0.4 });
+      for (const [x, z, c] of [[-0.62, -0.08, '#f2b765'], [-0.5, -0.14, '#f7c98c'], [-0.52, -0.02, '#e49c5a']] as [number, number, string][]) k.v.add(G.ball(0.08, 8), c, { x, y: 0.27, z, s: [1.3, 0.8, 0.9] });
+      k.v.add(G.ball(0.15, 12), '#ffffff', { x: 0.35, y: 0.18, z: 0.1, s: [1, 0.85, 1] });
+      k.v.add(G.cyl(0.07, 0.1, 0.1, 10), '#ffffff', { x: 0.35, y: 0.33, z: 0.1 });
+      k.v.add(G.ball(0.04, 8), '#ff8fb6', { x: 0.35, y: 0.4, z: 0.1 });
+      k.v.add(G.cyl(0.02, 0.02, 0.14, 6), '#ffffff', { x: 0.5, y: 0.2, z: 0.1, rz: 1 });
+      k.pink.add(G.cyl(0.2, 0.2, 0.1, 14), '#ffffff', { x: 0.7, y: 0.07, z: -0.3, uv: [1.2, 0.4] });
+      k.v.add(G.cyl(0.04, 0.04, 1.3, 6), PALETTE.wood, { x: 1.15, y: 0.65, z: -0.6 });
+      for (let i = 0; i < 6; i++) k.v.add(new THREE.ConeGeometry(0.65, 0.3, 3, 1, true, (i / 6) * Math.PI * 2, Math.PI / 3), i % 2 ? '#ffb3cf' : '#ffffff', { x: 1.15, y: 1.4, z: -0.6 });
+      g.add(contactShadow(2.4, 1.8, 'rect', 0.16));
+      break;
+    }
+    case 'easel': {
+      // Oolie's pressed-flower easel: a wooden A-frame holding a framed pressed bloom
+      for (const sx of [-1, 1]) k.v.add(G.cyl(0.03, 0.03, 1.2, 6), PALETTE.wood, { x: sx * 0.3, y: 0.6, z: 0.0, rz: -sx * 0.18 });
+      k.v.add(G.cyl(0.03, 0.03, 1.1, 6), PALETTE.wood, { y: 0.55, z: -0.32, rx: 0.3 });
+      k.v.add(G.box(0.62, 0.62, 0.05), '#fff4e6', { y: 0.82, z: 0.04 });
+      k.v.add(G.box(0.7, 0.07, 0.07), '#e6d4ff', { y: 1.17, z: 0.05 }).add(G.box(0.7, 0.07, 0.07), '#e6d4ff', { y: 0.47, z: 0.05 });
+      k.v.add(G.box(0.07, 0.7, 0.07), '#e6d4ff', { x: -0.35, y: 0.82, z: 0.05 }).add(G.box(0.07, 0.7, 0.07), '#e6d4ff', { x: 0.35, y: 0.82, z: 0.05 });
+      for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; k.v.add(G.ball(0.09, 8), i % 2 ? '#ff9ec0' : '#ffc9dc', { x: Math.cos(a) * 0.12, y: 0.86 + Math.sin(a) * 0.12, z: 0.08, s: [1, 1, 0.3] }); }
+      k.v.add(G.ball(0.06, 8), '#fff3a8', { y: 0.86, z: 0.1, s: [1, 1, 0.4] });
+      k.v.add(G.cyl(0.01, 0.01, 0.35, 5), '#7fcf8e', { y: 0.62, z: 0.08 });
+      g.add(contactShadow(1.0, 1.0));
+      break;
+    }
+    case 'cakestand': {
+      // Tuppi's cake stand: two pink tiers with swirls of frosting and a cherry
+      k.v.add(G.cyl(0.38, 0.42, 0.06, 18), '#ffffff', { y: 0.03 });
+      k.v.add(G.cyl(0.05, 0.05, 0.5, 8), '#ffffff', { y: 0.31 });
+      k.v.add(G.cyl(0.4, 0.4, 0.05, 18), '#ffffff', { y: 0.58 });
+      k.v.add(G.cyl(0.32, 0.32, 0.22, 18), '#ffc9dc', { y: 0.72 });
+      k.v.add(G.cyl(0.33, 0.33, 0.04, 18), '#ffffff', { y: 0.84 });
+      k.v.add(G.cyl(0.22, 0.22, 0.2, 18), '#ffb3cf', { y: 0.96 });
+      k.v.add(G.ball(0.16, 12), '#ffffff', { y: 1.1, s: [1, 0.7, 1] });
+      k.v.add(G.ball(0.07, 8), '#ff4f7e', { y: 1.2 });
+      for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; k.v.add(G.ball(0.045, 6), '#ffffff', { x: Math.cos(a) * 0.3, y: 0.83, z: Math.sin(a) * 0.3 }); }
+      g.add(contactShadow(1.0, 1.0));
       break;
     }
     default: return null;

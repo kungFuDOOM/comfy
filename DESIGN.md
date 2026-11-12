@@ -6,15 +6,16 @@
 
 Sugarlily Isle was once the sweetest stop in the Pastel Sea. Then the **Long Frost** came and wouldn't leave, and the clockwork heart of the island, the **Hush Bell** in the lighthouse, wound down. Shutters stayed closed, flowers folded up, and the animals curled into their burrows for a long snowy nap. You arrive by balloon in **Cocoa Leaf** season (autumn, Sep–Nov). Waking the island means relighting its warmth one small kindness at a time (brewing, gifting, decorating, collecting, releasing lanterns) until the Hush Bell rings again.
 
-**The five friends of Hushbell**
+**The friends of Hushbell**
 
-- **Brioche**, a tubby capybara barista who believes every problem can be solved with a warm pastry.
+- **Brioche Crumbleton**, a tubby capybara barista who believes every problem can be solved with a warm pastry. *(Moves in at Sprinkle Meadow.)*
 - **Dottie Spotwhisk**, a cheetah-spotted hamster who runs the boutique and has strong opinions about hats. *(Playable slot: id `zuzu`.)*
-- **Oolie**, a shy pastel moth who collects pressed flowers and whispers her favorite ones.
-- **Tuppi**, a blush-cheeked axolotl baker who dreams in frosting and giggles when it wiggles.
-- **Nimbus**, a fog-puff bunny who only appears at dusk and loves to hear about your day. *(Playable slot: id `nimbus`, keeper of the grove.)*
+- **Oolie Wisperwing**, a shy pastel moth who collects pressed flowers and whispers her favorite ones. *(Moves in at Blossom Grove.)*
+- **Tuppi Frostwiggle**, a blush-cheeked axolotl baker who dreams in frosting and giggles when it wiggles. *(Moves in at Lilypad Pond.)*
+- **Nimbus**, a fog-puff bunny who only appears at dusk and loves to hear about your day. *(Playable slot: id `nimbus`, keeper of the Afterglow Grove, which stays in town.)*
+- **Marlo Seaglass**, a new friend: a sugar-dusted seal who keeps the lighthouse and hums to the sleeping Hush Bell. *(Moves in at the Hush Bell Overlook.)*
 
-Brioche, Oolie and Tuppi are lore-only for now (no walkable models yet). **Mimsy Brindlewick** hosts, and **Bramble Tumbledown** tends the garden. Save ids stay stable across renames.
+Brioche, Oolie, Tuppi and Marlo are real 3D villagers with journal portraits, dialogue, gifts and a small intro quest each. They are absent (shown as “Still napping…” in the Journal) until their area opens, then they move in at their home spot. **Mimsy Brindlewick** hosts, and **Bramble Tumbledown** tends the garden. Save ids stay stable across renames.
 
 A cozy, original island village life-sim for the browser. You arrive on **Sugarlily Isle**, a pink-and-pastel island
 with a café, a boutique, a little yard of your own, a tiny garden, shorelines to comb, and a hillside where lanterns gather.
@@ -148,10 +149,26 @@ v0.1 has a gentle, open-ended ladder instead of levels:
 Skills *wrap* the existing cozy loops; they never replace them. Gardening, gifting, brewing, decorating and lanterns stay equal-weight ways to play. Everything here is original to Hushbell — there is **no combat, no stamina, no energy bar and nothing to lose**.
 
 - **Six skills:** Foraging, Fishing, Gardening, Baking, Brewing, Crafting (level cap 25, XP to next level = 40 × level^1.6). Total XP is saved; the level is derived. The Journal's *Skills* tab (or `K`, or the HUD "✧ Skills" button) shows each level and XP bar.
-- **Gathering nodes (~36):** puffberry/lanternberry bushes and ribbon/moonpetal patches in Ribbon Meadow, shell and rosepearl beds on the beaches, coffee and starfreckle shrubs in the grove south-east of the square, and fishing ripples along Dewdrop Shore and the west coast. Gather with the interact button; a spot rests for a while (timestamps persist) and looks bare until it blooms back. Higher tiers need a skill level; the deeper fishing spots also need the Dew-line Rod.
+- **Gathering nodes (~90):** placed by the map generator on valid ground from `NODE_SPECS` — starter tier in and near town (Ribbon Meadow, sugarwood stumps, the south shore), higher tiers (lanternberries, moonpetals, starfreckle shrubs, rosepearl beds, deeper fish) in the farther areas. Gather with the interact button; a spot rests for a while (timestamps persist) and looks bare until it blooms back. Higher tiers need a skill level; the deeper fishing spots also need the Dew-line Rod.
 - **Softkeep Chest:** a 48-slot chest in the yard by home. The bag holds 24 stacks; when it is full a new kind of item goes to the chest with a gentle toast, so nothing is ever lost. Tools stay in the bag.
 - **Recipes with levels:** the café counter (*Brew*), café oven (*Bake*) and boutique worktable (*Craft*) share one short timer. Locked recipes stay visible, greyed, with the skill and level they need — e.g. Lanternberry Latte (Brewing 5), Cloud Cake (Baking 8), Moonpetal Pin (Crafting 8).
-- **Mimsy's Soft Errand:** the starter quest. Mimsy asks for 3 puffberries from the meadow bushes and rewards 60 pips and the Dew-line Rod, teaching gathering and opening up fishing.
+- **Mimsy's Soft Errand:** the starter quest. Mimsy asks for 3 puffberries from the bushes in Ribbon Meadow (next to town) and rewards 60 pips and the Dew-line Rod, teaching gathering and opening up fishing.
+
+## 7c. A bigger island (gated areas)
+
+The island is now 96×80 tiles (~2.7× the original land). Only **Sugarlily Town** is open at the start: café, boutique, home, yard, garden, the square, Ribbon Meadow (starter bushes and sugarwood stumps), the Afterglow Grove hill and a long south shore with starter-tier shells and fish. Every other area is walled off by a cute barrier (solid tiles; examine it with the interact button) and opens for good once its requirement is met. Unlocks persist in `unlocked` in the save.
+
+| Area | Barrier | Opens with | Friend who moves in |
+|---|---|---|---|
+| **Blossom Grove** (dense pink forest, moonpetals, lanternberries) | Fallen blossom logs (west road) | Foraging level 3 | Oolie (moth) |
+| **Lilypad Pond** (freshwater pond fishing) | Broken bridge over the river (north of the square) | Quest: Mimsy's *Mend the Bridge* (craft 3 Sugarwood Planks, 2 Sugarwood Twigs each) | Tuppi (axolotl) |
+| **Sprinkle Meadow** (wide flower meadow, picnic) | Pink locked gate (east road) | Pay 120 pips | Brioche (capybara) |
+| **Hush Bell Overlook** (cliff, lighthouse) | Soft fog veil past the pond | Brewing level 3 | Marlo (seal) |
+| **Pearl Shore** (long far beach, rosepearl shells, moonlit fish) | Seaside gate (south-east road) | Pay 250 pips | none (scenery and rare finds) |
+
+- Code: `areas.ts` (area and barrier data), `unlocks.ts` (requirements, messages, `unlockArea`), `world.ts` (the map generator: regions, river, pond, tree/fence walls, node placement from `NODE_SPECS` in `data.ts`), `render/barriers.ts` (barrier models). `npc.ts` `syncNpcs()` keeps the cast in line with what is unlocked.
+- Celebration hooks for a polish pass: `onAreaUnlocked(id)` and `onFriendArrived(id)` in `unlocks.ts`, plus the open/close switch in `render/barriers.ts`.
+- Saves from the 60×44 island are migrated on load: the old map sits inside the new one shifted by `TOWN_OFFSET`, and positions, decor and garden plots move with it. A player who lands somewhere blocked or locked is placed back in the square.
 
 ## 8. Roadmap beyond v0.1
 

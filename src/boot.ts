@@ -7,6 +7,8 @@ import { hasSave, newGame } from './save';
 import { fadeTo, setFade } from './ui/fade';
 import { startMainMenu, stopMainMenu } from './ui/mainMenu';
 import { openConfirmNewGame } from './ui/menuPanels';
+import { syncNpcs } from './npc';
+import { syncUnlocks } from './unlocks';
 
 let leaving = false;
 async function leave(next: () => void) {
@@ -38,7 +40,7 @@ export function bootWithMenu() {
   startMainMenu({
     onContinue: () => leave(() => { startGame(); void fadeTo(0, 600); }),
     onNewGame: () => {
-      const go = () => leave(() => { newGame(); startIntroCutscene(startGame); });
+      const go = () => leave(() => { newGame(); syncUnlocks(); syncNpcs(); startIntroCutscene(startGame); });
       if (hasSave()) openConfirmNewGame(go); else go();
     },
   });
