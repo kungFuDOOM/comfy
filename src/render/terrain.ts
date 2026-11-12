@@ -7,6 +7,7 @@ import { MAP_H, MAP_W, T, terrainAt } from '../world';
 import { makeToon, PALETTE, toon } from './materials';
 import { isSmoothTile, sampleField, shoreField, shoreHeight } from './shore';
 import { createWater } from './water';
+import { createTufts } from './tufts';
 
 const HEIGHT: Record<number, number> = { [T.Water]: -0.4, [T.Sand]: 0, [T.Grass]: 0.05, [T.Path]: 0.08, [T.Hill]: 0.35, [T.Soil]: 0.04, [T.Lawn]: 0.07, [T.Plaza]: 0.1, [T.Bridge]: 0.12 };
 /** Ground height at a tile's centre. Beach tiles follow the smooth shore surface (dry sand ~0, dipping to the sea). */
@@ -38,6 +39,110 @@ function tileColor(t: number, x: number, y: number, s: Season): string {
   }
 }
 
+
+// ---- inland ground shader: soft painterly grass, cobbled paths, pink-cream plaza (same noise language as the sand) ----
+const NOISE_GLSL = /* glsl */ `
+float gh21(vec2 q) { q = fract(q * vec2(123.34, 456.21)); q += dot(q, q + 45.32); return fract(q.x * q.y); }
+float gNoise(vec2 p) {
+  vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(gh21(i), gh21(i + vec2(1.0, 0.0)), u.x), mix(gh21(i + vec2(0.0, 1.0)), gh21(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+// soft tonal drift + a hint of blade streaks, shared by every patch of grass (inland and the shore's border)
+vec3 grassVar(vec3 c, vec2 gp) {
+  float nBig = gNoise(gp * 0.33), nMid = gNoise(gp * 1.7 + 7.0), nFine = gNoise(gp * 11.0);
+  float streak = gNoise(vec2(gp.x * 26.0, gp.y * 7.0) + 3.0);
+  c *= 1.0 + (nBig - 0.5) * 0.12 + (nMid - 0.5) * 0.05 + (nFine - 0.5) * 0.035 + (streak - 0.5) * 0.03;
+  c = mix(c, c * vec3(1.05, 1.02, 0.88), smoothstep(0.35, 0.8, nBig));   // sun-warmed patches
+  c = mix(c, c * vec3(0.93, 1.0, 1.04), smoothstep(0.55, 0.15, nBig) * 0.7); // cooler, bluer hollows
+  return c;
+}
+`;
+const GROUND_VERT = /* glsl */ `
+varying vec2 vGP;
+varying float vTop;
+`;
+const GROUND_FRAG = /* glsl */ `
+uniform sampler2D uTiles;
+uniform vec2 uMap;
+varying vec2 vGP;
+varying float vTop;
+bool organicT(float t) { return t > 0.5 && (t < 1.5 || (t > 1.5 && t < 2.5) || (t > 3.5 && t < 6.5)); }
+vec4 tileAt(vec2 tc) { return texture2D(uTiles, (tc + 0.5) / uMap); }
+float tType(vec4 v) { return floor(v.a * 255.0 / 16.0 + 0.5); }
+
+vec3 pathCol(vec3 base, vec2 gp) {
+  // cobbles in offset rows, ~3 per tile: rounded stones, soft bevel, warm mortar
+  vec2 cp = gp * 3.0; float row = floor(cp.y);
+  cp.x += row * 0.5 + gh21(vec2(row, 3.0)) * 0.6;
+  vec2 id = floor(cp), q = fract(cp) - 0.5;
+  float rr = gh21(id + 17.0);
+  float sd = length(max(abs(q) - vec2(0.33), 0.0)) - 0.11;
+  float stone = 1.0 - smoothstep(-0.02, 0.035, sd);
+  vec3 st = base * (0.95 + 0.09 * rr) * mix(vec3(1.0), vec3(1.03, 0.97, 0.93), rr);
+  st *= 1.0 - 0.07 * smoothstep(-0.14, 0.0, sd);               // soft rim
+  st += 0.045 * (1.0 - smoothstep(0.0, 0.5, length(q - vec2(-0.12, 0.12)))); // pillowy highlight
+  st += (gNoise(gp * 14.0) - 0.5) * 0.03;
+  vec3 mortar = base * vec3(0.84, 0.76, 0.76);
+  return mix(mortar, st, stone);
+}
+vec3 plazaCol(vec2 gp) {
+  // half-tile rounded pink / cream tiles with pale grout and a little dot on the pink ones
+  vec2 cp = gp * 2.0, id = floor(cp), q = fract(cp) - 0.5;
+  float par = mod(id.x + id.y, 2.0);
+  vec3 pink = vec3(0.98, 0.80, 0.87), cream = vec3(1.0, 0.94, 0.93), grout = vec3(1.0, 0.89, 0.9);
+  vec3 c = mix(pink, cream, par);
+  c *= 0.985 + 0.03 * gh21(id);
+  float sd = length(max(abs(q) - vec2(0.4), 0.0)) - 0.06;
+  float tile = 1.0 - smoothstep(-0.015, 0.03, sd);
+  c *= 1.0 - 0.04 * smoothstep(-0.1, 0.0, sd);
+  c += 0.035 * (1.0 - smoothstep(0.0, 0.55, length(q + vec2(0.1, -0.1))));
+  c = mix(c, c * vec3(1.0, 0.97, 0.97) + 0.03, (1.0 - par) * (1.0 - smoothstep(0.07, 0.1, length(q))) * 0.6); // dot
+  return mix(grout, c, tile);
+}
+`;
+
+function patchGround(mat: THREE.MeshToonMaterial, uniforms: Record<string, THREE.IUniform>) {
+  const base = mat.onBeforeCompile;
+  mat.onBeforeCompile = (shader, renderer) => {
+    base.call(mat, shader, renderer);
+    Object.assign(shader.uniforms, uniforms);
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\n' + GROUND_VERT)
+      .replace('#include <project_vertex>', `#include <project_vertex>
+        { vec4 gw = modelMatrix * instanceMatrix * vec4(transformed, 1.0); vGP = gw.xz; vTop = step(0.5, normal.y); }`);
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\n' + NOISE_GLSL + GROUND_FRAG)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        if (vTop > 0.5) {
+          vec2 gp = vGP, tc = floor(gp), f = gp - tc;
+          vec4 me = tileAt(tc);
+          float ty = tType(me);
+          vec3 col = me.rgb;
+          if (ty > 5.5 && ty < 6.5) col = grassVar(col, gp) ;                       // lawn
+          else if (ty > 6.5) col = plazaCol(gp);
+          else if (ty > 2.5 && ty < 3.5) col = pathCol(col, gp);
+          else if (ty > 1.5 && ty < 2.5 || (ty > 3.5 && ty < 4.5)) col = grassVar(col, gp);
+          else if (ty > 0.5 && ty < 1.5) col *= 0.97 + 0.06 * gNoise(gp * 24.0);    // sand
+          else if (ty > 4.5 && ty < 5.5) col *= 0.96 + 0.08 * gNoise(vec2(gp.x * 30.0, gp.y * 5.0)); // tilled soil
+          // soft painterly edges: blend toward each differing neighbour across a short wobbly band
+          float wob = (gNoise(gp * 3.1) - 0.5) * 0.14;
+          for (int i = 0; i < 4; i++) {
+            vec2 d = i == 0 ? vec2(1.0, 0.0) : i == 1 ? vec2(-1.0, 0.0) : i == 2 ? vec2(0.0, 1.0) : vec2(0.0, -1.0);
+            float e = i == 0 ? 1.0 - f.x : i == 1 ? f.x : i == 2 ? 1.0 - f.y : f.y;
+            vec4 nb = tileAt(tc + d);
+            float nt = tType(nb);
+            if (nt < 0.5 || abs(nt - ty) < 0.5) continue;
+            float w = organicT(ty) && organicT(nt) ? 0.5 : 0.13;
+            vec3 ncol = nt > 6.5 ? vec3(0.99, 0.88, 0.91) : nb.rgb;
+            if (nt > 5.5 && nt < 6.5) ncol = grassVar(ncol, gp);
+            else if (nt > 1.5 && nt < 2.5) ncol = grassVar(ncol, gp);
+            col = mix(col, ncol, (1.0 - smoothstep(0.0, w, e + wob)) * 0.5);
+          }
+          diffuseColor.rgb = col;
+        }`);
+  };
+}
+
 export interface Terrain {
   group: THREE.Group;
   setSeason(s: Season): void;
@@ -53,7 +158,14 @@ export function createTerrain(): Terrain {
     if (t !== T.Water && t !== T.Bridge && !isSmoothTile(x, y)) tiles.push({ x, y, t });
   }
   const geo = new THREE.BoxGeometry(1, 1, 1);
-  const inst = new THREE.InstancedMesh(geo, makeToon('#ffffff', { ground: true }), Math.max(1, tiles.length));
+  // per-tile colour (rgb) + terrain id (alpha) so the ground shader can pattern each tile and blend across tile edges
+  const tileData = new Uint8Array(MAP_W * MAP_H * 4);
+  const tileTex = new THREE.DataTexture(tileData, MAP_W, MAP_H, THREE.RGBAFormat);
+  tileTex.magFilter = tileTex.minFilter = THREE.NearestFilter;
+  tileTex.generateMipmaps = false;
+  const groundMat = makeToon('#ffffff', { ground: true });
+  patchGround(groundMat, { uTiles: { value: tileTex }, uMap: { value: new THREE.Vector2(MAP_W, MAP_H) } });
+  const inst = new THREE.InstancedMesh(geo, groundMat, Math.max(1, tiles.length));
   inst.receiveShadow = true;
   const m4 = new THREE.Matrix4();
   tiles.forEach((tl, i) => {
@@ -74,17 +186,26 @@ export function createTerrain(): Terrain {
   bed.rotation.x = -Math.PI / 2; bed.position.set(MAP_W / 2, -0.9, MAP_H / 2);
   group.add(bed);
 
+  const tufts = createTufts();
+  group.add(tufts.group);
+
   const col = new THREE.Color();
   return {
     group,
     setSeason(s) {
-      tiles.forEach((tl, i) => inst.setColorAt(i, col.set(tileColor(tl.t, tl.x, tl.y, s))));
+      tiles.forEach((tl, i) => {
+        inst.setColorAt(i, col.set(tileColor(tl.t, tl.x, tl.y, s)));
+        tileData.set([col.r * 255, col.g * 255, col.b * 255, tl.t * 16], (tl.y * MAP_W + tl.x) * 4);
+      });
       if (inst.instanceColor) inst.instanceColor.needsUpdate = true;
+      tileTex.needsUpdate = true;
+      tufts.setSeason(s);
       shore.setSeason((x, y) => tileColor(T.Grass, x, y, s));
     },
     update(t) {
       water.update(t);
       shore.update(t);
+      tufts.update(t);
     },
   };
 }
@@ -170,7 +291,7 @@ function createShoreMesh() {
       .replace('#include <common>', '#include <common>\n' + SHORE_VERT)
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvShore = aShore; vInland = aInland; vGround = position.xz;');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\n' + SHORE_FRAG)
+      .replace('#include <common>', '#include <common>\n' + NOISE_GLSL + SHORE_FRAG)
       .replace('#include <color_fragment>', `#include <color_fragment>
         vec2 gp = vGround;
         float nBig = sNoise(gp * 0.55), nMid = sNoise(gp * 2.3), nFine = sNoise(gp * 9.0), grain = sh21(floor(gp * 28.0));
@@ -186,7 +307,7 @@ function createShoreMesh() {
         // wet-sand sheen at the waterline that brightens and fades like the wash going out
         float wetBand = (1.0 - smoothstep(0.0, 0.9, s)) * smoothstep(-0.15, 0.08, vShore);
         sand += uSheen * wetBand * (0.6 + 0.4 * nFine);
-        vec3 grass = texture2D(uTileCol, (floor(gp) + 0.5) / uMapSize).rgb;
+        vec3 grass = grassVar(texture2D(uTileCol, (floor(gp) + 0.5) / uMapSize).rgb, gp);
         float g = smoothstep(-0.45, 0.6, vInland + (nBig - 0.5) * 0.45 + (nFine - 0.5) * 0.12);
         diffuseColor.rgb *= mix(sand, grass, g);`);
   };
