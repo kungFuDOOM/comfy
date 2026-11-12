@@ -21,6 +21,7 @@ import { state } from './state';
 import { getClock } from './time';
 import { isPanelOpen } from './ui/dom';
 import { buildHud, setHint, tickHud } from './ui/hud';
+import { openMap } from './ui/mapPanel';
 import { openBag, openBoutique, openCafe, openChest, openDialogue, openHelp, openJournal, openMarket } from './ui/panels';
 import { openPause } from './ui/menuPanels';
 import { barrierHint, barrierNear, syncUnlocks, useBarrier } from './unlocks';
@@ -239,10 +240,10 @@ export function startGame() {
   world3d = sharedWorld3D(canvas);
   world3d.resize();
   window.addEventListener('resize', () => world3d.resize());
-  buildHud({ skills: () => !isPanelOpen() && openJournal('skills'), journal: (tab) => !isPanelOpen() && openJournal(tab), bag: () => !isPanelOpen() && openBag(), help: () => !isPanelOpen() && openHelp() });
+  buildHud({ skills: () => !isPanelOpen() && openJournal('skills'), journal: (tab) => !isPanelOpen() && openJournal(tab), bag: () => !isPanelOpen() && openBag(), help: () => !isPanelOpen() && openHelp(), map: () => !isPanelOpen() && openMap() });
   initInput(canvas, {
     interact, tool: useTool, cancel: cancelPath, pause: openPause,
-    bag: openBag, journal: openJournal, help: openHelp,
+    bag: openBag, journal: openJournal, help: openHelp, map: openMap,
     hotbarStep: (d) => selectSlot(state.sel + d), hotbarSet: selectSlot,
     click: handleClick, camReset: () => world3d.resetCamera(),
   });
