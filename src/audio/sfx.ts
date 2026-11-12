@@ -124,6 +124,20 @@ export const sfx = {
     const t = g.ctx.currentTime;
     [72, 76, 79, 84, 88].forEach((m, i) => tone(g, t + i * 0.08, M(m), 0.42, { type: 'triangle', peak: 0.15 }));
   },
+  /** Gathering something: a short, soft two-note pluck. */
+  harvest() {
+    const g = live(); if (!g || !gate('harvest', 80)) return;
+    const t = g.ctx.currentTime;
+    tone(g, t, M(79), 0.14, { type: 'triangle', peak: 0.16 });
+    tone(g, t + 0.07, M(86), 0.22, { type: 'sine', peak: 0.16 });
+  },
+  /** A skill level-up: a little rising sparkle run. */
+  levelUp() {
+    const g = live(); if (!g) return;
+    const t = g.ctx.currentTime;
+    [76, 80, 83, 88, 92, 95].forEach((m, i) => tone(g, t + i * 0.07, M(m), 0.4, { type: 'triangle', peak: 0.14 }));
+    tone(g, t + 0.42, M(100), 0.5, { type: 'sine', peak: 0.12 });
+  },
   /** One footstep. `alt` alternates feet; run = quicker, snappier. */
   step(surface: FootSurface = 'grass', alt = false, run = false) {
     const g = live(); if (!g || !gate('step', 90)) return;

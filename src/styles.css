@@ -235,3 +235,12 @@ body.input-touch .help-menu-row { display: none; }
 .panel-body > .row.end { order: 20; }
 /* the focus ring makes controls position: relative; the ✕ must stay pinned to its corner */
 .panel .btn.close.pf, .panel .btn.close:focus-visible { position: absolute; }
+
+/* soft skills */
+.card.locked { opacity: 0.6; filter: grayscale(0.8); }
+.lock-note { font-size: 12px; font-weight: 700; color: var(--pink-ink); margin-top: 2px; }
+.bagcell.empty { background: #fff8fb; border-style: dashed; cursor: default; opacity: 0.6; pointer-events: none; }
+.skill-card { display: flex; align-items: center; gap: 12px; }
+.skill-icon { font-size: 28px; width: 44px; height: 44px; display: grid; place-items: center; background: #fff0f6; border-radius: 14px; flex: none; }
+.quest-offer { margin: 8px 0; border-color: #ff9ec0; }
+@media (max-width: 640px) { .hud-quick { flex-wrap: wrap; justify-content: flex-end; max-width: 62vw; } .hud-quick .btn kbd, .hud-quick .btn .glyph { display: none; } }

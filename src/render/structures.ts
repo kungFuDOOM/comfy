@@ -335,6 +335,18 @@ export function createStation(s: Station): THREE.Group {
       const l = makeLabel('Tuppence Cart', 2.2); l.position.set(0, 2.5, 0.4); g.add(l);
       break;
     }
+    case 'chest': {
+      // Softkeep Chest: a plump wooden chest with a pink lid, gold clasp and a little bow
+      k.v.add(G.box(0.9, 0.45, 0.6), '#d9a77a', { y: 0.225 });
+      k.v.add(G.box(0.94, 0.08, 0.64), PALETTE.gold, { y: 0.14 });
+      k.v.add(G.cyl(0.3, 0.3, 0.94, 14), '#ffb3cf', { y: 0.5, rz: Math.PI / 2, s: [1, 1, 1.0] });
+      k.v.add(G.box(0.14, 0.16, 0.05), PALETTE.gold, { y: 0.46, z: 0.32 });
+      k.v.add(G.ball(0.07, 8), '#ffffff', { x: -0.06, y: 0.82, z: 0.0 }).add(G.ball(0.07, 8), '#ffffff', { x: 0.06, y: 0.82, z: 0.0 });
+      k.v.add(G.ball(0.05, 8), '#ff8fb6', { y: 0.81, z: 0.0 });
+      const l = makeLabel('Softkeep Chest', 1.9); l.position.set(0, 1.55, 0.2); g.add(l);
+      g.add(contactShadow(1.5, 1.0, 'rect', 0.22));
+      break;
+    }
     case 'grove': {
       k.v.add(G.cyl(0.8, 0.9, 0.5), '#e8dcf5', { y: 0.25 });
       k.v.add(G.cyl(0.45, 0.55, 0.6), '#f3ecff', { y: 0.8 });

@@ -1,5 +1,6 @@
 // The island: tile map, areas, stations, walkability. Rendering lives in src/render/.
 import { hash } from './art/draw';
+import { NODES, type NodeDef } from './data';
 
 export const TS = 32;
 export const MAP_W = 60;
@@ -27,14 +28,18 @@ export const inYard = (x: number, y: number) => inRect(AREAS.yard, x, y);
 export const isPlotTile = (x: number, y: number) => inRect(AREAS.garden, x, y);
 export const inMeadow = (x: number, y: number) => inRect(AREAS.meadow, x, y) && terrainAt(x, y) === T.Grass;
 
-export type StationId = 'cafe' | 'boutique' | 'market' | 'grove';
+export type StationId = 'cafe' | 'boutique' | 'market' | 'grove' | 'chest';
 export interface Station { id: StationId; x: number; y: number; w: number; label: string; prompt: string }
 export const stations: Station[] = [
   { id: 'cafe', x: 23, y: 13, w: 1, label: 'Puddle & Pip Café', prompt: 'Brew & shop the pantry' },
   { id: 'boutique', x: 36, y: 13, w: 1, label: 'Spot & Bow Boutique', prompt: 'Browse outfits & decor' },
   { id: 'market', x: 29, y: 14, w: 2, label: 'Tuppence Cart', prompt: 'Buy seeds, sell goods' },
   { id: 'grove', x: 45, y: 9, w: 1, label: 'Afterglow Grove', prompt: 'View the lantern grove' },
+  { id: 'chest', x: 16, y: 27, w: 1, label: 'Softkeep Chest', prompt: 'Keep your things safe' },
 ];
+const nodeIdx = (n: NodeDef) => idx(n.x, n.y);
+/** Gathering nodes on a walkable tile (bushes, shrubs, patches) block it; shell beds are flat and fish spots sit in the water. */
+export const nodeBlocks = (n: NodeDef) => n.kind !== 'shell' && n.kind !== 'fish';
 export const GROVE = { x: 45 * TS + TS / 2, y: 9 * TS + TS / 2 };
 
 // ---- Objects ----
@@ -108,6 +113,8 @@ export function buildWorld() {
   for (const b of buildings) for (let y = b.y0; y <= b.y1; y++) for (let x = b.x0; x <= b.x1; x++) { block(x, y); }
   // stations + props
   for (const s of stations) for (let i = 0; i < s.w; i++) block(s.x + i, s.y);
+  // reserve node tiles before flowers and trees are scattered so nothing grows on top of them
+  for (const nd of NODES) { if (nodeBlocks(nd)) block(nd.x, nd.y); else reserved[nodeIdx(nd)] = 1; }
   // station models are wider than their tile: café counter + chalkboard, boutique rail, grove plinth
   for (const [x, y] of [[22, 13], [24, 13], [25, 13], [35, 13], [37, 13], [44, 9], [46, 9]]) block(x, y);
   for (const p of [[21, 14], [26, 14]]) { props.push({ type: 'table', x: p[0], y: p[1] }); block(p[0], p[1]); }
