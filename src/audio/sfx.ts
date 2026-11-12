@@ -138,6 +138,15 @@ export const sfx = {
     tone(g, t + 0.82, M(103), 0.6, { type: 'sine', peak: 0.04 });
     tone(g, t + 0.95, M(107), 0.55, { type: 'sine', peak: 0.03 });
   },
+  /** A region is complete: a bouncy party-horn run, a bright chord and a sprinkle of bells. */
+  partyHat() {
+    const g = live(); if (!g || !gate('partyHat', 600)) return;
+    const t = g.ctx.currentTime + 0.05;
+    puff(g, t, 1400, 0.4, 0.12, 0.2);
+    [72, 76, 79, 84, 79, 84, 88].forEach((m, i) => tone(g, t + i * 0.09, M(m), 0.26, { type: 'triangle', peak: 0.14 }));
+    [76, 79, 84, 88].forEach((m) => tone(g, t + 0.7, M(m), 1.0, { type: 'sine', peak: 0.08, attack: 0.012 }));
+    [100, 103, 107, 112].forEach((m, i) => tone(g, t + 0.8 + i * 0.07, M(m), 0.32, { type: 'sine', peak: 0.05 }));
+  },
   /** A friend moves in: a sing-song "hel-lo!" with a warm chord and a sprinkle on top. `delay` in seconds. */
   welcome(delay = 0) {
     const g = live(); if (!g || !gate('welcome', 300)) return;

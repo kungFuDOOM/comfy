@@ -24,7 +24,7 @@ with a café, a boutique, a little yard of your own, a tiny garden, shorelines t
 
 1. **Cute & cozy first.** Soft shapes, rounded UI, gentle sounds-of-silence pacing. No fail states, no timers that punish, no stamina bar.
 2. **Original.** Every name, character, item, place and drawing is invented for this game. All art is generated in code (canvas, CSS), including the cheetah print.
-3. **Pink, pastel and cheetah.** Palette is blush, bubblegum, cream, lavender and mint. Cheetah print (drawn procedurally in two colorways) shows up on outfits, the boutique, rugs, chairs, mugs and lanterns.
+3. **Pink, pastel and cheetah.** Palette is blush, bubblegum, cream, lavender and mint. Cheetah print (drawn procedurally in two colorways) is an occasional accent: a handful of wardrobe pieces, the boutique, rugs, chairs, mugs and lanterns. Most clothes use other prints (gingham, polka, stars, strawberries, lace…).
 4. **Coffee + shopping + friends.** The heart of the game is brewing drinks, dressing up, and being kind to neighbors.
 5. **Not a farming game.** Gardening is one small side loop with a four-by-three plot. Every other loop gets equal design weight.
 6. **Everything feeds everything.** Loops are connected by pips (currency), items, friendships and the Afterglow Lanterns hook.
@@ -34,7 +34,7 @@ with a café, a boutique, a little yard of your own, a tiny garden, shorelines t
 | Loop | What you do | What it feeds |
 | --- | --- | --- |
 | **Café** | Buy ingredients, brew drinks (Pink Puff Latte, Honey Cloud Cappuccino, Spotted Mocha), serve them to villagers | Friendship, Steam Lanterns, quests, pips (selling) |
-| **Boutique & outfits** | Try on for free, buy and wear pink and cheetah-print outfits; buy decor | Spotted Lanterns, pips sink, identity |
+| **Boutique & outfits** | Try on for free; mix and match 400+ pieces across hat / top / bottom / dress / shoes / bag / face slots in 29 styles; the boutique restocks 10–16 pieces daily; buy decor | Spotted Lanterns, pips sink, identity |
 | **Decorating** | Place/pick up decor in your fenced yard (a 10×4 lawn) | Hearth Lanterns, self-expression |
 | **Friends & gifting** | Talk once a day, give gifts, serve drinks; each villager has liked items | Hearts, new dialogue tiers, Ribbon Lanterns |
 | **Collecting** | Pick up Dewdrop Shells, Ribbon Blossoms, Steam-Moths, Starlit Buttons; fill the collection log | Sparkle Lanterns, gifts, pips |
@@ -135,13 +135,13 @@ v0.1 has a gentle, open-ended ladder instead of levels:
 2. **Friendship hearts** unlock warmer dialogue tiers.
 3. **Collection log** fills in as you find things.
 4. **Lantern sets** are the long-term goal and unlock nooks/areas later.
-5. **Wardrobe and yard** grow as you shop.
+5. **Wardrobe and yard** grow as you shop. Some pieces are never sold (quest, skill and crafting rewards). Completing a region (area open, resident friend's intro quest done, one of every gather kind collected there) earns its exclusive party hat; all six earn the Island Star hat. Change outfits from Bag › Wardrobe or the Home Wardrobe by the house.
 
 ## 7. Technical notes
 
 - Vite + TypeScript, plain 2D canvas for the world, DOM for HUD/panels. `base: '/comfy/'` for GitHub Pages.
 - `src/` modules: `world` (map, tiles, buildings), `player` (movement, BFS click-to-move), `npc`, `cafe`, `boutique`, `decorate`, `garden`, `collect`, `lanterns`, `inventory`, `quests`, `questlog`, `skills`, `nodes`, `time`, `save`, `state`, `ui/*`, and `art/*` (characters, icons, decor, lanterns, cheetah print).
-- Save/load: one JSON blob in localStorage (`comfy.save.v1`), autosaved every 5 s and on tab hide/close. It holds position, inventory, hotbar, pips, friendships, plots, decor, outfit, lanterns, quests, stats and collectible spawns. Plants keep growing while the tab is closed (progress uses timestamps).
+- Save/load: one JSON blob in localStorage (`comfy.save.v1`), autosaved every 5 s and on tab hide/close. It holds position, inventory, hotbar, pips, friendships, plots, decor, worn clothes and owned wardrobe, lanterns, quests, stats and collectible spawns. Plants keep growing while the tab is closed (progress uses timestamps).
 - No backend, no external assets.
 
 ## 7b. Soft Skills
@@ -174,7 +174,7 @@ The island is now 96×80 tiles (~2.7× the original land). Only **Sugarlily Town
 
 - **v0.2 — Nooks.** Unlock the Moonlit Reading Nook and Lantern Terrace from lantern sets; a proper walk-in house interior with room-by-room decorating.
 - **v0.3 — Café depth.** Customer orders, latte-art mini-game, café upgrades, a seasonal drink menu and a favorite drink per villager.
-- **v0.4 — Boutique depth.** Mix-and-match slots (hat, top, shoes, accessories), dye colors, cheetah-print variants, dress-up photo mode.
+- **v0.4 — Boutique depth.** Dye colors and a dress-up photo mode (mix-and-match slots, styles and colour variants landed earlier).
 - **v0.5 — Friends.** Event days with each villager, letters in the mailbox, friendship milestones, more villagers (a shy otter-ish baker, a sleepy bat who loves night markets).
 - **v0.6 — Island growth.** Starwatch Hill, a lighthouse cove, fishing-free "tide pool" collecting, more collectible sets with museum-style display.
 - **Polish.** Soft music and ambient sound, weather, accessibility options (reduced motion, larger text), gamepad support, in-game settings and save export.

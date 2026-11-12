@@ -1,7 +1,7 @@
 // Three.js world: renderer, camera rig, lights, picking, and per-frame sync with game state.
 import * as THREE from 'three';
 import type { Facing } from '../art/characters';
-import type { OutfitDef } from '../data';
+import type { Look } from '../clothes/types';
 import { bus } from '../bus';
 import { VILLAGERS } from '../data';
 import { npcs, type Npc } from '../npc';
@@ -12,7 +12,7 @@ import { createDynamic } from './dynamic';
 import { createLightRig } from './lighting';
 import { PALETTE } from './materials';
 import { createBeach } from './beach';
-import { celebrate, welcomeAt, welcomeTrickle } from './celebrate';
+import { celebrate, confettiAt, welcomeAt, welcomeTrickle } from './celebrate';
 import { createNature } from './nature';
 import { createParticles } from './particles';
 import { createPost } from './post';
@@ -25,7 +25,8 @@ export interface FrameInput {
   hour: number;
   season: Season;
   player: { x: number; y: number; facing: Facing; moving: boolean; running?: boolean; surface?: 'sand' | 'path' | 'grass' };
-  outfit: OutfitDef;
+  /** What the player is wearing (or trying on). */
+  look: Look;
   /** Worn accessory item id (see boutique.currentAccessory). Omitted = none. */
   accessory?: string | null;
   npcs: Npc[];
@@ -107,6 +108,12 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
     trickle.at.copy(at); trickle.left = 6; trickle.acc = 0;
   });
 
+  // A region party hat was earned: confetti over the player.
+  bus.on('partyHat', () => {
+    const p = player.root.position;
+    confettiAt(new THREE.Vector3(p.x, p.y + 0.8, p.z));
+  });
+
   const player = createPlayerMesh();
   scene.add(player.root);
   const villagers = new Map<string, ActorMesh>();
@@ -180,7 +187,7 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
     render(f) {
       if (f.season.id !== seasonId) { seasonId = f.season.id; terrain.setSeason(f.season); nature.setSeason(f.season); particles.setSeason(f.season); }
 
-      player.setOutfit(f.outfit);
+      player.setLook(f.look);
       player.setAccessory(f.accessory ?? null);
       place(player, f.player.x, f.player.y);
       player.setFacing(f.player.facing, f.dt);

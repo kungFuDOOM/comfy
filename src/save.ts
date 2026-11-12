@@ -1,5 +1,6 @@
 import { defaultState, state, type SaveData } from './state';
 import { TOWN_OFFSET, MAP_VERSION } from './world';
+import { migrateWardrobe } from './clothes/migrate';
 
 const KEY = 'comfy.save.v1';
 
@@ -19,6 +20,12 @@ export function loadGame(): boolean {
       const v = state[k] as unknown;
       if (!v || typeof v !== 'object' || Array.isArray(v)) (state as unknown as Record<string, unknown>)[k] = {};
     }
+    // outfits became a slot-based wardrobe: map the old outfit / owned outfits onto worn slots + owned clothes
+    Object.assign(state, migrateWardrobe(data as Parameters<typeof migrateWardrobe>[0]));
+    delete (state as unknown as Record<string, unknown>).outfit;
+    delete (state as unknown as Record<string, unknown>).ownedOutfits;
+    if (!state.regionSeen || typeof state.regionSeen !== 'object' || Array.isArray(state.regionSeen)) state.regionSeen = {};
+    if (!Array.isArray(state.partyHats)) state.partyHats = [];
     if ((data.mapV ?? 1) < MAP_VERSION) migrateMap();
     state.mapV = MAP_VERSION;
     return true;

@@ -1,5 +1,7 @@
 // Player and villager art: chunky kawaii sprites drawn in code. (x, y) is the foot-center.
-import type { OutfitDef, VillagerDef } from '../data';
+import type { VillagerDef } from '../data';
+import type { Look } from '../clothes/types';
+import { drawArms, drawBagBack, drawBagFront, drawBody, drawFace, drawHat, drawLegs, drawShoes } from './clothes2d';
 import { cheetahPattern } from './cheetah';
 import { INK, blush, circle, ellipse, eye, fs, heart, ink, oc, oe, orr, rr, shadow, shade, star } from './draw';
 
@@ -55,7 +57,7 @@ function feet(ctx: CanvasRenderingContext2D, p: Pose, col: string, spread = 3.6,
 
 // ======================= PLAYER =======================
 export function drawPlayer(
-  ctx: CanvasRenderingContext2D, x: number, y: number, outfit: OutfitDef,
+  ctx: CanvasRenderingContext2D, x: number, y: number, look: Look,
   facing: Facing, moving: boolean, t: number, scale = 1,
 ) {
   const p = pose(t, facing, moving, 0.3, 11);
@@ -63,8 +65,10 @@ export function drawPlayer(
   ctx.translate(x, y);
   ctx.scale(scale, scale);
   shadow(ctx, 0, 0, 10, 3.4, 0.24);
-  feet(ctx, p, outfit.id === 'strawberry' ? '#ff7aa2' : outfit.pattern ? '#8a5443' : '#ff9ec0', 3.4, 2.9);
+  drawShoes(ctx, look.shoes, p);
   applyBody(ctx, p);
+  drawLegs(ctx, look, p, 0);
+  drawBagBack(ctx, look.bag);
   const hx = p.side * 0.8, hy = -27.5; // head center
   const fx = p.side * 3.4;
 
@@ -76,11 +80,9 @@ export function drawPlayer(
   ctx.beginPath(); ctx.ellipse(hx, hy + 2.5, 11.2, 9.5, 0, 0, Math.PI * 2); fs(ctx, HAIR, LW);
 
   // arms (behind dress edge, swing with steps)
-  const sw = p.step * 2.4;
-  oe(ctx, -8.3, -12.3 + sw * (p.side ? 0.3 : 0.5), 2.6, 3.3, outfit.pattern ? '#ffe4d4' : SKIN, LW, INK, 0.35);
-  oe(ctx, 8.3, -12.3 - sw * (p.side ? 0.3 : 0.5), 2.6, 3.3, SKIN, LW, INK, -0.35);
+  drawArms(ctx, look, p);
 
-  drawOutfitBody(ctx, outfit, p);
+  drawBody(ctx, look, p);
 
   // head
   if (p.back) {
@@ -125,88 +127,10 @@ export function drawPlayer(
   ctx.beginPath(); ctx.moveTo(hx + 0.5, hy - 11.4); ctx.quadraticCurveTo(hx + 3.5, hy - 17, hx + 0.5, hy - 16.4); ink(ctx, 1.1, INK);
   ctx.beginPath(); ctx.moveTo(hx + 0.5, hy - 11.4); ctx.quadraticCurveTo(hx + 3.5, hy - 17, hx + 0.5, hy - 16.4); ink(ctx, 0.5, HAIR);
 
-  drawHat(ctx, outfit, hx, hy, p);
+  drawFace(ctx, look.face, hx, hy, p, hy + 2.4);
+  drawHat(ctx, look.hat, hx, hy, p);
+  drawBagFront(ctx, look.bag, p.back);
   ctx.restore();
-}
-
-function dressPath(ctx: CanvasRenderingContext2D, top: number, bot: number, wt: number, wb: number) {
-  ctx.beginPath();
-  ctx.moveTo(-wt, top + 1.5);
-  ctx.quadraticCurveTo(-wt, top, -wt + 2, top);
-  ctx.lineTo(wt - 2, top);
-  ctx.quadraticCurveTo(wt, top, wt, top + 1.5);
-  ctx.quadraticCurveTo(wb + 0.4, bot - 3, wb, bot - 1.6);
-  ctx.quadraticCurveTo(wb - 0.5, bot, wb - 2.5, bot);
-  ctx.lineTo(-wb + 2.5, bot);
-  ctx.quadraticCurveTo(-wb + 0.5, bot, -wb, bot - 1.6);
-  ctx.quadraticCurveTo(-wb - 0.4, bot - 3, -wt, top + 1.5);
-  ctx.closePath();
-}
-
-function drawOutfitBody(ctx: CanvasRenderingContext2D, o: OutfitDef, p: Pose) {
-  const top = -18.5, bot = -3.4;
-  const fill = o.pattern ? cheetahPattern(ctx, o.pattern, 0.34) : o.body;
-  switch (o.id) {
-    case 'strawberry': {
-      // cream tee under pink overalls
-      dressPath(ctx, top, bot, 6.6, 8); fs(ctx, '#fff6ef', LW);
-      ctx.beginPath(); rr(ctx, -5.6, top + 4.4, 11.2, bot - top - 4.4, 3); fs(ctx, o.body, LW);
-      // straps + buttons
-      ctx.fillStyle = o.body; ctx.fillRect(-5, top + 0.5, 2, 4.5); ctx.fillRect(3, top + 0.5, 2, 4.5);
-      circle(ctx, -4, top + 5.4, 0.9, '#fff'); circle(ctx, 4, top + 5.4, 0.9, '#fff');
-      // strawberry seeds + pocket heart
-      for (const [sx, sy] of [[-3, -8], [2.6, -7], [-0.4, -5.2], [3.4, -10.6], [-3.6, -11.6]]) ellipse(ctx, sx, sy, 0.45, 0.7, '#fff3a8');
-      heart(ctx, 0, -10, 1.8, '#ff6f9c');
-      break;
-    }
-    case 'peony': {
-      dressPath(ctx, top, bot, 6.6, 9.4); fs(ctx, fill, LW);
-      // white peter-pan collar + buttons + ruffle hem
-      oe(ctx, -2.6, top + 0.9, 3, 1.8, '#fff', 0.8); oe(ctx, 2.6, top + 0.9, 3, 1.8, '#fff', 0.8);
-      circle(ctx, 0, -12.5, 0.8, '#fff'); circle(ctx, 0, -9.5, 0.8, '#fff');
-      for (let i = -4; i <= 4; i++) circle(ctx, i * 2, bot - 0.6, 1.2, '#ffd3e3');
-      break;
-    }
-    case 'spotted_sun': {
-      dressPath(ctx, top, bot, 6.4, 9.6); fs(ctx, o.body, LW);
-      ctx.save(); dressPath(ctx, top, bot, 6.4, 9.6); ctx.clip();
-      ctx.fillStyle = cheetahPattern(ctx, 'classic', 0.3); ctx.fillRect(-11, bot - 4.2, 22, 4.2);
-      ctx.restore();
-      ctx.beginPath(); ctx.moveTo(-9.2, bot - 4.2); ctx.lineTo(9.2, bot - 4.2); ink(ctx, 0.7);
-      dressPath(ctx, top, bot, 6.4, 9.6); ink(ctx, LW);
-      // little bow at waist
-      oe(ctx, -1.8, -12, 1.8, 1.3, '#ff9ec0', 0.7); oe(ctx, 1.8, -12, 1.8, 1.3, '#ff9ec0', 0.7); circle(ctx, 0, -12, 0.8, '#ff6f9c');
-      break;
-    }
-    case 'cheetah_coat': {
-      dressPath(ctx, top, bot, 7.2, 8.6); fs(ctx, fill, LW);
-      // pink fluffy collar, belt, buttons
-      oe(ctx, -3, top + 1, 3.6, 2.1, o.trim, 0.8); oe(ctx, 3, top + 1, 3.6, 2.1, o.trim, 0.8);
-      ctx.beginPath(); rr(ctx, -7.6, -10.6, 15.2, 2.4, 1.2); fs(ctx, o.trim, 0.8);
-      circle(ctx, 0, -9.4, 1, '#ffd36e');
-      break;
-    }
-    case 'rose_cheetah': {
-      dressPath(ctx, top, bot, 6.2, 10); fs(ctx, fill, LW);
-      // white sash with a big bow
-      ctx.fillStyle = '#fff'; ctx.fillRect(-7, -12.2, 14, 2);
-      ctx.beginPath(); ctx.moveTo(-7.3, -12.2); ctx.lineTo(7.3, -12.2); ctx.moveTo(-7.6, -10.2); ctx.lineTo(7.6, -10.2); ink(ctx, 0.6);
-      oe(ctx, -2.4, -11.2, 2.4, 1.7, '#fff', 0.8); oe(ctx, 2.4, -11.2, 2.4, 1.7, '#fff', 0.8); oc(ctx, 0, -11.2, 1, '#ff9ec0', 0.7);
-      break;
-    }
-    default: { // cozy knit
-      dressPath(ctx, top, bot, 7, 8.4); fs(ctx, fill, LW);
-      ctx.strokeStyle = shade(o.body, -0.08); ctx.lineWidth = 0.7;
-      for (const k of [-4.5, -1.5, 1.5, 4.5]) { ctx.beginPath(); ctx.moveTo(k * 0.95, top + 3); ctx.lineTo(k * 1.12, bot - 1.5); ctx.stroke(); }
-      ctx.beginPath(); rr(ctx, -7.8, bot - 2.6, 15.6, 2.6, 1.3); fs(ctx, o.trim, 0.8);
-      ctx.beginPath(); rr(ctx, -4.4, top - 0.6, 8.8, 2.6, 1.3); fs(ctx, o.trim, 0.8);
-      heart(ctx, 0, -11, 1.6, '#ff8fb6');
-    }
-  }
-  if (p.back) {
-    // hint of a bow on the back for dresses
-    if (o.hat === 'bow') { oe(ctx, -2.2, -11, 2.2, 1.5, '#fff', 0.7); oe(ctx, 2.2, -11, 2.2, 1.5, '#fff', 0.7); }
-  }
 }
 
 function bow(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, col: string, rot = 0) {
@@ -221,31 +145,6 @@ function bow(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, col
   }
   oe(ctx, 0, 0, 1.8, 2.1, shade(col, -0.12), LW / s);
   ctx.restore();
-}
-
-function drawHat(ctx: CanvasRenderingContext2D, o: OutfitDef, hx: number, hy: number, p: Pose) {
-  switch (o.hat) {
-    case 'bow':
-      bow(ctx, hx + (p.back ? 0 : 5.5), hy - 11, 0.95, '#ff8fb6', 0.18);
-      break;
-    case 'beret':
-      oe(ctx, hx - 1.4, hy - 9.6, 10.6, 4.6, '#ff8fb6', LW, INK, -0.12);
-      oc(ctx, hx - 1, hy - 14.4, 1.5, '#ff6f9c', 0.8);
-      ellipse(ctx, hx - 5, hy - 11, 3, 1.2, 'rgba(255,255,255,0.45)', -0.12);
-      break;
-    case 'sunhat': {
-      oe(ctx, hx, hy - 7.6, 16, 4.8, '#ffe7b3', LW);
-      ctx.beginPath(); ctx.ellipse(hx, hy - 10.5, 8.4, 6.5, 0, Math.PI, 0); ctx.lineTo(hx + 8.4, hy - 8.4); ctx.quadraticCurveTo(hx, hy - 6.5, hx - 8.4, hy - 8.4); ctx.closePath(); fs(ctx, '#ffe7b3', LW);
-      ctx.save(); ctx.beginPath(); ctx.rect(hx - 9, hy - 11.6, 18, 3.4); ctx.clip();
-      ctx.beginPath(); ctx.ellipse(hx, hy - 10.5, 8.4, 6.5, 0, Math.PI, 0); ctx.lineTo(hx + 8.4, hy - 8.4); ctx.lineTo(hx - 8.4, hy - 8.4); ctx.closePath();
-      ctx.fillStyle = cheetahPattern(ctx, 'classic', 0.22); ctx.fill(); ctx.restore();
-      ctx.beginPath(); ctx.moveTo(hx - 8.4, hy - 11.6); ctx.lineTo(hx + 8.4, hy - 11.6); ctx.moveTo(hx - 8.4, hy - 8.4); ctx.lineTo(hx + 8.4, hy - 8.4); ink(ctx, 0.6);
-      if (!p.back) { oc(ctx, hx + 6.5, hy - 10.5, 1.8, '#ff9ec0', 0.7); circle(ctx, hx + 6.5, hy - 10.5, 0.7, '#fff3a8'); }
-      break;
-    }
-    default:
-      if (!p.back) { star(ctx, hx + 7.5, hy - 7.5, 2.6, '#ffd36e', 0.7); }
-  }
 }
 
 // ======================= VILLAGERS =======================

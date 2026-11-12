@@ -1,4 +1,6 @@
 // The single mutable game state. Everything in here is persisted.
+import { START_WORN, startClothes } from './clothes/start';
+import type { Slot } from './clothes/types';
 export type LanternKind = 'serve' | 'gift' | 'decor' | 'collect' | 'outfit' | 'garden';
 
 export interface PlacedDecor { id: string; x: number; y: number }
@@ -22,8 +24,14 @@ export interface SaveData {
   inv: Record<string, number>;
   hotbar: (string | null)[];
   sel: number;
-  outfit: string;
-  ownedOutfits: string[];
+  /** What each wardrobe slot is wearing (item id or null). A dress and a top/bottom never wear together. */
+  worn: Record<Slot, string | null>;
+  /** Every wardrobe item id the player owns (bought, earned or crafted). */
+  ownedClothes: string[];
+  /** Gather node kinds collected at least once, per area id (feeds the region party hats). */
+  regionSeen: Record<string, string[]>;
+  /** Areas whose party hat has been awarded ('star' = the Island Star hat). Never awarded twice. */
+  partyHats: string[];
   /** Handmade accessory worn on the model (an item id of kind 'accessory'), or null. Hidden if no longer owned. */
   accessory: string | null;
   decor: PlacedDecor[];
@@ -64,8 +72,10 @@ export function defaultState(): SaveData {
     inv: { trowel: 1, can: 1, seed_puffberry: 3, beans: 2, milk: 2, syrup: 1, honey: 1 },
     hotbar: ['trowel', 'can', 'seed_puffberry', 'beans', 'milk', 'syrup', 'honey', null, null],
     sel: 0,
-    outfit: 'cozy',
-    ownedOutfits: ['cozy'],
+    worn: { ...START_WORN },
+    ownedClothes: startClothes(),
+    regionSeen: {},
+    partyHats: [],
     accessory: null,
     decor: [],
     plots: {},
