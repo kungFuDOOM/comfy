@@ -4,8 +4,8 @@ import { itemIcon } from '../art/icons';
 import { clothById, type ClothDef } from '../clothes';
 import { ITEMS } from '../data';
 import {
-  dateRange, daysLeft, endsText, eventCounter, eventProgress, getActiveEvents, getPastEvents, getUpcomingEvents, isPeakDay, ownsEventItem, startsText,
-  type EventDef,
+  chapterOpen, currentChapter, dateRange, dayLabel, daysLeft, endsText, eventCounter, eventProgress, getActiveEvents, getPastEvents, getUpcomingEvents,
+  isPeakDay, ownsEventItem, startsText, type EventDef,
 } from '../events';
 import { h } from './dom';
 
@@ -22,22 +22,28 @@ export function buildEventBanner(open: () => void) {
   document.getElementById('ui')!.append(banner);
 }
 
-/** Cheap enough to call from the HUD tick: only touches the DOM when the text changes. */
+/** One banner line per active event, each in its own words (peak copy and chapter copy come from the event). */
+function bannerLine(e: EventDef) {
+  const peak = isPeakDay(e.id), ch = currentChapter(e);
+  const main = peak ? `${e.name}: ${e.peakTitle ?? 'Today is the day!'}` : e.name;
+  const sub = peak ? e.peakSub ?? 'The big day is here' : ch?.hud ? `${ch.hud} · ${endsText(e)}` : `${endsText(e)} · tap for activities`;
+  return { e, peak, main, sub };
+}
+
+/** Cheap enough to call from the HUD tick: only touches the DOM when the text changes. Two events at once get two lines. */
 export function refreshEventBanner() {
   if (!banner) return;
   const active = getActiveEvents();
   if (!active.length) { if (!banner.hidden) { banner.hidden = true; bannerKey = ''; } return; }
-  const e = active[0];
-  const peak = isPeakDay(e.id);
-  const main = peak && e.peakBanner ? `${e.name}: Feast Day!` : e.name;
-  const sub = peak ? 'Everyone is at the long table in the square' : `${endsText(e)} · tap for activities`;
-  const key = `${e.id}|${main}|${sub}|${active.length}`;
+  const rows = active.map(bannerLine);
+  const key = rows.map((r) => `${r.e.id}|${r.main}|${r.sub}`).join('||');
   if (key === bannerKey) return;
   bannerKey = key;
   banner.hidden = false;
-  banner.classList.toggle('peak', peak);
-  banner.title = e.blurb;
-  banner.replaceChildren(h('span', 'ev-icon', e.icon), h('span', 'ev-text', h('span', '', main), h('span', 'ev-sub', sub)));
+  banner.classList.toggle('peak', rows.some((r) => r.peak));
+  banner.classList.toggle('multi', rows.length > 1);
+  banner.title = rows.map((r) => r.e.blurb).join('\n');
+  banner.replaceChildren(...rows.map((r) => h('span', 'ev-row', h('span', 'ev-icon', r.e.icon), h('span', 'ev-text', h('span', '', r.main), h('span', 'ev-sub', r.sub)))));
 }
 
 // ---------- journal tab ----------
@@ -65,6 +71,15 @@ function eventCard(e: EventDef, phase: 'active' | 'upcoming' | 'ended', thumb: T
     h('div', 'muted', e.blurb),
   );
   if (phase === 'active' && isPeakDay(e.id) && e.peakBanner) card.append(h('div', 'ev-ends soon', `🎉 ${e.peakBanner}`));
+  if (e.chapters && phase !== 'ended') {
+    const cur = phase === 'active' ? currentChapter(e) : undefined;
+    card.append(h('div', 'ev-sec', 'Chapters'));
+    if (cur) card.append(h('div', 'muted small', `Now: ${cur.title}. ${cur.blurb}`));
+    for (const c of e.chapters) {
+      const open = phase === 'active' && chapterOpen(e.id, c.id), now = cur?.id === c.id;
+      card.append(h('div', 'ev-chap' + (now ? ' now' : open ? '' : ' locked'), h('span', '', now ? '✨' : open ? '✓' : '🔒'), h('div', 'grow', c.title), h('span', 'muted small', open ? (now ? 'now' : 'open') : `Unlocks ${dayLabel(c.start)}`)));
+    }
+  }
   if (phase === 'upcoming') {
     card.append(h('div', 'muted small', `${e.items.length} exclusive items to earn. They are only available while the event is on, and yours to keep forever.`));
     return card;
@@ -72,7 +87,9 @@ function eventCard(e: EventDef, phase: 'active' | 'upcoming' | 'ended', thumb: T
   if (phase === 'active') {
     card.append(h('div', 'ev-sec', 'Things to do'));
     for (const a of e.activities) {
-      const row = h('div', 'ev-act', h('span', 'ev-ai', a.icon), h('div', 'grow', h('b', '', a.title), h('div', 'muted small', a.desc)));
+      const locked = !chapterOpen(e.id, a.chapter);
+      const when = a.chapter ? e.chapters?.find((c) => c.id === a.chapter) : undefined;
+      const row = h('div', 'ev-act' + (locked ? ' locked' : ''), h('span', 'ev-ai', locked ? '🔒' : a.icon), h('div', 'grow', h('b', '', a.title), h('div', 'muted small', locked && when ? `Unlocks ${dayLabel(when.start)}. ${a.desc}` : a.desc)));
       if (a.counter && a.goal) {
         const n = Math.min(a.goal, eventCounter(e.id, a.counter));
         const bar = h('div', 'bar', h('div', 'fill'));

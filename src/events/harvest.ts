@@ -35,6 +35,8 @@ export const harvestEvent: EventDef = {
   blurb: 'The island thanks the Long Frost for ending and Cocoa Leaf for warming it up: pumpkins, pies, lanterns, and one big table for all of Sugarlily Isle.',
   banner: 'The Harvest Hush Feast has begun! Gather, bake, and share pies.',
   peakBanner: 'It is Feast Day! Everyone is waiting at the long table in the square.',
+  peakTitle: 'Feast Day!',
+  peakSub: 'Everyone is at the long table in the square',
   items: [
     'hh_acorn_cap', 'hh_pie_basket', 'hh_pumpkin_knit', 'hh_maple_cardigan', 'hh_cocoa_cardigan', 'hh_cranberry_scarf',
     'hh_plaid_scarf', 'hh_leaf_crown', 'hh_feast_pinafore', 'hh_corduroy_skirt', 'd_cornucopia', 'd_haybale', 'd_pieshelf',
