@@ -2,6 +2,8 @@
 // (and frees its GPU memory) when the event ends, and lets it animate every frame.
 import * as THREE from 'three';
 import { eventDay, getActiveEvents, type EventDef } from '../events';
+import { contactGeometry, releaseMaterial } from './materials';
+import { forgetLabel } from './util';
 
 export interface EventLayer { group: THREE.Group; update(t: number): void }
 
@@ -9,8 +11,13 @@ function dispose(o: THREE.Object3D) {
   o.traverse((m) => {
     const mesh = m as THREE.Mesh;
     if (mesh.isMesh) {
-      mesh.geometry?.dispose();
+      // the decal plane is shared by every light pool and contact shadow on the island: never free it
+      if (mesh.geometry !== contactGeometry) mesh.geometry?.dispose();
       if ((mesh as THREE.InstancedMesh).isInstancedMesh) (mesh as THREE.InstancedMesh).dispose();
+      // one-off light pool / sign materials (cached toon materials are shared and stay)
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      for (const mt of mats) { const map = (mt as THREE.MeshBasicMaterial)?.map; if (map) forgetLabel(map); }
+      if (mesh.material) releaseMaterial(mesh.material);
     }
   });
 }

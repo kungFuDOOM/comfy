@@ -113,6 +113,25 @@ export function toon(color: string, o: ToonOpts = {}): THREE.MeshToonMaterial {
 /** Register an unlit (MeshBasic) material such as a sign label so it dims with the ambient light at night. */
 export function registerUnlit<T extends THREE.MeshBasicMaterial>(m: T): T { unlitMats.push(m); return m; }
 
+/** One-off materials (light pools, sign labels) that belong to a single mesh and may be freed with it. */
+const ownedMats = new WeakSet<THREE.Material>();
+export const markOwned = <T extends THREE.Material>(m: T): T => { ownedMats.add(m); return m; };
+/**
+ * Free a mesh's material(s) when the mesh is thrown away for good (a seasonal decoration being rebuilt). Shared cached
+ * materials are left alone; one-off ones are unregistered from the night tinting lists and disposed with their map.
+ */
+export function releaseMaterial(mat: THREE.Material | THREE.Material[]) {
+  for (const m of Array.isArray(mat) ? mat : [mat]) {
+    if (!ownedMats.has(m)) continue;
+    ownedMats.delete(m);
+    const pi = poolMats.findIndex((p) => p.m === m);
+    if (pi >= 0) poolMats.splice(pi, 1);
+    const ui = unlitMats.indexOf(m as THREE.MeshBasicMaterial);
+    if (ui >= 0) { unlitMats.splice(ui, 1); (m as THREE.MeshBasicMaterial).map?.dispose(); }
+    m.dispose();
+  }
+}
+
 // ---- grounding decals: soft dark contact patches + warm additive light pools ----
 function softTexture(shape: 'round' | 'rect'): THREE.CanvasTexture {
   const c = document.createElement('canvas');
@@ -162,6 +181,7 @@ export function contactShadow(w: number, d = w, shape: 'round' | 'rect' = 'round
 export function lightPool(w: number, d = w, color: string = PALETTE.lampGlow, strength = 0.5, shape: 'round' | 'rect' = 'round'): THREE.Mesh {
   const mat = new THREE.MeshBasicMaterial({ color, alphaMap: softTex(shape), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
   poolMats.push({ m: mat, base: strength });
+  markOwned(mat);
   const m = new THREE.Mesh(decalGeo, mat);
   m.scale.set(w, 1, d);
   m.position.y = 0.035;
