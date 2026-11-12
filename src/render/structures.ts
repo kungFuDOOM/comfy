@@ -394,6 +394,19 @@ export function createStation(s: Station): THREE.Group {
       g.add(contactShadow(1.7, 1.0, 'rect', 0.22));
       break;
     }
+    case 'petbed': {
+      // Pet Nook: a woven basket with a pink cushion, a little heart pillow and a ball of yarn
+      k.v.add(G.cyl(0.58, 0.5, 0.26, 20), '#e8c79a', { y: 0.13 });
+      k.v.add(G.torus(0.56, 0.07, 22), '#f6dfb8', { y: 0.27, rx: Math.PI / 2 });
+      k.v.add(G.cyl(0.48, 0.48, 0.07, 20), '#ffc3d6', { y: 0.22 });
+      for (const sx of [-1, 1]) k.v.add(G.ball(0.1, 10), '#ff8fb6', { x: sx * 0.07 - 0.2, y: 0.34, z: -0.12, s: [1, 1, 0.55] });
+      k.v.add(G.ball(0.11, 10), '#ff8fb6', { x: -0.2, y: 0.28, z: -0.12, s: [1.3, 1, 0.55] });
+      k.v.add(G.ball(0.13, 12), '#fff3a8', { x: 0.72, y: 0.13, z: 0.3 });
+      k.v.add(G.torus(0.1, 0.012, 14), '#f0b24f', { x: 0.72, y: 0.14, z: 0.3, rx: Math.PI / 2, ry: 0.4 });
+      const l = makeLabel('Pet Nook', 1.4); l.position.set(0, 1.05, 0.2); g.add(l);
+      g.add(contactShadow(1.5, 1.4, 'round', 0.22));
+      break;
+    }
     case 'grove': {
       k.v.add(G.cyl(0.8, 0.9, 0.5), '#e8dcf5', { y: 0.25 });
       k.v.add(G.cyl(0.45, 0.55, 0.6), '#f3ecff', { y: 0.8 });

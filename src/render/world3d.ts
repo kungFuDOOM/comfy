@@ -8,13 +8,15 @@ import { npcs, type Npc } from '../npc';
 import type { Season } from '../time';
 import { MAP_H, MAP_W, TS } from '../world';
 import { createPlayerMesh, createVillagerMesh, type ActorMesh } from './actors';
+import { createPetMesh } from './petMesh';
+import type { PetPose } from '../pet';
 import { createDynamic } from './dynamic';
 import { visualSeason } from '../events';
 import { createEventLayer } from './eventLayer';
 import { createLightRig } from './lighting';
 import { PALETTE } from './materials';
 import { createBeach } from './beach';
-import { celebrate, confettiAt, welcomeAt, welcomeTrickle } from './celebrate';
+import { celebrate, confettiAt, petHeartsAt, poofAt, welcomeAt, welcomeTrickle } from './celebrate';
 import { createNature } from './nature';
 import { createParticles } from './particles';
 import { createPost } from './post';
@@ -31,6 +33,8 @@ export interface FrameInput {
   look: Look;
   /** Worn accessory item id (see boutique.currentAccessory). Omitted = none. */
   accessory?: string | null;
+  /** The pet companion this frame (omitted / null = not adopted, or a scene that should not show her). */
+  pet?: PetPose | null;
   npcs: Npc[];
   talkedToday(id: string): boolean;
 }
@@ -38,6 +42,7 @@ export interface FrameInput {
 export type Pick =
   | { kind: 'npc'; id: string }
   | { kind: 'station'; id: string }
+  | { kind: 'pet' }
   | { kind: 'ground'; wx: number; wy: number }; // world pixels (1 tile = TS)
 
 // Camera: high three-quarter view. Offset is relative to the follow target, in tile units.
@@ -121,6 +126,12 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
 
   const player = createPlayerMesh();
   scene.add(player.root);
+  const petMesh = createPetMesh(); // hidden until a frame carries a pet pose
+  scene.add(petMesh.root);
+  const petUnits = (x: number, y: number) => new THREE.Vector3(x / TS, heightAtUnits(x / TS, y / TS) + 0.35, y / TS);
+  bus.on('petHearts', (p: { x: number; y: number }) => petHeartsAt(petUnits(p.x, p.y)));
+  bus.on('petPoof', (p: { x: number; y: number }) => poofAt(petUnits(p.x, p.y), 0.8));
+  bus.on('petAdopted', (p: { x: number; y: number }) => welcomeAt(petUnits(p.x, p.y)));
   const villagers = new Map<string, ActorMesh>();
 
   let seasonId = '';
@@ -214,6 +225,11 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       player.setFacing(f.player.facing, f.dt);
       player.animate(f.t, f.player.moving, !!f.player.running);
       particles.dust(f.dt, !!f.player.running, player.root.position, f.player.surface ?? 'grass');
+      if (f.pet) {
+        petMesh.root.visible = true;
+        place(petMesh, f.pet.x, f.pet.y);
+        petMesh.setPose(f.pet, f.t, f.dt);
+      } else petMesh.root.visible = false;
       for (const [id, v] of villagers) v.root.visible = f.npcs.some((n) => n.def.id === id); // absent villagers (e.g. Nimbus by day) hide
       for (const n of f.npcs) {
         let v = villagers.get(n.def.id);
@@ -264,6 +280,13 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
         tmp.set(n.x / TS, heightAtUnits(n.x / TS, n.y / TS) + 0.7, n.y / TS).project(camera);
         const d = Math.hypot(((tmp.x - ndc.x) * r.width) / 2, ((tmp.y - ndc.y) * r.height) / 2);
         if (d < bd) { bd = d; best = n; }
+      }
+      // the pet: a forgiving test on her middle, and she wins close calls (she trots right beside the player)
+      if (petMesh.root.visible) {
+        const q = petMesh.root.position;
+        tmp.set(q.x, q.y + 0.3, q.z).project(camera);
+        const dp = Math.hypot(((tmp.x - ndc.x) * r.width) / 2, ((tmp.y - ndc.y) * r.height) / 2);
+        if (dp < 40 && dp <= bd + 8) return { kind: 'pet' };
       }
       if (best) return { kind: 'npc', id: best.def.id };
       ray.setFromCamera(ndc, camera);

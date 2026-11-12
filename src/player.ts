@@ -75,8 +75,10 @@ class Heap {
 }
 
 /** A* on the 4-connected tile grid from the player tile to the nearest of the candidate tiles. Returns waypoints (world px) or null. */
-export function findPath(goals: { x: number; y: number }[]): { x: number; y: number }[] | null {
-  const s = tileOf();
+export function findPath(goals: { x: number; y: number }[], from?: { x: number; y: number }): { x: number; y: number }[] | null {
+  // `from` (world px, feet position) lets other walkers (the pet) reuse the same A*; default is the player
+  const s = from ? { x: Math.floor(from.x / TS), y: Math.floor((from.y - 4) / TS) } : tileOf();
+  if (from && !isWalkable(s.x, s.y)) return null;
   const gl = goals.filter((g) => isWalkable(g.x, g.y));
   if (!gl.length) return null;
   const goalSet = new Set(gl.map((g) => g.y * MAP_W + g.x));
@@ -108,7 +110,7 @@ export function findPath(goals: { x: number; y: number }[]): { x: number; y: num
   if (found < 0) return null;
   const path: { x: number; y: number }[] = [];
   for (let c = found; c !== start; c = prev[c]) path.push({ x: (c % MAP_W) * TS + TS / 2, y: ((c / MAP_W) | 0) * TS + TS - 4 });
-  return smoothPath(path.reverse());
+  return smoothPath(path.reverse(), from?.x ?? player.x, from?.y ?? player.y);
 }
 
 /** Can the player body walk the straight segment without touching a solid tile? */
@@ -119,10 +121,10 @@ function clearLine(x0: number, y0: number, x1: number, y1: number) {
 }
 
 /** String-pull the staircase: skip waypoints whenever a straight line is clear, so the walk looks natural. */
-function smoothPath(path: { x: number; y: number }[]) {
+function smoothPath(path: { x: number; y: number }[], startX: number, startY: number) {
   if (path.length < 2) return path;
   const out: { x: number; y: number }[] = [];
-  let ax = player.x, ay = player.y, i = 0;
+  let ax = startX, ay = startY, i = 0;
   while (i < path.length) {
     let j = i;
     while (j + 1 < path.length && clearLine(ax, ay, path[j + 1].x, path[j + 1].y)) j++;
