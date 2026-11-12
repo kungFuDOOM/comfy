@@ -53,6 +53,13 @@ export function createDecor(id: string): THREE.Group {
       }
       g.add(ball(0.05, '#ff8fb6', 0, 0.9, 0, 8));
       break;
+    case 'd_cafe_menu':
+      g.add(box(0.55, 0.62, 0.05, '#5a4048', 0, 0.62, 0)); g.add(box(0.5, 0.05, 0.05, '#ffb3cf', 0, 0.94, 0.03));
+      g.add(ball(0.09, '#ffd0e2', 0, 0.65, 0.05, 8)); g.add(box(0.04, 0.55, 0.04, '#c99a7a', -0.22, 0.28, -0.1)); g.add(box(0.04, 0.55, 0.04, '#c99a7a', 0.22, 0.28, -0.1));
+      break;
+    case 'd_cafe_succulent':
+      g.add(cyl(0.2, 0.14, 0.26, '#ffd0e2', 0, 0.13, 0, 12)); g.add(ball(0.17, '#9fdcb4', -0.08, 0.34, 0, 8)); g.add(ball(0.17, '#9fdcb4', 0.08, 0.34, 0, 8)); g.add(ball(0.18, '#b0e8c4', 0, 0.42, 0, 8));
+      break;
     case 'd_tw_cocoa':
       g.add(box(0.7, 0.06, 0.34, '#e8b98a', 0, 0.42, 0)); g.add(box(0.7, 0.06, 0.34, '#e8b98a', 0, 0.86, 0));
       for (const x of [-0.31, 0.31]) g.add(box(0.06, 0.9, 0.3, '#c98f5f', x, 0.45, 0));

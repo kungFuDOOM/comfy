@@ -30,6 +30,8 @@ import { glyphEl } from '../input/prompts';
 import { btn, h, openPanel, type PanelApi } from './dom';
 import { renderEventsTab } from './eventsUi';
 import { eventItemOpen, getActiveEvents } from '../events';
+import { openShift } from './shiftUi';
+import { SHIFTS_PER_DAY, orderable, shiftsLeft } from '../shift';
 import { openCookieBake } from '../events/cookieBake';
 import { canBakePie, openPieBake } from '../events/pieBake';
 import { openPause } from './menuPanels';
@@ -161,12 +163,13 @@ function recipeList(body: HTMLElement, api: PanelApi, bench: Bench) {
 }
 
 export function openCafe() {
-  let tab: 'brew' | 'bake' | 'pantry' = 'brew';
+  let tab: 'brew' | 'bake' | 'shifts' | 'pantry' = 'brew';
   enterPlace('cafe');
   openPanel('Puddle & Pip Café', (body, api) => {
     const t = (id: typeof tab, label: string) => tabBtn(label, tab === id, () => { tab = id; api.rerender(); });
-    body.append(h('div', 'tabs', t('brew', 'Brew'), t('bake', 'Bake'), t('pantry', 'Pantry')));
+    body.append(h('div', 'tabs', t('brew', 'Brew'), t('bake', 'Bake'), t('shifts', 'Shifts'), t('pantry', 'Pantry')));
     if (tab === 'brew' || tab === 'bake') recipeList(body, api, tab);
+    else if (tab === 'shifts') shiftsTab(body);
     else {
       body.append(h('div', 'muted', 'Fresh ingredients for the counter.'));
       for (const id of SHOP_INGREDIENTS) body.append(shopRow(id, ITEMS[id].buy!, () => buyItem(id, api)));
@@ -176,6 +179,18 @@ export function openCafe() {
       }
     }
   }, () => leavePlace());
+}
+
+/** Shifts tab: how a shift works, today's shifts left, and the big Start button. */
+function shiftsTab(body: HTMLElement) {
+  const left = shiftsLeft(), menu = orderable();
+  body.append(
+    h('div', 'muted', 'Tie on an apron and run the counter! A few friends drop in, one at a time. Make each order with a little timing game: a prettier cup means bigger tips, more hearts and more Barista XP.'),
+    h('div', 'card', h('b', '', `Shifts today: ${left} of ${SHIFTS_PER_DAY} left`),
+      h('div', 'muted', `The pantry stocks everything for shifts, so your bag stays untouched. Shifts worked so far: ${state.cafe.shifts}.`),
+      h('div', 'muted small', `On the menu: ${menu.map((r) => ITEMS[r.id].name).join(', ')}. More drinks unlock as your Barista level grows.`)),
+    btn(left > 0 ? 'Start a shift ☕' : 'All done for today ☾', () => openShift(), 'shift-go', left <= 0),
+  );
 }
 
 function buyItem(id: string, api: PanelApi) {

@@ -56,13 +56,15 @@ export function drawItem(ctx: CanvasRenderingContext2D, id: string) {
       ellipse(ctx, 16, 19, 5, 3.4, 'rgba(255,255,255,0.55)');
       break;
     }
-    case 'pink_latte': case 'honey_cap': case 'spot_mocha': {
-      const top = id === 'pink_latte' ? '#ffb3cf' : id === 'honey_cap' ? '#ffd78a' : '#9a6a52';
+    case 'pink_latte': case 'honey_cap': case 'spot_mocha': case 'cozy_cocoa': case 'cloud_foam': case 'ribbon_special': {
+      const top = id === 'pink_latte' ? '#ffb3cf' : id === 'honey_cap' ? '#ffd78a' : id === 'cozy_cocoa' ? '#c98a8a' : id === 'cloud_foam' ? '#fffaf4' : id === 'ribbon_special' ? '#ffe3ec' : '#9a6a52';
       ctx.strokeStyle = '#ffb3cf'; ctx.lineWidth = 2.6; ctx.beginPath(); ctx.arc(25, 18, 4, -1.4, 1.6); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(6, 12); ctx.lineTo(25, 12); ctx.quadraticCurveTo(24, 27, 15.5, 27); ctx.quadraticCurveTo(7, 27, 6, 12); ctx.fillStyle = '#fff'; ctx.fill();
       ctx.strokeStyle = '#ffb3cf'; ctx.lineWidth = 1.4; ctx.stroke();
       ellipse(ctx, 15.5, 12, 9.5, 3, top);
       if (id === 'pink_latte') heart(ctx, 15.5, 12, 1.8, '#fff');
+      if (id === 'ribbon_special') heart(ctx, 15.5, 12, 2.2, '#ff8fb6');
+      if (id === 'cozy_cocoa') circle(ctx, 15.5, 11, 2, '#fff');
       if (id === 'spot_mocha') { ctx.save(); rr(ctx, 7, 16, 17, 6, 2); ctx.clip(); ctx.fillStyle = cheetahPattern(ctx, 'classic', 0.3); ctx.fillRect(7, 16, 17, 6); ctx.restore(); }
       ctx.strokeStyle = 'rgba(200,150,170,0.7)'; ctx.lineWidth = 1.4;
       for (const dx of [-3, 3]) { ctx.beginPath(); ctx.moveTo(15.5 + dx, 8); ctx.bezierCurveTo(13 + dx, 6, 18 + dx, 4, 15.5 + dx, 2); ctx.stroke(); }
