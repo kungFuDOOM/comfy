@@ -21,7 +21,7 @@ export interface FrameInput {
   dt: number;
   hour: number;
   season: Season;
-  player: { x: number; y: number; facing: Facing; moving: boolean };
+  player: { x: number; y: number; facing: Facing; moving: boolean; running?: boolean; surface?: 'sand' | 'path' | 'grass' };
   outfit: OutfitDef;
   /** Worn accessory item id (see boutique.currentAccessory). Omitted = none. */
   accessory?: string | null;
@@ -168,7 +168,8 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       player.setAccessory(f.accessory ?? null);
       place(player, f.player.x, f.player.y);
       player.setFacing(f.player.facing, f.dt);
-      player.animate(f.t, f.player.moving);
+      player.animate(f.t, f.player.moving, !!f.player.running);
+      particles.dust(f.dt, !!f.player.running, player.root.position, f.player.surface ?? 'grass');
       for (const [id, v] of villagers) v.root.visible = f.npcs.some((n) => n.def.id === id); // absent villagers (e.g. Nimbus by day) hide
       for (const n of f.npcs) {
         let v = villagers.get(n.def.id);

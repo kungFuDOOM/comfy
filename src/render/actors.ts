@@ -12,7 +12,7 @@ export interface ActorMesh {
   /** Rotates around Y, smoothed. */
   setFacing(f: Facing, dt: number): void;
   /** Idle breathing / walk bob. */
-  animate(t: number, moving: boolean): void;
+  animate(t: number, moving: boolean, run?: boolean): void;
   setAlert?(on: boolean): void;
 }
 
@@ -289,31 +289,34 @@ function build(sp: Spec) {
   marker.visible = false;
   root.add(marker);
 
-  let ang = 0, last = -1, walk = 0, phase = 0;
+  let ang = 0, last = -1, walk = 0, phase = 0, runK = 0;
+  model.rotation.order = 'YXZ'; // yaw first, so the lean tips along the facing direction
   const off = Math.random() * 10;
   const api: ActorMesh & { dressMat: THREE.MeshToonMaterial; bandMat: THREE.MeshToonMaterial; head: THREE.Group } = {
     root, dressMat, bandMat, head,
     setFacing(f, dt) { ang = lerpAngle(ang, FACE_ANGLE[f], Math.min(1, dt * 14)); model.rotation.y = ang; },
-    animate(t, moving) {
+    animate(t, moving, run = false) {
       const dt = last < 0 ? 0 : Math.min(0.05, Math.max(0, t - last));
       last = t;
       walk += ((moving ? 1 : 0) - walk) * Math.min(1, dt * 10);
-      if (walk > 0.01) phase += dt * 11; else phase = 0;
+      runK += ((moving && run ? 1 : 0) - runK) * Math.min(1, dt * 9);
+      if (walk > 0.01) phase += dt * (11 + runK * 6); else phase = 0;
       const w = walk, idle = 1 - w;
       const s = Math.sin(phase), hop = Math.abs(Math.cos(phase)); // feet land at the swing extremes
       const br = Math.sin(t * 2.3 + off);
       // hop with squash on landing, stretch at the top
       const sq = (hop - 0.45) * w;
-      model.position.y = hop * 0.075 * w * sp.scale;
+      model.position.y = hop * (0.075 + runK * 0.02) * w * sp.scale;
+      model.rotation.x = runK * 0.17; // slight forward lean
       model.scale.set(sp.scale * (1 - sq * 0.07), sp.scale * (1 + sq * 0.14), sp.scale * (1 - sq * 0.07));
       model.rotation.z = s * 0.045 * w;
       // breathing
       body.scale.set(1 - br * 0.014 * idle, 1 + br * 0.035 * idle, 1 - br * 0.014 * idle);
       head.position.y = HEAD_Y + br * 0.016 * idle - (1 - hop) * 0.02 * w;
       head.rotation.z = Math.sin(t * 1.1 + off) * 0.035 * idle - s * 0.05 * w;
-      for (const a of arms) a.pivot.rotation.x = a.sx * s * 0.8 * w + br * 0.05 * idle;
-      legs[0].rotation.x = -s * 0.75 * w;
-      legs[1].rotation.x = s * 0.75 * w;
+      for (const a of arms) a.pivot.rotation.x = a.sx * s * (0.8 + runK * 0.25) * w + br * 0.05 * idle;
+      legs[0].rotation.x = -s * (0.75 + runK * 0.2) * w;
+      legs[1].rotation.x = s * (0.75 + runK * 0.2) * w;
       eyes.scale.y = ((t + off * 3) % 3.7 < 0.12 ? 0.12 : 1) * eyeK; // blink
       marker.position.y = 2.0 * sp.scale + Math.sin(t * 3) * 0.06;
       tick?.(t, w);
