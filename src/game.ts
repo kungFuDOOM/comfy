@@ -151,7 +151,7 @@ function update(dt: number) {
   // camera-relative movement: input forward (-y) is away from the camera
   const mv = readMove(), yaw = world3d.yaw(), c = Math.cos(yaw), sn = Math.sin(yaw);
   updatePlayer(dt, c * mv.x + sn * mv.y, -sn * mv.x + c * mv.y, mv.run, mv.analog);
-  footsteps(mv.run);
+  footsteps(player.running);
   updateDirector(dt);
   updateNpcs(dt);
   updateBrew(dt);
@@ -174,10 +174,15 @@ function footsteps(run: boolean) {
   lastX = player.x; lastY = player.y;
   if (!player.moving || d > 20) { if (!player.moving) stepDist = Math.max(0, stepDist - 2); return; } // (big jumps are teleports)
   stepDist += d;
-  if (stepDist < (run ? 26 : 20)) return;
+  if (stepDist < (run ? 30 : 20)) return;
   stepDist = 0; stepAlt = !stepAlt;
   const t = tileOf(), ter = terrainAt(t.x, t.y);
   sfx.step(ter === T.Sand ? 'sand' : ter === T.Path || ter === T.Plaza ? 'path' : 'grass', stepAlt, run);
+}
+
+function surfaceUnder(): 'sand' | 'path' | 'grass' {
+  const t = tileOf(), ter = terrainAt(t.x, t.y);
+  return ter === T.Sand ? 'sand' : ter === T.Path || ter === T.Plaza ? 'path' : 'grass';
 }
 
 /** Write the player's position and the save now. */
@@ -193,7 +198,7 @@ function render(t: number, dt: number) {
   const dress = dressing.active;
   world3d.render({
     t, dt, hour: dress ? 12.5 : clock.hour, season: clock.season,
-    player: dress ? { x: player.x, y: player.y, facing: 'down', moving: false } : player, outfit: currentOutfit(), accessory: currentAccessory(), npcs: presentNpcs(), talkedToday,
+    player: dress ? { x: player.x, y: player.y, facing: 'down', moving: false, running: false, surface: 'grass' } : { ...player, running: player.running, surface: surfaceUnder() }, outfit: currentOutfit(), accessory: currentAccessory(), npcs: presentNpcs(), talkedToday,
   });
 }
 
