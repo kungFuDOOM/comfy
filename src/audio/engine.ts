@@ -22,7 +22,7 @@ let hiddenMute = false;
 const readyFns: ((g: AudioGraph) => void)[] = [];
 
 /** Music sits under the SFX in the mix; these are the 100% slider levels. */
-const MUSIC_MAX = 0.55;
+const MUSIC_MAX = 0.3;
 const SFX_MAX = 0.9;
 
 export const getGraph = () => graph;
@@ -61,13 +61,17 @@ function build(): AudioGraph | null {
   sfxBus.connect(master);
   applyVolumes(true);
 
-  // a small cozy room for the music
+  // a small cozy room for the music, with a gentle shelf so the band sits behind brighter SFX
   const musicIn = ctx.createGain();
+  const warm = ctx.createBiquadFilter();
+  warm.type = 'highshelf';
+  warm.frequency.value = 2800;
+  warm.gain.value = -4;
   const wet = ctx.createGain();
-  wet.gain.value = 0.22;
+  wet.gain.value = 0.14;
   const verb = ctx.createConvolver();
-  verb.buffer = makeImpulse(ctx);
-  musicIn.connect(musicBus);
+  verb.buffer = makeImpulse(ctx, 1.3, 3.6);
+  musicIn.connect(warm).connect(musicBus);
   musicIn.connect(verb).connect(wet).connect(musicBus);
 
   const noise = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);

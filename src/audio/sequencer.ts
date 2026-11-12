@@ -68,12 +68,14 @@ export function compileTrack(track: Track): CompiledTrack {
   return { track, steps: Math.max(...parts.map((p) => p.steps)), parts };
 }
 
-/** Plays one compiled track from step 0, looping forever, into its own fade-able gain. */
+/** Plays one compiled track, looping forever, into its own fade-able gain. */
 export class TrackPlayer {
   readonly out: GainNode;
   private next: number;
   private step = 0;
   private stepDur: number;
+  /** Parked: the step counter is kept, and the clock is rebased on resume so it does not catch up. */
+  suspended = true;
   stopped = false;
 
   constructor(private g: AudioGraph, readonly ct: CompiledTrack, private hour: () => number, startAt: number) {
@@ -84,17 +86,30 @@ export class TrackPlayer {
     this.stepDur = 60 / ct.track.bpm / 4;
   }
 
+  /** Continue from the current step. Rebase the clock only when waking from a park. */
+  resume(at: number) {
+    if (!this.suspended) return;
+    this.suspended = false;
+    this.next = at;
+  }
+
+  suspend() { this.suspended = true; }
+
   /** Schedule everything that falls inside the lookahead window. */
   pump(until: number) {
-    if (this.stopped) return;
+    if (this.stopped || this.suspended) return;
     const { track } = this.ct, swing = (track.swing ?? 0) * this.stepDur;
     while (this.next < until) {
       const t = this.next + (this.step % 2 === 1 ? swing : 0);
       const h = this.hour();
+      const beat = this.step % 16;
       for (const cp of this.ct.parts) {
         const ev = cp.at[this.step % cp.steps];
         if (!ev || (cp.part.when && !cp.part.when(h))) continue;
-        const vel = ev.vel * (cp.part.gain ?? 0.8) * (0.93 + Math.random() * 0.14);
+        // a little lift on the downbeats, softer swung 16ths — reads as a bounce, not a new rhythm
+        const mallet = !isDrum(cp.part.voice) && cp.part.voice !== 'pad';
+        const bounce = mallet ? (beat % 8 === 0 ? 1.07 : beat % 4 === 0 ? 1.03 : beat % 2 === 1 ? 0.92 : 1) : 1;
+        const vel = ev.vel * (cp.part.gain ?? 0.8) * bounce * (0.96 + Math.random() * 0.08);
         const dur = ev.len * this.stepDur;
         for (const m of ev.notes) playVoice(this.g, this.out, cp.part.voice, t, m, dur, vel);
       }
