@@ -2,7 +2,9 @@
 import * as THREE from 'three';
 import type { Facing } from '../art/characters';
 import type { OutfitDef } from '../data';
-import type { Npc } from '../npc';
+import { bus } from '../bus';
+import { VILLAGERS } from '../data';
+import { npcs, type Npc } from '../npc';
 import type { Season } from '../time';
 import { MAP_H, MAP_W, TS } from '../world';
 import { createPlayerMesh, createVillagerMesh, type ActorMesh } from './actors';
@@ -10,6 +12,7 @@ import { createDynamic } from './dynamic';
 import { createLightRig } from './lighting';
 import { PALETTE } from './materials';
 import { createBeach } from './beach';
+import { celebrate, welcomeAt, welcomeTrickle } from './celebrate';
 import { createNature } from './nature';
 import { createParticles } from './particles';
 import { createPost } from './post';
@@ -89,7 +92,20 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   const structures = createStructures();
   const dynamic = createDynamic();
   const particles = createParticles(); // after structures: reads the café steam vents
-  scene.add(terrain.group, nature.group, beach, structures, dynamic.group, particles.group);
+  scene.add(terrain.group, nature.group, beach, structures, dynamic.group, particles.group, celebrate.group);
+
+  // A friend moving in (bus 'friendArrived', only from a live unlock, never a save restore): a burst of hearts at
+  // their spot, then a gentle trickle for a few seconds so the welcome is still there if the camera is elsewhere.
+  const trickle = { at: new THREE.Vector3(), left: 0, acc: 0 };
+  bus.on('friendArrived', (id: string) => {
+    const n = npcs.find((x) => x.def.id === id);
+    const def = n?.def ?? VILLAGERS.find((v) => v.id === id);
+    if (!def) return;
+    const ux = n ? n.x / TS : def.home.x + 0.5, uz = n ? n.y / TS : def.home.y + 1;
+    const at = new THREE.Vector3(ux, heightAtUnits(ux, uz) + 0.6, uz);
+    welcomeAt(at);
+    trickle.at.copy(at); trickle.left = 6; trickle.acc = 0;
+  });
 
   const player = createPlayerMesh();
   scene.add(player.root);
@@ -196,6 +212,11 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       rig.update(f.hour, target);
       const pxScale = renderer.getDrawingBufferSize(bufSize).y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
       particles.update(f.t, rig.night, target, pxScale, heightAtUnits);
+      if (trickle.left > 0) {
+        trickle.left -= f.dt; trickle.acc += f.dt;
+        while (trickle.acc >= 0.3) { trickle.acc -= 0.3; welcomeTrickle(trickle.at); }
+      }
+      celebrate.update(f.dt, pxScale);
       post.render(rig.night);
     },
     pick(sx, sy, npcs) {

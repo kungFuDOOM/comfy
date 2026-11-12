@@ -1,7 +1,7 @@
 // Unlocking the island: cute barriers, what they ask for, and what happens when they open.
 // The data lives in areas.ts, the tiles in world.ts; this is the rules and the messages.
 import { sfx } from './audio';
-import { changed, toast } from './bus';
+import { bus, changed, toast } from './bus';
 import { ITEMS, VILLAGERS } from './data';
 import { BARRIERS, areaById, type AreaId, type Barrier, type Requirement } from './areas';
 import { count, spend } from './inventory';
@@ -91,13 +91,13 @@ export function useBarrier(b: Barrier) {
 export function unlockArea(id: AreaId) {
   const b = barrierForArea(id);
   if (!b || state.unlocked[id]) return;
+  // who already lives here, taken before the area counts as open (so this area's friends register as new arrivals)
+  const before = new Set(VILLAGERS.filter((v) => !v.area || isAreaOpen(v.area)).map((v) => v.id));
   state.unlocked[id] = true;
   setBarrierOpen(b.id, true);
   const a = areaById(id);
   toast(`${a.name} is open! ✿`);
-  sfx.quest();
   onAreaUnlocked(id);
-  const before = new Set(VILLAGERS.filter((v) => !v.area || isAreaOpen(v.area)).map((v) => v.id));
   syncNpcs();
   for (const v of VILLAGERS) if (v.area === id && !before.has(v.id)) onFriendArrived(v.id);
   saveGame();
@@ -110,11 +110,18 @@ export function syncUnlocks() {
 }
 
 // ---- Celebration hooks ----
-// A later polish pass lands here: barrier poof/sparkle, a jingle, and a move-in party. Keep the signatures.
+// Only unlockArea() calls these (never syncUnlocks), so restoring a save stays quiet.
+// The 3D side listens on the bus: barriers.ts poofs the barrier, world3d.ts throws the move-in party.
 /** Called once, right after an area opens (its barrier is already gone). */
-export function onAreaUnlocked(_id: AreaId) { /* hook */ }
-/** Called once when a friend moves into a freshly opened area. */
+export function onAreaUnlocked(id: AreaId) {
+  sfx.unlock();
+  bus.emit('areaUnlocked', id);
+}
+/** Called once when a friend moves into a freshly opened area (after syncNpcs, so they are already at home). */
 export function onFriendArrived(id: string) {
   const v = VILLAGERS.find((x) => x.id === id);
-  if (v) toast(`${v.name.split(' ')[0]} has moved in! Go say hello ♥`);
+  if (!v) return;
+  toast(`${v.name.split(' ')[0]} has moved in! Go say hello ♥`);
+  sfx.welcome(1.25); // lands just after the unlock jingle settles
+  bus.emit('friendArrived', id);
 }

@@ -124,6 +124,30 @@ export const sfx = {
     const t = g.ctx.currentTime;
     [72, 76, 79, 84, 88].forEach((m, i) => tone(g, t + i * 0.08, M(m), 0.42, { type: 'triangle', peak: 0.15 }));
   },
+  /** A barrier opens: a soft poof, a whoosh up, a bouncy rising run and a bell-ish chord that rings out. */
+  unlock() {
+    const g = live(); if (!g || !gate('unlock', 400)) return;
+    const t = g.ctx.currentTime + 0.05;
+    puff(g, t, 1100, 0.7, 0.16, 0.28);
+    tone(g, t, 330, 0.22, { type: 'sine', peak: 0.08, slideTo: 990 });
+    [74, 79, 83, 86, 91].forEach((m, i) => tone(g, t + 0.14 + i * 0.075, M(m), 0.28, { type: 'triangle', peak: 0.13 }));
+    // little skip back down, then the chord
+    tone(g, t + 0.56, M(88), 0.2, { type: 'triangle', peak: 0.11 });
+    [79, 83, 86, 91].forEach((m) => tone(g, t + 0.68, M(m), 0.95, { type: 'sine', peak: 0.075, attack: 0.012 }));
+    tone(g, t + 0.68, M(95), 0.5, { type: 'triangle', peak: 0.06 });
+    tone(g, t + 0.82, M(103), 0.6, { type: 'sine', peak: 0.04 });
+    tone(g, t + 0.95, M(107), 0.55, { type: 'sine', peak: 0.03 });
+  },
+  /** A friend moves in: a sing-song "hel-lo!" with a warm chord and a sprinkle on top. `delay` in seconds. */
+  welcome(delay = 0) {
+    const g = live(); if (!g || !gate('welcome', 300)) return;
+    const t = g.ctx.currentTime + delay;
+    tone(g, t, M(84), 0.18, { type: 'triangle', peak: 0.14 });
+    tone(g, t + 0.16, M(81), 0.16, { type: 'triangle', peak: 0.13 });
+    tone(g, t + 0.3, M(88), 0.5, { type: 'triangle', peak: 0.14 });
+    [72, 76, 79].forEach((m) => tone(g, t + 0.3, M(m), 0.7, { type: 'sine', peak: 0.07, attack: 0.02 }));
+    [96, 100, 103].forEach((m, i) => tone(g, t + 0.42 + i * 0.06, M(m), 0.3, { type: 'sine', peak: 0.05 }));
+  },
   /** Gathering something: a short, soft two-note pluck. */
   harvest() {
     const g = live(); if (!g || !gate('harvest', 80)) return;
