@@ -15,6 +15,8 @@ import { faceToward, frontTile, placePlayer, player, tileOf, updatePlayer, walkT
 import { count, selectedItem, selectSlot } from './inventory';
 import { nodeAtTile, nodeCenter, nodeHint, nodeNear, updateNodes, useNode } from './nodes';
 import { bus, changed, toast } from './bus';
+import { getPetPose, hasPet, petName, petNear, petThePet, petWorldPos, resetPet, updatePet } from './pet';
+import { initPetUi, openAdopt, openPetPanel } from './ui/petUi';
 import { tickAwards, checkRegions } from './regions';
 import { refreshEarned } from './wardrobe';
 import { sceneActive } from './render/stage';
@@ -38,6 +40,7 @@ let saveTimer = 0;
 let seenHelpTimer = 0.8;
 let markerOn = false;
 let eventTimer = 0;
+let petHintT = 30; // one gentle nudge per visit toward the Pet Nook while no pet has been adopted
 
 // ---- Interaction ----
 type Target = { label: string; run: () => void } | null;
@@ -77,7 +80,14 @@ function openStation(s: Station) {
   else if (s.id === 'market') openMarket();
   else if (s.id === 'chest') openChest();
   else if (s.id === 'wardrobe') openBag('wardrobe');
+  else if (s.id === 'petbed') { if (state.pet) openPetPanel(); else openAdopt(); }
   else openJournal('lanterns');
+}
+
+/** Prompt text for a station (the Pet Nook becomes the pet's bed once someone has moved in). */
+function stationText(s: Station): string {
+  if (s.id === 'petbed' && state.pet) return `${state.pet.name}'s Bed — Look, rename & dress up`;
+  return `${s.label} — ${s.prompt}`;
 }
 
 function tileTarget(tx: number, ty: number): Target {
@@ -96,10 +106,14 @@ function currentTarget(): Target {
   const dsp = sp ? sp.d : Infinity;
   if (sp && dsp <= dn && dsp <= ds && dsp <= dd) return { label: `${sp.s.label}: ${sp.s.prompt}`, run: () => sp.s.run() };
   if (n && dn <= ds && dn <= dd) return { label: `Chat with ${n.def.name.split(' ')[0]}`, run: () => openDialogue(n.def) };
-  if (s && ds <= dd) return { label: `${s.label} — ${s.prompt}`, run: () => openStation(s) };
+  if (s && ds <= dd) return { label: stationText(s), run: () => openStation(s) };
   if (nd) return { label: nodeHint(nd), run: () => useNode(nd) };
   const f = frontTile();
-  return tileTarget(f.x, f.y);
+  const tt = tileTarget(f.x, f.y);
+  if (tt) return tt;
+  // the pet only claims the prompt when nothing else is in reach, so she never steals a station / villager / node
+  if (!dressing.active && petNear(46)) return { label: `Pet ${petName()}`, run: petThePet };
+  return null;
 }
 
 function interact() {
@@ -118,6 +132,14 @@ function handleClick(sx: number, sy: number) {
     const n = npcs.find((v) => v.def.id === pick.id)!;
     if (Math.hypot(n.x - player.x, n.y - player.y) < 46) { faceToward(n.x, n.y); openDialogue(n.def); return; }
     walkTo(around(Math.floor(n.x / TS), Math.floor((n.y - 4) / TS)), () => { faceToward(n.x, n.y); openDialogue(n.def); });
+    return;
+  }
+  if (pick.kind === 'pet') {
+    if (!hasPet()) return;
+    const pp = petWorldPos();
+    if (petNear(56)) { faceToward(pp.x, pp.y); petThePet(); return; }
+    const ptx = Math.floor(pp.x / TS), pty = Math.floor((pp.y - 4) / TS);
+    walkTo(around(ptx, pty).filter((g) => !isSolidTile(g.x, g.y)), () => { const q = petWorldPos(); faceToward(q.x, q.y); if (petNear(70)) petThePet(); });
     return;
   }
   if (pick.kind === 'station') {
@@ -200,6 +222,7 @@ function update(dt: number) {
   footsteps(player.running);
   updateDirector(dt);
   updateNpcs(dt);
+  updatePet(dt);
   updateBrew(dt);
   updateNodes(dt);
   updateLanterns(dt);
@@ -213,6 +236,7 @@ function update(dt: number) {
   setHint(tgt ? `${glyph('interact')} · ${tgt.label}` : null);
   saveTimer += dt;
   if (saveTimer > 5) { saveTimer = 0; persist(); }
+  if (petHintT > 0 && !state.pet && state.seenHelp) { petHintT -= dt; if (petHintT <= 0) toast('A cozy Pet Nook is set up beside your house. Come meet a kitten or puppy ♡'); }
   if (seenHelpTimer > 0 && !state.seenHelp) { seenHelpTimer -= dt; if (seenHelpTimer <= 0) openHelp(); }
 }
 
@@ -247,7 +271,7 @@ function render(t: number, dt: number) {
   const dress = dressing.active;
   world3d.render({
     t, dt, hour: dress ? 12.5 : clock.hour, season: clock.season,
-    player: dress ? { x: player.x, y: player.y, facing: 'down', moving: false, running: false, surface: 'grass' } : { ...player, running: player.running, surface: surfaceUnder() }, look: currentLook(), accessory: currentAccessory(), npcs: presentNpcs(), talkedToday,
+    player: dress ? { x: player.x, y: player.y, facing: 'down', moving: false, running: false, surface: 'grass' } : { ...player, running: player.running, surface: surfaceUnder() }, look: currentLook(), accessory: currentAccessory(), pet: dress ? null : getPetPose(), npcs: presentNpcs(), talkedToday,
   });
 }
 
@@ -261,6 +285,7 @@ export function startGame() {
   syncUnlocks();
   initNpcs();
   placePlayer();
+  resetPet(); // the pet (if adopted) trots in beside her; position is never saved
   for (const n of npcs) n.busy = false;
   if (!state.spawns.length) for (let i = 0; i < 10; i++) spawnOne(player.x, player.y);
   lastX = player.x; lastY = player.y; stepDist = 0;
@@ -276,6 +301,7 @@ export function startGame() {
     return;
   }
   booted = true;
+  initPetUi();
   document.documentElement.style.setProperty('--cheetah', `url(${cheetahDataUrl('classic')})`);
   document.documentElement.style.setProperty('--cheetah-pink', `url(${cheetahDataUrl('pink')})`);
   bus.on('openWardrobe', () => { if (!isPanelOpen()) openBag('wardrobe'); });

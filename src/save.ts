@@ -1,6 +1,7 @@
 import { defaultState, state, type SaveData } from './state';
 import { TOWN_OFFSET, MAP_VERSION } from './world';
 import { migrateWardrobe } from './clothes/migrate';
+import { sanitizePet } from './petData';
 
 const KEY = 'comfy.save.v1';
 
@@ -26,6 +27,7 @@ export function loadGame(): boolean {
     delete (state as unknown as Record<string, unknown>).ownedOutfits;
     if (!state.regionSeen || typeof state.regionSeen !== 'object' || Array.isArray(state.regionSeen)) state.regionSeen = {};
     if (!Array.isArray(state.partyHats)) state.partyHats = [];
+    state.pet = sanitizePet(data.pet); // saves from before pets: no pet yet; anything malformed is dropped
     if ((data.mapV ?? 1) < MAP_VERSION) migrateMap();
     state.mapV = MAP_VERSION;
     return true;
