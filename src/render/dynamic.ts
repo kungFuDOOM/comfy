@@ -6,12 +6,19 @@ import { LANTERN_KINDS } from '../art/lantern';
 import { state, type Spawn } from '../state';
 import { AREAS, GROVE, TS } from '../world';
 import { contactShadow, PALETTE, toon } from './materials';
-import { ball, box, cyl, mat } from './util';
+import { ball, box, cyl, mat, mesh } from './util';
 import { tileHeight } from './terrain';
 import { createNodeLayer } from './nodes3d';
 import { createBarriers } from './barriers';
 
 const SPAWN_COLOR: Record<string, string> = { shell: '#ffe0d0', blossom: '#ff9ec0', moth: '#fff3a8', button: '#ffffff', pumpkin: '#ffa763', apple: '#ff7f93', ornament: '#ff9ec0' };
+
+/** A flat heart facing +z, about 2 units wide; scale it down where it is used. */
+const HEART_GEO = (() => {
+  const s = new THREE.Shape();
+  s.moveTo(0, -0.9); s.bezierCurveTo(-1.4, 0.2, -0.5, 1.0, 0, 0.3); s.bezierCurveTo(0.5, 1.0, 1.4, 0.2, 0, -0.9);
+  return new THREE.ShapeGeometry(s, 8);
+})();
 
 /** Placeholder decor models keyed by item id. */
 export function createDecor(id: string): THREE.Group {
@@ -53,13 +60,39 @@ export function createDecor(id: string): THREE.Group {
       }
       g.add(ball(0.05, '#ff8fb6', 0, 0.9, 0, 8));
       break;
-    case 'd_cafe_menu':
-      g.add(box(0.55, 0.62, 0.05, '#5a4048', 0, 0.62, 0)); g.add(box(0.5, 0.05, 0.05, '#ffb3cf', 0, 0.94, 0.03));
-      g.add(ball(0.09, '#ffd0e2', 0, 0.65, 0.05, 8)); g.add(box(0.04, 0.55, 0.04, '#c99a7a', -0.22, 0.28, -0.1)); g.add(box(0.04, 0.55, 0.04, '#c99a7a', 0.22, 0.28, -0.1));
+    case 'd_cafe_menu': {
+      // a little easel chalkboard: pink frame, chalk heart and menu lines, chalk tray, bow on top
+      const board = new THREE.Group(); board.rotation.x = -0.2;
+      for (const x of [-0.25, 0.25]) board.add(box(0.05, 0.34, 0.05, '#c99a7a', x, 0.17, 0));
+      board.add(box(0.64, 0.72, 0.05, '#ffb3cf', 0, 0.66, 0)); board.add(box(0.52, 0.6, 0.02, '#5a4048', 0, 0.66, 0.025));
+      const chalkHeart = mesh(HEART_GEO, '#ffd0e2', 0, 0.8, 0.04); chalkHeart.scale.setScalar(0.11); chalkHeart.castShadow = false; board.add(chalkHeart);
+      for (const [x, y, w, c] of [[-0.05, 0.63, 0.3, '#ffe6ef'], [-0.09, 0.56, 0.22, '#ffe6ef'], [-0.06, 0.49, 0.28, '#ffe6ef'], [0.18, 0.63, 0.05, '#ffd36e'], [0.18, 0.56, 0.05, '#ff9ec0'], [0.18, 0.49, 0.05, '#9fe0c8']] as [number, number, number, string][]) board.add(box(w, 0.025, 0.01, c, x, y, 0.04));
+      board.add(box(0.44, 0.03, 0.09, '#c99a7a', 0, 0.3, 0.06));
+      for (const [x, c] of [[-0.1, '#ffffff'], [0.02, '#ff9ec0']] as [number, string][]) { const chalk = cyl(0.014, 0.014, 0.08, c, x, 0.33, 0.07, 6); chalk.rotation.z = Math.PI / 2; board.add(chalk); }
+      for (const x of [-0.07, 0.07]) { const loop = ball(0.07, '#ff8fb6', x, 1.05, 0, 8); loop.scale.set(1, 0.7, 0.55); board.add(loop); }
+      board.add(ball(0.04, '#ffd0e2', 0, 1.05, 0.02, 8));
+      g.add(board);
+      const back = box(0.05, 0.94, 0.05, '#c99a7a', 0, 0.47, -0.32); back.rotation.x = 0.3; g.add(back);
       break;
-    case 'd_cafe_succulent':
-      g.add(cyl(0.2, 0.14, 0.26, '#ffd0e2', 0, 0.13, 0, 12)); g.add(ball(0.17, '#9fdcb4', -0.08, 0.34, 0, 8)); g.add(ball(0.17, '#9fdcb4', 0.08, 0.34, 0, 8)); g.add(ball(0.18, '#b0e8c4', 0, 0.42, 0, 8));
+    }
+    case 'd_cafe_succulent': {
+      // a plump rosette in a pink latte cup with a saucer, handle and a heart on the front
+      g.add(cyl(0.27, 0.22, 0.03, '#ffffff', 0, 0.015, 0, 16));
+      g.add(cyl(0.2, 0.13, 0.26, '#ffd0e2', 0, 0.16, 0, 16)); g.add(cyl(0.21, 0.21, 0.03, '#ffffff', 0, 0.29, 0, 16)); g.add(cyl(0.18, 0.18, 0.02, '#b98a6f', 0, 0.3, 0, 16));
+      const handle = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.022, 6, 14), mat('#ffb3cf')); handle.position.set(0.2, 0.17, 0); handle.castShadow = true; g.add(handle);
+      const cupHeart = mesh(HEART_GEO, '#ff8fb6', 0, 0.17, 0.172); cupHeart.scale.setScalar(0.05); cupHeart.rotation.x = -0.26; cupHeart.castShadow = false; g.add(cupHeart);
+      const leafGeo = new THREE.SphereGeometry(0.075, 10, 8);
+      for (const [n, dist, tilt, y, sc, c, off] of [[7, 0.115, -0.3, 0.33, 1, '#8fd3aa', 0], [5, 0.065, -0.75, 0.37, 0.85, '#a6e0bd', 0.5], [3, 0.025, -1.2, 0.41, 0.6, '#c2efd2', 0.2]] as [number, number, number, number, number, string, number][]) {
+        for (let i = 0; i < n; i++) {
+          const pivot = new THREE.Group(); pivot.rotation.y = ((i + off) / n) * Math.PI * 2; pivot.position.y = y;
+          const leaf = mesh(leafGeo, c, 0, 0, dist); leaf.scale.set(0.62 * sc, 0.4 * sc, 1.25 * sc); leaf.rotation.x = tilt; pivot.add(leaf);
+          if (n === 7) { const tip = ball(0.016, '#ff9ec0', 0, 0, 0.09, 6); leaf.add(tip); tip.scale.set(1 / 0.62, 1 / 0.4, 1 / 1.25); }
+          g.add(pivot);
+        }
+      }
+      g.add(ball(0.035, '#d6f5e1', 0, 0.44, 0, 8));
       break;
+    }
     case 'd_tw_cocoa':
       g.add(box(0.7, 0.06, 0.34, '#e8b98a', 0, 0.42, 0)); g.add(box(0.7, 0.06, 0.34, '#e8b98a', 0, 0.86, 0));
       for (const x of [-0.31, 0.31]) g.add(box(0.06, 0.9, 0.3, '#c98f5f', x, 0.45, 0));
