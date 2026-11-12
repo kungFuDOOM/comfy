@@ -281,17 +281,20 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
         const d = Math.hypot(((tmp.x - ndc.x) * r.width) / 2, ((tmp.y - ndc.y) * r.height) / 2);
         if (d < bd) { bd = d; best = n; }
       }
-      // the pet: a forgiving test on her middle, and she wins close calls (she trots right beside the player)
+      // the pet: small, so a forgiving test on her middle. Villagers win ties (she trots right beside them and the
+      // player), a direct hit on her beats a station behind her, and a near-miss only counts if nothing else was hit.
+      let dp = Infinity;
       if (petMesh.root.visible) {
         const q = petMesh.root.position;
         tmp.set(q.x, q.y + 0.3, q.z).project(camera);
-        const dp = Math.hypot(((tmp.x - ndc.x) * r.width) / 2, ((tmp.y - ndc.y) * r.height) / 2);
-        if (dp < 40 && dp <= bd + 8) return { kind: 'pet' };
+        dp = Math.hypot(((tmp.x - ndc.x) * r.width) / 2, ((tmp.y - ndc.y) * r.height) / 2);
       }
-      if (best) return { kind: 'npc', id: best.def.id };
+      if (best && dp + 6 >= bd) return { kind: 'npc', id: best.def.id };
+      if (dp < 18 || best) return { kind: 'pet' }; // (best here means the pet was clearly closer than the villager)
       ray.setFromCamera(ndc, camera);
       const sh = ray.intersectObjects(structures.children, true).find((i) => i.object.userData.stationId !== undefined);
       if (sh) return { kind: 'station', id: sh.object.userData.stationId };
+      if (dp < 36) return { kind: 'pet' };
       if (!ray.ray.intersectPlane(plane, hit)) return null;
       return { kind: 'ground', wx: hit.x * TS, wy: hit.z * TS };
     },

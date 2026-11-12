@@ -24,7 +24,15 @@
 .pet-row .txt span { color: var(--ink-l); font-size: 12px; }
 .pet-row .btn { min-height: 44px; min-width: 76px; justify-content: center; }
 .pet-row.on { border-color: var(--pink-d); background: #fff4f8; }
-.pet-card { position: absolute; left: max(10px, env(safe-area-inset-left)); top: calc(128px + env(safe-area-inset-top)); display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 20px; background: rgba(255, 248, 243, 0.96); border: 2px solid #ffc3da; box-shadow: 0 4px 0 rgba(224, 112, 154, 0.25); z-index: 5; max-width: calc(100vw - 20px); animation: pop 0.2s ease-out; }
+/* The pet card docks bottom-centre just above the interact hint, clear of the HUD chips, event banner and toasts
+   (top-left used to cover them on phones). On touch it rides above the hint, which itself sits above the action pad. */
+.pet-card { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(136px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 6px; border-radius: 20px; background: rgba(255, 248, 243, 0.96); border: 2px solid #ffc3da; box-shadow: 0 4px 0 rgba(224, 112, 154, 0.25); z-index: 5; max-width: calc(100vw - 20px); box-sizing: border-box; white-space: nowrap; animation: pet-card-in 0.2s ease-out; }
+@keyframes pet-card-in { from { opacity: 0; transform: translate(-50%, 6px); } to { opacity: 1; transform: translate(-50%, 0); } }
+body.input-touch .pet-card { bottom: calc(140px + var(--tb, 58px) * 3 + env(safe-area-inset-bottom)); }
+@media (min-width: 760px) and (min-aspect-ratio: 1/1) { body.input-touch .pet-card { bottom: calc(140px + env(safe-area-inset-bottom)); } }
+@media (max-width: 380px) { .pet-card .pet-portrait { display: none; } .pet-card { padding-left: 10px; } }
+.pet-card b { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+body.scene .pet-card { display: none; }
 .pet-card b { color: var(--ink); font-size: 15px; margin-right: 2px; }
 .pet-card .btn { min-height: 44px; padding: 6px 12px; font-size: 14px; }
 .pet-card.hide { display: none; }
