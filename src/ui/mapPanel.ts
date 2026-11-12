@@ -17,7 +17,8 @@ interface Label { x: number; y: number; icon: string; name: string; sub?: string
 
 const STATION_LABEL: Record<StationId, { icon: string; name: string; sub: string }> = {
   cafe: { icon: '☕', name: 'Café', sub: 'Brewing / Baking' },
-  boutique: { icon: '🎀', name: 'Boutique + Crafting Table', sub: 'Spot & Bow Boutique' },
+  boutique: { icon: '🎀', name: 'Boutique', sub: 'Spot & Bow Boutique' },
+  crafting: { icon: '🔨', name: 'Crafting Table', sub: 'Bows, charms & planks' },
   market: { icon: '🛒', name: 'Market', sub: 'Tuppence Cart' },
   grove: { icon: '🏮', name: 'Afterglow Grove', sub: 'Lantern grove' },
   chest: { icon: '📦', name: 'Softkeep Chest', sub: 'Keep your things safe' },

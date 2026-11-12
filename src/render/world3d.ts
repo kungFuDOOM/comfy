@@ -52,6 +52,8 @@ export interface World3D {
   /** Nudge the camera (radians / zoom units). Yaw, pitch and zoom are clamped so it can't flip or enter the player. */
   orbit(dYaw: number, dTilt: number, dZoom: number): void;
   resetCamera(): void;
+  /** Show the little tap marker at a ground point (world px); null hides it. */
+  marker(wx: number | null, wy?: number): void;
   /** Current (smoothed) yaw: 0 = camera south of the player looking north; + moves the camera east. */
   yaw(): number;
   /** For scripted scenes (main menu, cutscenes): add props here, and drive the camera with a Director. */
@@ -160,6 +162,14 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   const hit = new THREE.Vector3();
   const tmp = new THREE.Vector3();
   const bufSize = new THREE.Vector2();
+  // tap marker: a soft pink ring that pulses and fades
+  const markerMat = new THREE.MeshBasicMaterial({ color: '#ff8fb6', transparent: true, opacity: 0, depthTest: false, side: THREE.DoubleSide });
+  const markerMesh = new THREE.Mesh(new THREE.RingGeometry(0.22, 0.34, 28), markerMat);
+  markerMesh.rotation.x = -Math.PI / 2;
+  markerMesh.renderOrder = 10;
+  markerMesh.visible = false;
+  scene.add(markerMesh);
+  let markerT = -1;
 
   return {
     resize,
@@ -168,6 +178,12 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       cam.yawT = Math.max(-YAW_MAX, Math.min(YAW_MAX, cam.yawT + dYaw));
       cam.tiltT = Math.max(-TILT_MAX, Math.min(TILT_MAX, cam.tiltT + dTilt));
       cam.zoomT = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, cam.zoomT + dZoom));
+    },
+    marker(wx, wy = 0) {
+      if (wx === null) { markerT = -1; markerMesh.visible = false; return; }
+      const ux = wx / TS, uz = wy / TS;
+      markerMesh.position.set(ux, heightAtUnits(ux, uz) + 0.08, uz);
+      markerT = 0; markerMesh.visible = true;
     },
     resetCamera() { cam.yawT = 0; cam.tiltT = 0; cam.zoomT = 1; },
     yaw: () => cam.yaw,
@@ -194,6 +210,13 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
         v.setFacing(n.facing, f.dt);
         v.animate(f.t, n.moving);
         v.setAlert?.(!f.talkedToday(n.def.id));
+      }
+      if (markerT >= 0) {
+        markerT += f.dt;
+        const m = markerT < 0.18 ? markerT / 0.18 : 1;
+        markerMesh.scale.setScalar(0.7 + 0.3 * m + 0.08 * Math.sin(markerT * 8));
+        markerMat.opacity = Math.max(0, 0.95 * Math.min(1, (1.6 - markerT) / 0.5));
+        if (markerT > 1.6) { markerT = -1; markerMesh.visible = false; }
       }
       dynamic.update(f.t);
       nature.update(f.t, target.x, target.z);

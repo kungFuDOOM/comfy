@@ -1,4 +1,4 @@
-// Player movement: smoothed analog/keyboard movement, plus tap/click-to-move with BFS pathfinding.
+// Player movement: smoothed analog/keyboard movement, plus tap/click-to-move with A* pathfinding.
 import { MAP_H, MAP_W, TS, areaAt, isWalkable } from './world';
 import { isAreaOpen, state } from './state';
 import type { Facing } from './art/characters';
@@ -20,7 +20,7 @@ const RUN = 192; // 2x WALK
 const ACCEL = 12; // 1/s smoothing toward the target velocity
 const DECEL = 18;
 const HALF = 7;
-let vx = 0, vy = 0;
+let vx = 0, vy = 0, stuck = 0;
 
 function blockedAt(x: number, y: number) {
   const l = Math.floor((x - HALF) / TS), r = Math.floor((x + HALF) / TS);
@@ -44,33 +44,91 @@ export function cancelPath() {
 
 export const tileOf = () => ({ x: Math.floor(player.x / TS), y: Math.floor((player.y - 4) / TS) });
 
-/** BFS from the player tile. Goal = any of the candidate tiles. Returns the path or null. */
+const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+/** Binary min-heap keyed by f-score, for A*. */
+class Heap {
+  private n: number[] = []; private f: number[] = [];
+  get size() { return this.n.length; }
+  push(node: number, f: number) {
+    let i = this.n.length; this.n.push(node); this.f.push(f);
+    while (i > 0) { const p = (i - 1) >> 1; if (this.f[p] <= this.f[i]) break; this.swap(i, p); i = p; }
+  }
+  pop() {
+    const top = this.n[0], ln = this.n.pop()!, lf = this.f.pop()!;
+    if (this.n.length) {
+      this.n[0] = ln; this.f[0] = lf;
+      let i = 0;
+      for (;;) {
+        const l = 2 * i + 1, r = l + 1; let m = i;
+        if (l < this.n.length && this.f[l] < this.f[m]) m = l;
+        if (r < this.n.length && this.f[r] < this.f[m]) m = r;
+        if (m === i) break;
+        this.swap(i, m); i = m;
+      }
+    }
+    return top;
+  }
+  private swap(a: number, b: number) {
+    [this.n[a], this.n[b]] = [this.n[b], this.n[a]]; [this.f[a], this.f[b]] = [this.f[b], this.f[a]];
+  }
+}
+
+/** A* on the 4-connected tile grid from the player tile to the nearest of the candidate tiles. Returns waypoints (world px) or null. */
 export function findPath(goals: { x: number; y: number }[]): { x: number; y: number }[] | null {
   const s = tileOf();
-  const goalSet = new Set(goals.filter((g) => isWalkable(g.x, g.y)).map((g) => g.y * MAP_W + g.x));
-  if (!goalSet.size) return null;
-  const prev = new Int32Array(MAP_W * MAP_H).fill(-2);
+  const gl = goals.filter((g) => isWalkable(g.x, g.y));
+  if (!gl.length) return null;
+  const goalSet = new Set(gl.map((g) => g.y * MAP_W + g.x));
+  const h = (x: number, y: number) => { let best = Infinity; for (const g of gl) best = Math.min(best, Math.abs(g.x - x) + Math.abs(g.y - y)); return best; };
+  const N = MAP_W * MAP_H;
+  const prev = new Int32Array(N).fill(-2);
+  const cost = new Float32Array(N).fill(Infinity);
+  const closed = new Uint8Array(N);
   const start = s.y * MAP_W + s.x;
-  prev[start] = -1;
-  const q = [start];
+  prev[start] = -1; cost[start] = 0;
+  const open = new Heap();
+  open.push(start, h(s.x, s.y));
   let found = -1;
-  for (let qi = 0; qi < q.length; qi++) {
-    const cur = q[qi];
+  while (open.size) {
+    const cur = open.pop();
+    if (closed[cur]) continue;
+    closed[cur] = 1;
     if (goalSet.has(cur)) { found = cur; break; }
     const cx = cur % MAP_W, cy = (cur / MAP_W) | 0;
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    for (const [dx, dy] of DIRS) {
       const nx = cx + dx, ny = cy + dy;
       if (nx < 0 || ny < 0 || nx >= MAP_W || ny >= MAP_H || !isWalkable(nx, ny)) continue;
-      const ni = ny * MAP_W + nx;
-      if (prev[ni] !== -2) continue;
-      prev[ni] = cur;
-      q.push(ni);
+      const ni = ny * MAP_W + nx, c = cost[cur] + 1;
+      if (c >= cost[ni]) continue;
+      cost[ni] = c; prev[ni] = cur;
+      open.push(ni, c + h(nx, ny));
     }
   }
   if (found < 0) return null;
   const path: { x: number; y: number }[] = [];
   for (let c = found; c !== start; c = prev[c]) path.push({ x: (c % MAP_W) * TS + TS / 2, y: ((c / MAP_W) | 0) * TS + TS - 4 });
-  return path.reverse();
+  return smoothPath(path.reverse());
+}
+
+/** Can the player body walk the straight segment without touching a solid tile? */
+function clearLine(x0: number, y0: number, x1: number, y1: number) {
+  const d = Math.hypot(x1 - x0, y1 - y0), n = Math.ceil(d / 4);
+  for (let i = 1; i <= n; i++) { const t = i / n; if (blockedAt(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t)) return false; }
+  return true;
+}
+
+/** String-pull the staircase: skip waypoints whenever a straight line is clear, so the walk looks natural. */
+function smoothPath(path: { x: number; y: number }[]) {
+  if (path.length < 2) return path;
+  const out: { x: number; y: number }[] = [];
+  let ax = player.x, ay = player.y, i = 0;
+  while (i < path.length) {
+    let j = i;
+    while (j + 1 < path.length && clearLine(ax, ay, path[j + 1].x, path[j + 1].y)) j++;
+    out.push(path[j]); ax = path[j].x; ay = path[j].y; i = j + 1;
+  }
+  return out;
 }
 
 export function walkTo(goals: { x: number; y: number }[], onArrive?: () => void, faceTile?: { x: number; y: number }): boolean {
@@ -95,12 +153,29 @@ export function faceToward(wx: number, wy: number) {
   player.facing = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : dy < 0 ? 'up' : 'down';
 }
 
+/** Move with axis-separated collision so walls are slid along; small corner snags are nudged around. */
 function tryMove(dx: number, dy: number) {
   let hitX = false, hitY = false;
   if (dx) { if (!blockedAt(player.x + dx, player.y)) player.x += dx; else hitX = true; }
   if (dy) { if (!blockedAt(player.x, player.y + dy)) player.y += dy; else hitY = true; }
+  // clipped a corner head-on: slide sideways a few pixels if that clears it (doorways, tree rows)
+  if (hitX && Math.abs(dy) < Math.abs(dx) * 0.5) nudge(dx, 0);
+  if (hitY && Math.abs(dx) < Math.abs(dy) * 0.5) nudge(0, dy);
   if (hitX) vx = 0;
   if (hitY) vy = 0;
+}
+
+function nudge(dx: number, dy: number) {
+  const step = Math.max(Math.abs(dx), Math.abs(dy));
+  for (let o = 1; o <= 6; o++) {
+    for (const sg of [1, -1]) {
+      const px = dy ? sg * o : 0, py = dx ? sg * o : 0;
+      if (!blockedAt(player.x + dx + px, player.y + dy + py) && !blockedAt(player.x + px, player.y + py)) {
+        player.x += px * Math.min(1, step / 2); player.y += py * Math.min(1, step / 2);
+        return;
+      }
+    }
+  }
 }
 
 /**
@@ -117,9 +192,9 @@ export function updatePlayer(dt: number, axisX: number, axisY: number, run = fal
     if (player.path.length) cancelPath();
     mx /= mag; my /= mag;
     if (analog) {
-      // tilt scales speed; a full tilt is a brisk walk. Only the run button reaches RUN.
-      const tilt = Math.min(1, Math.max(0.3, mag / 0.8));
-      speed = run ? RUN * Math.min(1, Math.max(0.6, mag / 0.5)) : WALK * tilt;
+      // small push = slow walk, ~3/4 push = full walk, full push ramps up to a run
+      const m = Math.min(1, mag);
+      speed = run ? RUN : m <= 0.75 ? WALK * Math.max(0.25, m / 0.75) : WALK + (RUN - WALK) * ((m - 0.75) / 0.25);
     } else speed = run ? RUN : WALK;
   } else if (player.path.length) {
     const tgt = player.path[0];
@@ -134,7 +209,11 @@ export function updatePlayer(dt: number, axisX: number, axisY: number, run = fal
       vx = mx * SPEED; vy = my * SPEED;
       player.moving = true; player.running = false;
       faceMove(mx, my);
+      const bx = player.x, by = player.y;
       tryMove(vx * dt, vy * dt);
+      // wedged against something for a moment: give up cleanly instead of walking in place
+      stuck = Math.hypot(player.x - bx, player.y - by) < SPEED * dt * 0.25 ? stuck + dt : 0;
+      if (stuck > 0.5) { cancelPath(); player.moving = false; vx = vy = 0; stuck = 0; }
       return;
     }
   }
@@ -143,7 +222,7 @@ export function updatePlayer(dt: number, axisX: number, axisY: number, run = fal
   vy += (my * speed - vy) * k;
   if (!input && Math.hypot(vx, vy) < 4) { vx = vy = 0; }
   player.moving = Math.hypot(vx, vy) > 8;
-  player.running = run && input && Math.hypot(vx, vy) > WALK * 1.15;
+  player.running = input && (analog || run) && Math.hypot(vx, vy) > WALK * 1.15;
   if (input) faceMove(mx, my);
   if (vx || vy) tryMove(vx * dt, vy * dt);
 }
