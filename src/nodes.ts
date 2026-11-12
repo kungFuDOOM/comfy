@@ -8,7 +8,8 @@ import { player } from './player';
 import { bump } from './quests';
 import { skillLevel, skillName, grantXp } from './skills';
 import { state } from './state';
-import { TS } from './world';
+import { noteGathered } from './regions';
+import { TS, areaAt } from './world';
 
 export const tierOf = (n: NodeDef): NodeTier => NODE_KINDS[n.kind][n.tier];
 export const isReady = (n: NodeDef, now = Date.now()) => (state.nodes[n.id] ?? 0) <= now;
@@ -73,6 +74,7 @@ function harvest(n: NodeDef) {
   state.nodes[n.id] = Date.now() + t.respawn * 1000;
   addItem(t.item, qty);
   grantXp(t.skill, t.xp);
+  noteGathered(areaAt(n.x, n.y), n.kind);
   const what = ITEMS[t.item].name;
   if (n.kind === 'fish') toast(`You caught a ${what}! ✿`);
   else toast(`Gathered ${qty > 1 ? qty + ' ' : ''}${what}${qty > 1 ? ' (a lucky bonus!)' : ''} +${t.xp} ${skillName(t.skill)} XP`);

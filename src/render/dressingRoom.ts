@@ -5,7 +5,7 @@
 // inside whatever part of the screen the outfit panel leaves free.
 import * as THREE from 'three';
 import { dressing } from '../dressing';
-import { OUTFITS } from '../data';
+import { lookKey } from '../clothes/types';
 import { cheetahToon, makeToon, PALETTE } from './materials';
 import { Batch, G, makeLabel } from './util';
 import { sharedWorld3D, type Director, type World3D } from './world3d';
@@ -140,10 +140,10 @@ function buildSet() {
   const rx = -3.3, rz = -0.9;
   for (const dz of [-0.55, 0.55]) rack.add(G.cyl(0.035, 0.035, 2.0, 8), PALETTE.gold, { x: rx, y: 1.0, z: rz + dz });
   rack.add(G.cyl(0.03, 0.03, 1.2, 8), PALETTE.gold, { x: rx, y: 1.95, z: rz, rx: Math.PI / 2 });
-  OUTFITS.slice(1, 6).forEach((o, i) => {
+  ['#ffb3cf', '#fff1e0', '#cdb8ff', '#bdeee0', '#ffe27a'].forEach((col, i) => {
     const z = rz - 0.42 + i * 0.21;
     rack.add(G.torus(0.05, 0.012, 10), '#fff4dc', { x: rx, y: 1.92, z, ry: Math.PI / 2 });
-    rack.add(G.lathe([[0.001, 0], [0.24, 0], [0.2, 0.25], [0.11, 0.5], [0.001, 0.52]], 12), o.pattern ? '#f2c9a0' : o.body, { x: rx, y: 1.32, z, s: [0.32, 1, 1] });
+    rack.add(G.lathe([[0.001, 0], [0.24, 0], [0.2, 0.25], [0.11, 0.5], [0.001, 0.52]], 12), col, { x: rx, y: 1.32, z, s: [0.32, 1, 1] });
   });
   // plant in a pink pot, and a little round stool
   rack.add(G.cyl(0.26, 0.2, 0.42, 14), '#ff9ec0', { x: 3.2, y: 0.21, z: -0.9 });
@@ -252,7 +252,7 @@ export function startDressingRoom() {
   const director: Director = {
     stage(f) {
       if (t0 < 0) { t0 = f.t; twirlT = f.t + 0.25; s.burst(f.t + 0.25); } // a little hello twirl as the camera arrives
-      const key = f.outfit.id + '|' + (f.accessory ?? '');
+      const key = lookKey(f.look) + '|' + (f.accessory ?? '');
       if (lastKey && key !== lastKey) startTwirl(f.t);
       lastKey = key;
       if (dressing.twirls !== seen) { seen = dressing.twirls; startTwirl(f.t); }

@@ -20,6 +20,7 @@ const STATION_LABEL: Record<StationId, { icon: string; name: string; sub: string
   boutique: { icon: '🎀', name: 'Boutique + Crafting Table', sub: 'Spot & Bow Boutique' },
   market: { icon: '🛒', name: 'Market', sub: 'Tuppence Cart' },
   grove: { icon: '🏮', name: 'Afterglow Grove', sub: 'Lantern grove' },
+  wardrobe: { icon: '👗', name: 'Home Wardrobe', sub: 'Change outfits' },
   chest: { icon: '📦', name: 'Softkeep Chest', sub: 'Keep your things safe' },
 };
 

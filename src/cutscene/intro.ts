@@ -3,7 +3,8 @@
 // Plays once per save (state.seenIntro). Skippable at any moment.
 import * as THREE from 'three';
 import { setMood, sfx } from '../audio';
-import { currentAccessory, currentOutfit } from '../boutique';
+import { currentAccessory } from '../boutique';
+import { currentLook } from '../wardrobe';
 import { VILLAGERS } from '../data';
 import { initNpcs, npcs, presentNpcs, updateNpcs } from '../npc';
 import { cancelPath, player } from '../player';
@@ -263,7 +264,7 @@ export function startIntroCutscene(onDone?: () => void, opts: IntroOptions = {})
     mimsy.moving = mk > 0.02 && mk < 0.98; // (updateNpcs clears it for busy villagers)
     world.render({
       t, dt, hour: getClock().hour, season: getClock().season,
-      player: fake, outfit: currentOutfit(), accessory: currentAccessory(), npcs: presentNpcs(), talkedToday: (id) => id !== 'mimsy' || !mimsyAlert,
+      player: fake, look: currentLook(), accessory: currentAccessory(), npcs: presentNpcs(), talkedToday: (id) => id !== 'mimsy' || !mimsyAlert,
     });
 
     if ((outroAt >= 0 && tt - outroAt >= OUTRO_LEN) || (skipAt >= 0 && tt - skipAt >= SKIP_FADE)) finish();
