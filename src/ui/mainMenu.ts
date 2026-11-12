@@ -2,6 +2,7 @@
 // The menu keeps its own selected index; pointer and keyboard work out of the box, and the exported
 // menuNavigate / menuConfirm / menuBack let the input layer drive it from a gamepad or touch buttons.
 import './scenes.css';
+import { audioReady, setMood, sfx } from '../audio';
 import { glyphEl } from '../input/prompts';
 import { startMenuScene, stopMenuScene, type MenuSceneOptions } from '../render/menuScene';
 import { hasSave } from '../save';
@@ -90,6 +91,7 @@ interface Open {
   actions: MainMenuActions;
   sel: MenuItemId;
   releaseKeys: (() => void) | null;
+  sndTimer: number;
 }
 let open: Open | null = null;
 
@@ -102,9 +104,12 @@ export function menuItems(): MenuItemId[] {
 /** Selected index into menuItems(). */
 export const menuSelected = () => (open ? menuItems().indexOf(open.sel) : -1);
 
+let lastSelId: MenuItemId | null = null;
 function paintSel() {
   if (!open) return;
   for (const [id, b] of open.buttons) b.classList.toggle('sel', id === open.sel);
+  if (lastSelId !== null && lastSelId !== open.sel) sfx.tick();
+  lastSelId = open.sel;
 }
 
 /** Select by index (wraps) or id. */
@@ -141,6 +146,7 @@ export function menuConfirm() {
   b.classList.remove('press');
   void b.offsetWidth;
   b.classList.add('press');
+  sfx.confirm();
   run(open.sel);
 }
 
@@ -168,6 +174,7 @@ export function startMainMenu(opts: MainMenuOptions = {}) {
   const showContinue = opts.showContinue ?? hasSave();
   if (open) { setMenuActions(opts); setContinueVisible(showContinue); return; }
   startMenuScene({ hour: opts.hour });
+  setMood('menu');
 
   const buttons = new Map<MenuItemId, HTMLButtonElement>();
   const list = h('div', 'mm-list');
@@ -182,15 +189,18 @@ export function startMainMenu(opts: MainMenuOptions = {}) {
   });
   const hints = h('div', 'mm-hints',
     h('span', 'pf-item', glyphEl('move'), 'Choose'), h('span', 'pf-item', glyphEl('interact'), 'Select'));
+  // browsers keep sound off until the first tap / key / button press: say so, then step aside
+  const snd = h('span', 'mm-snd', '♪ Tap or press a key for music');
+  const sndTimer = window.setInterval(() => { if (audioReady()) { snd.hidden = true; clearInterval(sndTimer); } }, 300);
   const root = h('div', 'mm',
     h('div', 'mm-veil'),
     h('div', 'mm-col', hushbellLogo(), list),
-    h('div', 'mm-foot', hints, h('span', 'mm-ver', 'Sugarlily Isle · v0.1')),
+    h('div', 'mm-foot', hints, snd, h('span', 'mm-ver', 'Sugarlily Isle · v0.1')),
   );
   document.getElementById('ui')!.append(root);
 
   const { onNewGame, onContinue, onSettings, onCredits } = opts;
-  open = { root, buttons, actions: { onNewGame, onContinue, onSettings, onCredits }, sel: showContinue ? 'continue' : 'new', releaseKeys: null };
+  open = { root, buttons, actions: { onNewGame, onContinue, onSettings, onCredits }, sel: showContinue ? 'continue' : 'new', releaseKeys: null, sndTimer };
   setContinueVisible(showContinue);
   if (opts.keys !== false) {
     open.releaseKeys = captureSceneKeys((k) => {
@@ -206,7 +216,9 @@ export function stopMainMenu() {
   if (!open) return;
   if (isPanelOpen()) closePanel();
   open.releaseKeys?.();
+  clearInterval(open.sndTimer);
   open.root.remove();
   open = null;
+  lastSelId = null;
   stopMenuScene();
 }

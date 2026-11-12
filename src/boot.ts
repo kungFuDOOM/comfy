@@ -1,6 +1,8 @@
 // Title flow: main menu -> (New Game -> intro cutscene) -> gameplay. Continue skips the intro.
 import { shouldPlayIntro, startIntroCutscene } from './cutscene/intro';
-import { startGame } from './game';
+import { bus } from './bus';
+import { persist, startGame } from './game';
+import { closePanel } from './ui/dom';
 import { hasSave, newGame } from './save';
 import { fadeTo, setFade } from './ui/fade';
 import { startMainMenu, stopMainMenu } from './ui/mainMenu';
@@ -15,6 +17,19 @@ async function leave(next: () => void) {
   next();
   leaving = false;
 }
+
+/** Pause menu -> "Back to title": keep the save, fade out, show the main menu again. Continue resumes without the intro. */
+let returning = false;
+async function backToTitle() {
+  if (returning || leaving) return;
+  returning = true;
+  persist();
+  await fadeTo(1, 450);
+  closePanel();
+  returning = false;
+  bootWithMenu();
+}
+bus.on('toTitle', () => void backToTitle());
 
 export function bootWithMenu() {
   // open softly: hold the blush cover for the first couple of frames while shaders warm up

@@ -90,7 +90,7 @@ export const OUTFITS: OutfitDef[] = [
 ];
 
 // --- Villagers ---
-export type Species = 'dormouse' | 'cheetah' | 'hedgehog' | 'owl';
+export type Species = 'dormouse' | 'hamster' | 'hedgehog' | 'bunny';
 export interface VillagerDef {
   id: string;
   name: string;
@@ -102,6 +102,8 @@ export interface VillagerDef {
   likes: string[];
   home: { x: number; y: number };
   radius: number;
+  /** Day phases this villager is around for; omitted = always. */
+  phases?: ('morning' | 'day' | 'evening' | 'night')[];
   bio: string;
   lines: [string[], string[], string[]]; // by friendship tier
   phase: Record<'morning' | 'day' | 'evening' | 'night', string>;
@@ -130,7 +132,7 @@ export const VILLAGERS: VillagerDef[] = [
     loved: 'A Pink Puff Latte?! My heart just did a little tumble!', liked: 'For me? Squee! This is so sweet.', meh: 'Aww, thank you. I will put it somewhere soft.',
   },
   {
-    id: 'zuzu', name: 'Dottie Spotwhisk', species: 'cheetah', speciesName: 'Cheetah-spotted Hamster',
+    id: 'zuzu', name: 'Dottie Spotwhisk', species: 'hamster', speciesName: 'Cheetah-spotted Hamster',
     personality: 'Hat-opinionated boutique boss', color: '#fbe0ae', accent: '#7a4a3a',
     likes: ['spot_mocha', 'moth'], home: { x: 37, y: 15 }, radius: 2.5,
     bio: 'Runs the Spot & Bow Boutique and has strong opinions about hats. Believes every day deserves a runway.',
@@ -166,9 +168,9 @@ export const VILLAGERS: VillagerDef[] = [
     loved: '...That is my favorite. Do not look at my face right now.', liked: 'Oh. Hm. That is nice. Thanks.', meh: 'It\'s fine. I will find a spot for it. Thanks.',
   },
   {
-    id: 'nimbus', name: 'Nimbus Hollowell', species: 'owl', speciesName: 'Fog-puff Bunny',
+    id: 'nimbus', name: 'Nimbus Hollowell', species: 'bunny', speciesName: 'Fog-puff Bunny',
     personality: 'Gentle dusk-time listener', color: '#d9ccf5', accent: '#ffd36e',
-    likes: ['button', 'honey_cap'], home: { x: 44, y: 11 }, radius: 1.5,
+    likes: ['button', 'honey_cap'], home: { x: 44, y: 11 }, radius: 1.5, phases: ['evening', 'night'],
     bio: 'A fog-puff bunny who only appears at dusk, keeps the Afterglow Grove, and loves to hear about your day.',
     lines: [
       ['Oh, hello. I only drift in at dusk. Tell me about your day?', 'Each lantern remembers the moment it was born.'],

@@ -49,7 +49,7 @@ body.scene .toasts { top: max(14px, env(safe-area-inset-top)); }
 .mm-label { flex: 1; text-shadow: 0 2px 0 rgba(150, 40, 90, 0.38); position: relative; z-index: 1; }
 .mm-paw { font-size: 17px; opacity: 0; transform: scale(0.3); transition: opacity 0.14s, transform 0.2s cubic-bezier(0.3, 1.8, 0.5, 1); text-shadow: 0 2px 0 rgba(150, 40, 90, 0.3); position: relative; z-index: 1; }
 /* quieter frames for the secondary entries */
-.mm-settings, .mm-credits { --a: #fffdfb; --b: #ffeef4; --edge: #f5a3c2; --deep: #eb8fb3; --ink: #c04d7e; height: 50px; font-size: 18px; }
+.mm-settings, .mm-credits { --a: #fffdfb; --b: #ffeef4; --edge: #f5a3c2; --deep: #eb8fb3; --ink: #c04d7e; height: 54px; font-size: 19px; }
 .mm-settings .mm-label, .mm-credits .mm-label { text-shadow: none; }
 .mm-settings .mm-ico, .mm-credits .mm-ico { background: #ffe3ee; width: 34px; height: 34px; }
 .mm-settings::before, .mm-credits::before { border-color: rgba(245, 163, 194, 0.7); }
@@ -160,3 +160,48 @@ body.input-touch .mm-hints, body:not(.input-keyboard):not(.input-gamepad) .mm-hi
 }
 /* help cards reorder themselves (styles.css); keep the closing row last */
 .panel-body > .row.end { order: 20; }
+
+/* ================= Pause menu + sound hint ================= */
+.pause-list { display: flex; flex-direction: column; gap: 10px; margin: 8px auto 2px; width: min(300px, 100%); padding: 4px 2px 2px; }
+.btn.pause-btn { min-height: 52px; font-size: 18px; border-radius: 999px; justify-content: center; border: 3px solid #fff; box-shadow: 0 0 0 3px #f5a3c2, 0 6px 0 #e0709a; }
+.btn.pause-btn.primary { background: linear-gradient(#ffc2da, #f585b1); color: #fff; text-shadow: 0 2px 0 rgba(150, 40, 90, 0.35); }
+.btn.pause-btn.ghost { background: #fff; color: var(--pink-ink); text-shadow: none; box-shadow: 0 0 0 3px #ffd6e6, 0 6px 0 #f3b4cc; }
+.btn.pause-btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.03); }
+.btn.pause-btn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0 0 3px #f5a3c2, 0 2px 0 #e0709a; }
+.btn.pause-btn.ghost:active:not(:disabled) { box-shadow: 0 0 0 3px #ffd6e6, 0 2px 0 #f3b4cc; }
+
+/* Settings and confirm actions share the same sticker pill as the pause menu. */
+.panel .btn:not(.close):not(.small):not(.tab):not(.vol-step) {
+  border-radius: 999px; min-height: 46px; padding: 8px 18px; border: 3px solid #fff;
+  box-shadow: 0 0 0 2.5px #f5a3c2, 0 4px 0 #e0709a;
+}
+.panel .btn.ghost:not(.close):not(.small):not(.vol-step) {
+  background: #fff; color: var(--pink-ink); text-shadow: none;
+  box-shadow: 0 0 0 2.5px #ffd6e6, 0 4px 0 #f3b4cc;
+}
+.panel .btn:not(.close):not(.small):not(.tab):not(.vol-step):hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.03); }
+.panel .btn:not(.close):not(.small):not(.tab):not(.vol-step):active:not(:disabled) { transform: translateY(3px); }
+
+.set-card { padding: 16px 16px 14px; gap: 14px; }
+.set-title { font-size: 18px; }
+.vol-row { gap: 10px; }
+
+@media (max-width: 420px) {
+  .mm { padding-bottom: calc(118px + env(safe-area-inset-bottom)); }
+  .logo-tag { white-space: normal; text-align: center; max-width: 92%; line-height: 1.35; }
+  .mm-list { width: min(310px, 100%); gap: 10px; }
+  .mm-btn { height: 52px; font-size: 18px; }
+  .mm-settings, .mm-credits { height: 48px; font-size: 16px; }
+  .mm-foot { font-size: 11px; gap: 6px 8px; flex-wrap: wrap; justify-content: center; }
+  .mm-snd { flex-basis: 100%; text-align: center; }
+  .panel { border-radius: 22px; }
+  .panel-head { padding: 12px 48px 8px 14px; }
+  .panel-title { font-size: 18px; }
+  .panel-body { padding: 12px 14px 14px; gap: 12px; }
+  .pause-list { width: 100%; gap: 10px; }
+  .btn.pause-btn { min-height: 48px; font-size: 17px; }
+  .set-card { padding: 12px; gap: 12px; }
+  .btn.vol-step { width: 44px; height: 44px; }
+}
+.mm-snd { padding: 4px 12px; border-radius: 999px; background: rgba(255, 248, 243, 0.86); border: 2px solid #ffd6e6; color: var(--pink-ink); animation: twinkle 2.4s ease-in-out infinite; }
+.mm-snd[hidden] { display: none; }

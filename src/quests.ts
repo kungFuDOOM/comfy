@@ -1,3 +1,4 @@
+import { sfx } from './audio';
 import { QUESTS, ITEMS, type QuestDef } from './data';
 import { changed, toast } from './bus';
 import { addItem, earn } from './inventory';
@@ -19,6 +20,7 @@ function complete(q: QuestDef) {
     addItem(q.rewardItem);
     extra = ` + ${ITEMS[q.rewardItem].name}`;
   }
+  sfx.quest();
   toast(`Quest complete: ${q.title}! +${q.reward} pips${extra}`);
 }
 
