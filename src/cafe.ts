@@ -1,4 +1,4 @@
-// Workbenches: the café counter (brew), café oven (bake) and boutique worktable (craft) share one short timer.
+// Workbenches: the café counter (brew), café oven (bake) and Crafting Table (craft) share one short timer.
 import { sfx } from './audio';
 import { RECIPES, ITEMS, type Recipe } from './data';
 import { changed, toast } from './bus';

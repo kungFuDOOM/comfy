@@ -126,7 +126,7 @@ const BENCH_VERB: Record<Bench, string> = { brew: 'Brew', bake: 'Bake', craft: '
 const BENCH_INTRO: Record<Bench, string> = {
   brew: 'Brew a drink, then offer it to a friend — serving a cup is a lovely moment.',
   bake: 'Warm treats from the café oven. Berries and blossoms from the meadow work wonders.',
-  craft: 'Make small handmade accessories at the worktable. Sell them, or keep them close.',
+  craft: 'Make small handmade accessories at the Crafting Table. Sell them, or keep them close.',
 };
 
 /** Recipe cards for one bench (locked ones stay visible but greyed), plus the shared timer bar. */
@@ -324,7 +324,7 @@ function dressingView(body: HTMLElement, api: PanelApi, mode: 'shop' | 'wardrobe
     list.append(tile);
   }
   body.append(list);
-  // accessories: handmade at the boutique worktable, worn as a small visible clip on the head
+  // accessories: handmade at the Crafting Table, worn as a small visible clip on the head
   const accs = ownedAccessories(), worn = currentAccessory();
   body.append(h('div', 'sub', 'Hair pins'),
     accs.length ? h('div', 'chips dress-acc', ...accs.map((id) => {
@@ -332,23 +332,29 @@ function dressingView(body: HTMLElement, api: PanelApi, mode: 'shop' | 'wardrobe
       c.title = worn === id ? 'Tap to take it off' : 'Tap to wear it';
       c.addEventListener('click', () => { toggleAccessory(id); api.rerender(); });
       return c;
-    })) : h('div', 'muted small', 'Make a bow clip, seashell charm or petal pin at the worktable (Craft tab) to wear it here.'));
+    })) : h('div', 'muted small', 'Make a bow clip, seashell charm or petal pin at the Crafting Table near the boutique to wear it here.'));
+}
+
+// ---------- Crafting Table (standalone station near the boutique) ----------
+export function openCrafting() {
+  enterPlace('boutique');
+  openPanel('Crafting Table', (body, api) => {
+    recipeList(body, api, 'craft');
+  }, () => leavePlace());
 }
 
 // ---------- Boutique ----------
 export function openBoutique() {
-  let tab: 'outfits' | 'decor' | 'craft' = 'outfits';
+  let tab: 'outfits' | 'decor' = 'outfits';
   const ui = newDressUi();
   enterPlace('boutique');
   openPanel('Spot & Bow Boutique', (body, api) => {
     body.style.setProperty('--cheetah', `url(${cheetahDataUrl('classic')})`);
     body.append(h('div', 'cheetah-band'),
-      h('div', 'tabs', tabBtn('Outfits', tab === 'outfits', () => { tab = 'outfits'; api.rerender(); }), tabBtn('Decor', tab === 'decor', () => { tab = 'decor'; api.rerender(); }), tabBtn('Craft', tab === 'craft', () => { tab = 'craft'; api.rerender(); })));
+      h('div', 'tabs', tabBtn('Outfits', tab === 'outfits', () => { tab = 'outfits'; api.rerender(); }), tabBtn('Decor', tab === 'decor', () => { tab = 'decor'; api.rerender(); })));
     setDressing(body, api, tab === 'outfits');
     if (tab === 'outfits') {
       dressingView(body, api, 'shop', ui);
-    } else if (tab === 'craft') {
-      recipeList(body, api, 'craft');
     } else {
       body.append(h('div', 'muted', 'Decor for your yard. Select it on the hotbar and face a yard tile.'));
       for (const id of SHOP_DECOR) body.append(shopRow(id, ITEMS[id].buy!, () => { if (buyDecor(id)) api.rerender(); }));

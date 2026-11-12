@@ -97,7 +97,7 @@ export const SKILLS: SkillDef[] = [
   { id: 'crafting', name: 'Crafting', icon: '🎀', blurb: 'Making bows, charms and pins by hand.' },
 ];
 
-// --- Recipes (café counter, café oven, boutique worktable) ---
+// --- Recipes (café counter, café oven, Crafting Table) ---
 export type Bench = 'brew' | 'bake' | 'craft';
 export interface Recipe {
   id: string;
@@ -329,7 +329,7 @@ export const QUESTS: QuestDef[] = [
   { id: 'q_forage', title: 'Basket Full', desc: 'Gather 5 things from bushes, patches, beds and shrubs.', stat: 'foraged', goal: 5, reward: 40, loop: 'Foraging' },
   { id: 'q_fish', title: 'First Nibble', desc: 'Catch a fish at the shore.', stat: 'fished', goal: 1, reward: 35, loop: 'Fishing' },
   { id: 'q_bake', title: 'Warm From the Oven', desc: 'Bake a treat at the café oven.', stat: 'baked', goal: 1, reward: 35, loop: 'Baking' },
-  { id: 'q_craft', title: 'Handmade With Love', desc: 'Make an accessory at the boutique worktable.', stat: 'crafted', goal: 1, reward: 35, loop: 'Crafting' },
+  { id: 'q_craft', title: 'Handmade With Love', desc: 'Make an accessory at the Crafting Table.', stat: 'crafted', goal: 1, reward: 35, loop: 'Crafting' },
 ];
 
 // --- Gathering nodes ---

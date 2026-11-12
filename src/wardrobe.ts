@@ -184,7 +184,7 @@ export function howToGet(c: ClothDef): string {
       return `Reward for “${q}”`;
     }
     case 'skill': return `Reach ${skillName(s.skill)} level ${s.level}`;
-    case 'craft': { const r = RECIPES.find((x) => x.id === s.recipe); return `Craft it at the worktable${r ? ` (Crafting level ${r.level})` : ''}`; }
+    case 'craft': { const r = RECIPES.find((x) => x.id === s.recipe); return `Craft it at the Crafting Table${r ? ` (Crafting level ${r.level})` : ''}`; }
     case 'region': return s.area === 'all' ? 'Complete all six regions' : `Complete ${areaById(s.area).name} (Journal › Island)`;
   }
 }
