@@ -1,4 +1,5 @@
 // Gamepad API, standard (Xbox) mapping. Polled once per frame.
+import { unlockAudio } from '../audio';
 import { toast } from '../bus';
 import { isPanelOpen } from '../ui/dom';
 import { navigate, sceneInputActive, trigger, type Action } from './dispatch';
@@ -56,6 +57,7 @@ export function pollGamepad(dt: number) {
 
   const anyInput = btns.some((b, i) => b && !prev[i]) || Math.hypot(ls.x, ls.y) > 0 || Math.hypot(rs.x, rs.y) > 0 || lt > 0 || rt > 0;
   if (anyInput) markInput('gamepad');
+  if (btns.some((b, i) => b && !prev[i])) unlockAudio(); // a pad button press counts as a gesture
 
   const panel = isPanelOpen() || sceneInputActive(); // anything with a focus ring / selection
   runHeld = !panel && btns[B];

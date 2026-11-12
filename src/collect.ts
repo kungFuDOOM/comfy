@@ -1,4 +1,5 @@
 // Collectibles that spawn around the island: shells, ribbon blossoms, steam-moths, starlit buttons.
+import { sfx } from './audio';
 import { circle, ellipse } from './art/draw';
 import { drawItem } from './art/icons';
 import { changed, toast } from './bus';
@@ -75,6 +76,7 @@ export function updateCollect(dt: number, px: number, py: number) {
       state.found[s.item] = (state.found[s.item] ?? 0) + 1;
       const first = state.found[s.item] === 1;
       toast(first ? `New find! ${ITEMS[s.item].name} added to your collection ✿` : `Found a ${ITEMS[s.item].name}`);
+      sfx.pickup();
       bump('collected');
       moment('collect', s.x, s.y);
       changed();
