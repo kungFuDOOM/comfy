@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { chapterOpen, currentChapter, eventProgress, type EventWorld } from '../events';
-import { lightPool } from '../render/materials';
+import { LAMP_HDR, lightPool, markOwned } from '../render/materials';
 import { heightAtUnits } from '../render/terrain';
 import { ball, box, cyl, makeLabel, mat } from '../render/util';
 import { FAR_LAMPS, LAMPS, ROAD_POSTS, STALL, TREE, TREE_STEPS } from './twinkleLayout';
@@ -62,6 +62,82 @@ const HEART_SHAPE = (() => {
 })();
 const extrude = (shape: THREE.Shape) => { const g = new THREE.ExtrudeGeometry(shape, { depth: 0.07, bevelEnabled: false }); g.translate(0, 0, -0.035); return g; };
 
+// ---------- soft falling snow, bulb halos and the tree's aura: all animated on the GPU (only uniforms change per frame) ----------
+const SNOW = 420;
+const SNOW_VERT = /* glsl */ `
+attribute vec4 aSeed; // size 0..1, speed 0..1, phase, big fluffy flake 0/1
+uniform float uTime; uniform float uScale; uniform float uGround; uniform float uOpacity; uniform vec3 uBox;
+varying float vA;
+void main() {
+  // the flakes live in a box that follows the spot the camera looks at, and wrap around inside it
+  vec3 fwd = -vec3(viewMatrix[0][2], viewMatrix[1][2], viewMatrix[2][2]);
+  float dist = clamp((cameraPosition.y - uGround) / max(0.15, -fwd.y), 4.0, 34.0);
+  vec3 c = cameraPosition + fwd * dist;
+  c.y += uBox.y * 0.5 - 1.0;
+  float ph = aSeed.z;
+  vec3 p = position * uBox;
+  p.y -= uTime * (0.36 + aSeed.y * 0.42 + aSeed.w * 0.14);
+  p.x += uTime * 0.2 + sin(uTime * 0.11 + ph) * 0.9 + sin(uTime * (0.7 + aSeed.x * 0.7) + ph * 3.0) * (0.12 + aSeed.y * 0.3);
+  p.z += uTime * 0.07 + cos(uTime * (0.55 + aSeed.y * 0.6) + ph * 2.0) * (0.12 + aSeed.x * 0.25);
+  vec3 rel = mod(p - c + uBox * 0.5, uBox) - uBox * 0.5;
+  vec4 mv = viewMatrix * vec4(c + rel, 1.0);
+  gl_Position = projectionMatrix * mv;
+  float size = mix(0.05, 0.115, aSeed.x * aSeed.x) + aSeed.w * 0.1;
+  gl_PointSize = clamp(size * uScale / max(0.1, -mv.z), 1.5, max(2.0, uScale * 0.035));
+  vec3 e = 1.0 - abs(rel) / (uBox * 0.5);
+  float edge = smoothstep(0.0, 0.18, e.x) * smoothstep(0.0, 0.18, e.z) * smoothstep(0.0, 0.12, e.y);
+  vA = edge * smoothstep(1.0, 3.5, -mv.z) * mix(0.9, 0.5, aSeed.w) * (0.82 + 0.18 * sin(uTime * 1.7 + ph * 5.0)) * uOpacity;
+}`;
+const SNOW_FRAG = /* glsl */ `
+uniform vec3 uColor; varying float vA;
+void main() {
+  float d = length(gl_PointCoord - 0.5) * 2.0;
+  float a = smoothstep(1.0, 0.25, d) * vA;
+  if (a < 0.004) discard;
+  gl_FragColor = vec4(uColor, a);
+}`;
+const HALO_VERT = /* glsl */ `
+attribute vec3 aColor; attribute float aSize; attribute float aPhase;
+uniform float uTime; uniform float uScale; uniform float uGlow;
+varying float vA; varying vec3 vC;
+void main() {
+  vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  gl_Position = projectionMatrix * mv;
+  // the same beat the bulbs swell on, plus a rare little sparkle
+  float tw = max(0.0, sin(uTime * 2.3 + aPhase));
+  float spark = pow(max(0.0, sin(uTime * 0.9 + aPhase * 7.0)), 24.0);
+  gl_PointSize = min(aSize * (0.78 + 0.3 * tw + 0.35 * spark) * uScale / max(0.1, -mv.z), 256.0);
+  vA = uGlow * (0.42 + 0.48 * tw + 0.5 * spark); vC = aColor;
+}`;
+const HALO_FRAG = /* glsl */ `
+varying float vA; varying vec3 vC;
+void main() {
+  float g = max(0.0, 1.0 - length(gl_PointCoord - 0.5) * 2.0);
+  float a = g * g * vA;
+  if (a < 0.003) discard;
+  gl_FragColor = vec4(vC, a);
+}`;
+const AURA_VERT = /* glsl */ `
+uniform vec2 uSize; varying vec2 vUv;
+void main() {
+  vUv = uv;
+  vec4 mv = modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+  mv.xy += position.xy * uSize; // always faces the camera
+  mv.z += 1.1;                  // sits just in front of the branches so the glow washes over them
+  gl_Position = projectionMatrix * mv;
+}`;
+const AURA_FRAG = /* glsl */ `
+uniform vec3 uColor; uniform float uGlow; varying vec2 vUv;
+void main() {
+  float g = max(0.0, 1.0 - length(vUv - 0.5) * 2.0);
+  gl_FragColor = vec4(uColor, g * g * (3.0 - 2.0 * g) * uGlow);
+}`;
+/** Keeps a point cloud's sizes in world units whatever the buffer size (no allocations). */
+function pointScale(this: THREE.Points, renderer: THREE.WebGLRenderer, _s: THREE.Scene, camera: THREE.Camera) {
+  const h = renderer.getRenderTarget()?.height ?? renderer.domElement.height;
+  (this.material as THREE.ShaderMaterial).uniforms.uScale.value = h * 0.5 * camera.projectionMatrix.elements[5];
+}
+
 export function createTwinkleWorld(): EventWorld {
   // animated bits, rebuilt on every build()
   interface Bulb { m: THREE.InstancedMesh; i: number; x: number; y: number; z: number; ph: number; sc: number }
@@ -70,6 +146,9 @@ export function createTwinkleWorld(): EventWorld {
   let sparkles: { m: THREE.InstancedMesh; i: number; x: number; y: number; z: number; ph: number; r: number }[] = [];
   let topper: THREE.Object3D | null = null;
   let lastTick = -1;
+  let snowMat: THREE.ShaderMaterial | null = null, haloMat: THREE.ShaderMaterial | null = null, auraMat: THREE.ShaderMaterial | null = null;
+  let nightRef: THREE.MeshToonMaterial | null = null; // any 'lamp' material: its emissive strength tells how dark it is
+  let auraBase = 0;
 
   const picks = () => {
     const c = eventProgress('twinkle').counters;
@@ -84,6 +163,7 @@ export function createTwinkleWorld(): EventWorld {
       root.name = 'event-twinkle';
       const r = rng(1224);
       bulbs = []; bulbMeshes = []; pools = []; sparkles = []; topper = null; lastTick = -1;
+      snowMat = haloMat = auraMat = null; nightRef = null; auraBase = 0;
       const [garland, baubles, glow] = picks();
       const wk3 = chapterOpen('twinkle', 'wk3'), wk4 = chapterOpen('twinkle', 'wk4');
       const finale = ['eve', 'day'].includes(currentChapter('twinkle')?.id ?? '');
@@ -91,11 +171,22 @@ export function createTwinkleWorld(): EventWorld {
       // ---------- twinkle bulbs: one instanced mesh per colour ----------
       const bulbGeo = new THREE.SphereGeometry(0.055, 8, 6);
       const bulbSets = BULB.map((b) => { const i = instanced(bulbGeo, mat(b.c, b.glow, 'lamp'), 150, false); bulbMeshes.push(i.mesh); return i; });
+      nightRef = bulbSets[0].mesh.material as THREE.MeshToonMaterial;
+      // every bulb also gets a soft warm halo (one additive point cloud for all of them)
+      const haloPos: number[] = [], haloCol: number[] = [], haloSize: number[] = [], haloPh: number[] = [];
+      const WARM = new THREE.Color('#ffd2a0');
+      const addHalo = (x: number, y: number, z: number, color: string, size: number, ph: number) => {
+        col.set(color).lerp(WARM, 0.35);
+        haloPos.push(x, y, z); haloCol.push(col.r, col.g, col.b); haloSize.push(size); haloPh.push(ph);
+      };
       let bn = 0;
       const addBulb = (p: THREE.Vector3, sc = 1) => {
         const k = bn++ % bulbSets.length, set = bulbSets[k];
         const i = set.add(p.x, p.y, p.z, [sc, sc, sc]);
-        if (i >= 0) bulbs.push({ m: set.mesh, i, x: p.x, y: p.y, z: p.z, ph: r() * 6.3, sc });
+        if (i < 0) return;
+        const ph = r() * 6.3;
+        bulbs.push({ m: set.mesh, i, x: p.x, y: p.y, z: p.z, ph, sc });
+        addHalo(p.x, p.y, p.z, BULB[k].glow, 0.42 * sc, ph);
       };
 
       // ---------- strings of lights ----------
@@ -215,6 +306,19 @@ export function createTwinkleWorld(): EventWorld {
         tree.add(g);
       });
       root.add(tree);
+      // a halo around the topper, and a big soft aura over the tree that grows with every decorating step
+      if (glow) addHalo(TREE.x, ty + tipY + 0.08, TREE.z, ['#ffd95e', '#ff8fb6', '#e8f0ff'][glow - 1], finale ? 1.5 : 1.15, 1.0);
+      const steps = (garland ? 1 : 0) + (baubles ? 1 : 0) + (glow ? 1 : 0);
+      if (steps) {
+        auraBase = (finale ? 0.3 : 0.2) * (steps / 3);
+        auraMat = markOwned(new THREE.ShaderMaterial({
+          vertexShader: AURA_VERT, fragmentShader: AURA_FRAG, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+          uniforms: { uColor: { value: new THREE.Color(finale ? '#ffcf8a' : '#ffc9a8') }, uGlow: { value: 0 }, uSize: { value: new THREE.Vector2(finale ? 5.4 : 4.4, finale ? 6.6 : 5.6) } },
+        }));
+        const aura = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), auraMat);
+        aura.position.set(TREE.x, ty + 1.75, TREE.z); aura.frustumCulled = false; aura.renderOrder = 4;
+        root.add(aura);
+      }
       // warm glow once the tree is fully decorated, brighter for the finale
       if (garland && baubles && glow) {
         const p = lightPool(finale ? 6.4 : 4.4, finale ? 6.4 : 4.4, finale ? '#ffd9a0' : '#ffd0c0', finale ? 0.34 : 0.26);
@@ -260,10 +364,50 @@ export function createTwinkleWorld(): EventWorld {
       }
 
       for (const b of bulbSets) { b.done(); root.add(b.mesh); }
+
+      // ---------- bulb halos ----------
+      const haloGeo = new THREE.BufferGeometry();
+      haloGeo.setAttribute('position', new THREE.Float32BufferAttribute(haloPos, 3));
+      haloGeo.setAttribute('aColor', new THREE.Float32BufferAttribute(haloCol, 3));
+      haloGeo.setAttribute('aSize', new THREE.Float32BufferAttribute(haloSize, 1));
+      haloGeo.setAttribute('aPhase', new THREE.Float32BufferAttribute(haloPh, 1));
+      haloMat = markOwned(new THREE.ShaderMaterial({
+        vertexShader: HALO_VERT, fragmentShader: HALO_FRAG, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+        uniforms: { uTime: { value: 0 }, uScale: { value: 500 }, uGlow: { value: 0 } },
+      }));
+      const halos = new THREE.Points(haloGeo, haloMat);
+      halos.frustumCulled = false; halos.renderOrder = 4; halos.onBeforeRender = pointScale;
+      root.add(halos);
+
+      // ---------- falling snow: fluffy flakes of many sizes, drifting and swaying on the breeze ----------
+      const seed = new Float32Array(SNOW * 3), extra = new Float32Array(SNOW * 4);
+      for (let i = 0; i < SNOW; i++) {
+        seed[i * 3] = r(); seed[i * 3 + 1] = r(); seed[i * 3 + 2] = r();
+        extra[i * 4] = r(); extra[i * 4 + 1] = r(); extra[i * 4 + 2] = r() * 6.3; extra[i * 4 + 3] = r() < 0.09 ? 1 : 0;
+      }
+      const snowGeo = new THREE.BufferGeometry();
+      snowGeo.setAttribute('position', new THREE.BufferAttribute(seed, 3));
+      snowGeo.setAttribute('aSeed', new THREE.BufferAttribute(extra, 4));
+      snowMat = markOwned(new THREE.ShaderMaterial({
+        vertexShader: SNOW_VERT, fragmentShader: SNOW_FRAG, transparent: true, depthWrite: false,
+        uniforms: { uTime: { value: 0 }, uScale: { value: 500 }, uGround: { value: ty }, uOpacity: { value: 0.9 }, uBox: { value: new THREE.Vector3(30, 9, 26) }, uColor: { value: new THREE.Color('#ffffff') } },
+      }));
+      const snow = new THREE.Points(snowGeo, snowMat);
+      snow.frustumCulled = false; snow.renderOrder = 5; snow.onBeforeRender = pointScale;
+      root.add(snow);
       return root;
     },
 
     update(t) {
+      // how dark it is (0 day .. 1 night), read back from the lamp glow the lighting rig already drives
+      const night = nightRef ? Math.min(1, nightRef.emissiveIntensity / LAMP_HDR) : 0;
+      if (snowMat) {
+        const u = snowMat.uniforms;
+        u.uTime.value = t; u.uOpacity.value = 0.92 - night * 0.22;
+        (u.uColor.value as THREE.Color).setRGB(1 - night * 0.36, 1 - night * 0.3, 1 - night * 0.12); // moonlit blue at night
+      }
+      if (haloMat) { haloMat.uniforms.uTime.value = t; haloMat.uniforms.uGlow.value = 0.1 + night * 0.62; }
+      if (auraMat) auraMat.uniforms.uGlow.value = auraBase * (0.12 + night * 0.88) * (1 + Math.sin(t * 0.9) * 0.06);
       // bulbs twinkle: each swells and shrinks on its own beat (~15 updates a second is plenty)
       if (t - lastTick > 0.066 || t < lastTick) {
         lastTick = t;

@@ -10,7 +10,7 @@ export interface EventLayer { group: THREE.Group; update(t: number): void }
 function dispose(o: THREE.Object3D) {
   o.traverse((m) => {
     const mesh = m as THREE.Mesh;
-    if (mesh.isMesh) {
+    if (mesh.isMesh || (m as THREE.Points).isPoints) { // meshes and point clouds (snow, light halos)
       // the decal plane is shared by every light pool and contact shadow on the island: never free it
       if (mesh.geometry !== contactGeometry) mesh.geometry?.dispose();
       if ((mesh as THREE.InstancedMesh).isInstancedMesh) (mesh as THREE.InstancedMesh).dispose();
