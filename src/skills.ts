@@ -1,6 +1,5 @@
 // Soft skills: total XP is stored, the level is derived from it so the two can never drift apart.
-import { sfx } from './audio';
-import { changed, toast } from './bus';
+import { bus, changed } from './bus';
 import { SKILLS, type SkillId } from './data';
 import { state } from './state';
 
@@ -33,15 +32,14 @@ export function skillProgress(id: SkillId): SkillProgress {
 
 export const skillName = (id: SkillId) => SKILLS.find((s) => s.id === id)!.name;
 
-/** The one way XP is earned. Toasts and plays a sting on level-up. */
+/** The one way XP is earned. A level-up raises the sparkle popup (ui/levelUp.ts), which plays the sting. */
 export function grantXp(id: SkillId, amount: number) {
   if (amount <= 0) return;
   const before = skillLevel(id);
   state.skills[id] = skillXp(id) + amount;
   const after = skillLevel(id);
   if (after > before) {
-    toast(`${skillName(id)} level ${after}! ✿ Something new might be within reach.`);
-    sfx.levelUp();
+    bus.emit('levelup', { id, level: after, gained: after - before });
   }
   changed();
 }

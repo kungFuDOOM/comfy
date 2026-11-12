@@ -294,17 +294,23 @@ export function openJournal(start = 'quests') {
   openPanel('Journal', (body, api) => {
     const t = (id: string, label: string) => tabBtn(label, tab === id, () => { tab = id; api.rerender(); });
     body.append(h('div', 'tabs', t('quests', 'Quests'), t('skills', 'Skills'), t('collection', 'Collection'), t('friends', 'Friends'), t('lanterns', 'Lanterns')));
+    // the card widens / goes two-column for skills on phones (scenes.css); other tabs keep their usual size
+    body.parentElement?.classList.toggle('skills-open', tab === 'skills');
     if (tab === 'skills') {
-      body.append(h('div', 'muted', 'Everything you do around the island quietly grows a skill. No rush — there is no losing here.'));
+      body.append(h('div', 'muted skills-intro', 'Everything you do around the island quietly grows a skill. No rush — there is no losing here.'));
+      const list = h('div', 'skills-list');
       for (const sk of SKILLS) {
         const p = skillProgress(sk.id);
         const bar = h('div', 'bar', h('div', 'fill'));
         (bar.firstChild as HTMLElement).style.width = `${p.maxed ? 100 : Math.round((p.into / p.need) * 100)}%`;
-        body.append(h('div', 'card skill-card',
+        list.append(h('div', 'card skill-card',
           h('div', 'skill-icon', sk.icon),
-          h('div', 'grow', h('b', '', `${sk.name} · Level ${p.level}`), h('div', 'muted', sk.blurb), bar,
-            h('div', 'muted small', p.maxed ? 'Fully bloomed ✿' : `${p.into} / ${p.need} XP to level ${p.level + 1}`))));
+          h('div', 'grow',
+            h('div', 'skill-head', h('span', 'skill-name', sk.name), h('span', 'skill-lvl', `Lv ${p.level}`)),
+            h('div', 'muted skill-blurb', sk.blurb), bar,
+            h('div', 'muted small skill-xp', p.maxed ? 'Fully bloomed ✿' : `${p.into} / ${p.need} XP to Lv ${p.level + 1}`))));
       }
+      body.append(list);
     } else if (tab === 'quests') {
       for (const q of LOG_QUESTS) {
         const st = questStatus(q);
