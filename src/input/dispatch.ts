@@ -3,7 +3,7 @@
 import { closePanel, isPanelOpen } from '../ui/dom';
 import { confirmFocus, cycleTab, moveFocus, type Dir } from '../ui/focus';
 
-export type Action = 'interact' | 'tool' | 'cancel' | 'bag' | 'journal' | 'lantern' | 'help' | 'menu' | 'hotbarPrev' | 'hotbarNext' | 'camReset';
+export type Action = 'interact' | 'tool' | 'cancel' | 'bag' | 'journal' | 'skills' | 'lantern' | 'help' | 'menu' | 'hotbarPrev' | 'hotbarNext' | 'camReset';
 
 export interface Handlers {
   interact(): void;
@@ -54,6 +54,7 @@ export function trigger(a: Action) {
     case 'bag': H.bag(); break;
     case 'journal': H.journal('quests'); break;
     case 'menu': H.pause(); break;
+    case 'skills': H.journal('skills'); break;
     case 'lantern': H.journal('lanterns'); break;
     case 'help': H.help(); break;
     case 'hotbarPrev': H.hotbarStep(-1); break;

@@ -8,6 +8,7 @@ import { AREAS, GROVE, TS } from '../world';
 import { contactShadow, PALETTE, toon } from './materials';
 import { ball, box, cyl, mat } from './util';
 import { tileHeight } from './terrain';
+import { createNodeLayer } from './nodes3d';
 
 const SPAWN_COLOR: Record<string, string> = { shell: '#ffe0d0', blossom: '#ff9ec0', moth: '#fff3a8', button: '#ffffff' };
 
@@ -42,6 +43,10 @@ export interface Dynamic { group: THREE.Group; update(t: number): void }
 export function createDynamic(): Dynamic {
   const group = new THREE.Group();
 
+  // gathering nodes
+  const nodeLayer = createNodeLayer();
+  group.add(nodeLayer.group);
+
   // garden plots
   const plotMeshes = new Map<string, { sig: string; obj: THREE.Group }>();
   const gp = AREAS.garden;
@@ -70,6 +75,7 @@ export function createDynamic(): Dynamic {
     group,
     update(t) {
       const now = Date.now();
+      nodeLayer.update(t);
       // plots
       const seen = new Set<string>();
       for (let y = gp.y0; y <= gp.y1; y++) for (let x = gp.x0; x <= gp.x1; x++) {

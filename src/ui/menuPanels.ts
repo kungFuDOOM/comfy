@@ -108,6 +108,7 @@ export function openPause() {
       h('div', 'pause-list',
         btn('Resume', () => api.close(), 'pause-btn primary'),
         btn('Journal', () => { api.close(); openJournal(); }, 'pause-btn'),
+        btn('Skills', () => { api.close(); openJournal('skills'); }, 'pause-btn'),
         btn('Settings', () => { openSettings('sound', () => openPause()); }, 'pause-btn'),
         btn('Back to title', () => openConfirmTitle(() => bus.emit('toTitle')), 'pause-btn ghost')),
     );

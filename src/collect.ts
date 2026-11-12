@@ -7,6 +7,7 @@ import { ITEMS } from './data';
 import { addItem } from './inventory';
 import { moment } from './lanterns';
 import { bump } from './quests';
+import { grantXp } from './skills';
 import { state } from './state';
 import { getClock } from './time';
 import { MAP_H, MAP_W, T, TS, inMeadow, isSolidTile, terrainAt } from './world';
@@ -78,6 +79,7 @@ export function updateCollect(dt: number, px: number, py: number) {
       toast(first ? `New find! ${ITEMS[s.item].name} added to your collection ✿` : `Found a ${ITEMS[s.item].name}`);
       sfx.pickup();
       bump('collected');
+      grantXp('foraging', 3);
       moment('collect', s.x, s.y);
       changed();
     }

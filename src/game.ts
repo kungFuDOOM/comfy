@@ -10,7 +10,8 @@ import { glyph, initInput, pollInput, readCamera, readMove } from './input';
 import { updateLanterns } from './lanterns';
 import { initNpcs, npcs, presentNpcs, talkedToday, updateNpcs, type Npc } from './npc';
 import { faceToward, frontTile, placePlayer, player, tileOf, updatePlayer, walkTo, cancelPath } from './player';
-import { selectSlot } from './inventory';
+import { count, selectedItem, selectSlot } from './inventory';
+import { nodeAtTile, nodeCenter, nodeHint, nodeNear, updateNodes, useNode } from './nodes';
 import { changed, toast } from './bus';
 import { sceneActive } from './render/stage';
 import { sharedWorld3D, type World3D } from './render/world3d';
@@ -19,7 +20,7 @@ import { state } from './state';
 import { getClock } from './time';
 import { isPanelOpen } from './ui/dom';
 import { buildHud, setHint, tickHud } from './ui/hud';
-import { openBag, openBoutique, openCafe, openDialogue, openHelp, openJournal, openMarket } from './ui/panels';
+import { openBag, openBoutique, openCafe, openChest, openDialogue, openHelp, openJournal, openMarket } from './ui/panels';
 import { openPause } from './ui/menuPanels';
 import { T, TS, buildWorld, inYard, isPlotTile, isSolidTile, stations, terrainAt, type Station } from './world';
 
@@ -51,6 +52,7 @@ function openStation(s: Station) {
   if (s.id === 'cafe') openCafe();
   else if (s.id === 'boutique') openBoutique();
   else if (s.id === 'market') openMarket();
+  else if (s.id === 'chest') openChest();
   else openJournal('lanterns');
 }
 
@@ -62,11 +64,13 @@ function tileTarget(tx: number, ty: number): Target {
 }
 
 function currentTarget(): Target {
-  const n = npcNear(), s = stationNear();
+  const n = npcNear(), s = stationNear(), nd = nodeNear();
   const dn = n ? Math.hypot(n.x - player.x, n.y - player.y) : Infinity;
   const ds = s ? Math.hypot((s.x + s.w / 2) * TS - player.x, s.y * TS + TS / 2 - (player.y - 8)) - 16 : Infinity;
-  if (n && dn <= ds) return { label: `Chat with ${n.def.name.split(' ')[0]}`, run: () => openDialogue(n.def) };
-  if (s) return { label: `${s.label} — ${s.prompt}`, run: () => openStation(s) };
+  const dd = nd ? Math.hypot(nodeCenter(nd).x - player.x, nodeCenter(nd).y - (player.y - 8)) : Infinity;
+  if (n && dn <= ds && dn <= dd) return { label: `Chat with ${n.def.name.split(' ')[0]}`, run: () => openDialogue(n.def) };
+  if (s && ds <= dd) return { label: `${s.label} — ${s.prompt}`, run: () => openStation(s) };
+  if (nd) return { label: nodeHint(nd), run: () => useNode(nd) };
   const f = frontTile();
   return tileTarget(f.x, f.y);
 }
@@ -106,6 +110,18 @@ function handleClick(sx: number, sy: number) {
     else if (!walkTo(around(tx, ty), go, { x: tx, y: ty })) cancelPath();
     return;
   }
+  // gathering node: walk up (fishing spots sit in the water, so stand on a neighbouring tile) and use it
+  const nd = nodeAtTile(tx, ty);
+  if (nd) {
+    const c = nodeCenter(nd);
+    const go = () => { faceToward(c.x, c.y); useNode(nd); };
+    if (Math.hypot(c.x - player.x, c.y - (player.y - 8)) < 54) go();
+    else {
+      const goals = around(tx, ty).filter((g) => !isSolidTile(g.x, g.y));
+      if (!goals.length || !walkTo(goals, go, { x: tx, y: ty })) cancelPath();
+    }
+    return;
+  }
   // plain walking
   const goals = isSolidTile(tx, ty) ? around(tx, ty) : [{ x: tx, y: ty }];
   walkTo(goals);
@@ -114,6 +130,11 @@ function handleClick(sx: number, sy: number) {
 /** X / "use tool": act on the tile in front of the player with the selected hotbar item. */
 function useTool() {
   const f = frontTile();
+  if (selectedItem() === 'rod') {
+    const nd = nodeAtTile(f.x, f.y) ?? nodeNear();
+    if (nd?.kind === 'fish') { useNode(nd); return; }
+    if (count('rod')) { toast('Face a fishing ripple on the water to cast.'); return; }
+  }
   const t = tileTarget(f.x, f.y);
   if (t) t.run();
   else toast('Face a garden plot or your yard to use this.');
@@ -132,6 +153,7 @@ function update(dt: number) {
   updateDirector(dt);
   updateNpcs(dt);
   updateBrew(dt);
+  updateNodes(dt);
   updateLanterns(dt);
   tickGarden();
   updateCollect(dt, player.x, player.y);
@@ -197,7 +219,7 @@ export function startGame() {
   world3d = sharedWorld3D(canvas);
   world3d.resize();
   window.addEventListener('resize', () => world3d.resize());
-  buildHud({ journal: (tab) => !isPanelOpen() && openJournal(tab), bag: () => !isPanelOpen() && openBag(), help: () => !isPanelOpen() && openHelp() });
+  buildHud({ skills: () => !isPanelOpen() && openJournal('skills'), journal: (tab) => !isPanelOpen() && openJournal(tab), bag: () => !isPanelOpen() && openBag(), help: () => !isPanelOpen() && openHelp() });
   initInput(canvas, {
     interact, tool: useTool, cancel: cancelPath, pause: openPause,
     bag: openBag, journal: openJournal, help: openHelp,
