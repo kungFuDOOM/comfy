@@ -19,12 +19,14 @@ const compile = (id: string) => {
 
 const PHASE_TRACK: Record<Phase, string> = { morning: 'day', day: 'day', evening: 'evening', night: 'night' };
 /** Crossfade seconds when going from one track to another. */
-const FADE = { town: 4, place: 1.2, scene: 2 };
+const FADE = { town: 4, place: 1.6, scene: 2 };
 
 let mood: Mood = 'off';
 let place: Place | null = null;
 let playing: { id: string; player: TrackPlayer } | null = null;
-const dying = new Set<TrackPlayer>();
+/** One player per track, kept for the whole session so a theme resumes instead of restarting at bar 1. */
+const pool = new Map<string, TrackPlayer>();
+const parkTimers = new Map<TrackPlayer, number>();
 let timer = 0;
 let clockT = 0;
 
@@ -42,37 +44,57 @@ function pumpAll() {
   const g = getGraph();
   if (!g) return;
   const until = g.ctx.currentTime + 0.18;
-  if (playing) playing.player.pump(until);
-  dying.forEach((p) => p.pump(until));
+  pool.forEach((p) => p.pump(until));
 }
 
 function ensureTimer() {
   if (!timer) timer = window.setInterval(pumpAll, 30);
 }
 
-function retire(p: TrackPlayer, seconds: number) {
+function clearPark(p: TrackPlayer) {
+  const id = parkTimers.get(p);
+  if (id) { window.clearTimeout(id); parkTimers.delete(p); }
+}
+
+/** Fade a track out, then park it on its current step so the next visit continues. */
+function park(p: TrackPlayer, seconds: number) {
   p.fadeTo(0, seconds);
-  dying.add(p);
-  // never let more than two old tracks linger
-  if (dying.size > 2) { const oldest = dying.values().next().value as TrackPlayer; oldest.stop(); dying.delete(oldest); }
-  window.setTimeout(() => { p.stop(); dying.delete(p); }, seconds * 1000 + 400);
+  clearPark(p);
+  const id = window.setTimeout(() => {
+    parkTimers.delete(p);
+    if (playing?.player !== p) p.suspend();
+  }, seconds * 1000 + 80);
+  parkTimers.set(p, id);
+}
+
+function acquire(g: AudioGraph, id: string): TrackPlayer {
+  let p = pool.get(id);
+  if (!p) {
+    p = new TrackPlayer(g, compile(id), hourNow, g.ctx.currentTime);
+    pool.set(id, p);
+  }
+  return p;
 }
 
 function crossfade(g: AudioGraph, id: string, seconds: number) {
-  if (playing?.id === id) return;
-  const old = playing;
-  const player = new TrackPlayer(g, compile(id), hourNow, g.ctx.currentTime + 0.08);
+  // already this theme: leave the clock alone (the town tick calls this every second)
+  if (playing?.id === id && !playing.player.suspended) return;
+  const old = playing && playing.player !== pool.get(id) ? playing : null;
+  const player = acquire(g, id);
+  clearPark(player);
+  const waking = player.suspended;
+  player.resume(g.ctx.currentTime + 0.06);
   playing = { id, player };
   player.pump(g.ctx.currentTime + 0.18);
-  player.fadeTo(1, old ? seconds : 0.8);
-  if (old) retire(old.player, seconds);
+  player.fadeTo(1, old || !waking ? seconds : 0.8);
+  if (old) park(old.player, seconds);
   ensureTimer();
 }
 
 function apply(seconds: number) {
   whenAudioReady((g) => {
     const want = wanted(); // re-evaluate: the world may have moved on before the first gesture
-    if (!want) { if (playing) { retire(playing.player, seconds); playing = null; } return; }
+    if (!want) { if (playing) { park(playing.player, seconds); playing = null; } return; }
     crossfade(g, want, seconds);
   });
 }
@@ -86,8 +108,9 @@ export function setMood(m: Mood) {
   apply(m === 'town' && wasTown ? FADE.town : FADE.scene);
 }
 
-/** A shop panel opened: its interior theme takes over until leavePlace(). */
+/** A shop panel opened: its interior theme takes over until leavePlace(). Reopening resumes mid-phrase. */
 export function enterPlace(p: Place) {
+  if (place === p) return;
   place = p;
   apply(FADE.place);
 }
