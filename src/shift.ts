@@ -38,7 +38,7 @@ export function pickCustomers(): Customer[] {
 }
 
 export const tipFor = (c: Customer, perfects: number) =>
-  Math.round((ITEMS[c.drink].sell ?? 30) * 0.25) + perfects * 4 + (c.def.likes.includes(c.drink) ? 5 : 0);
+  Math.round((ITEMS[c.drink]?.sell ?? 30) * 0.25) + perfects * 4 + (c.def.likes.includes(c.drink) ? 5 : 0);
 
 export interface ServeResult { tip: number; friend: number; xp: number; text: string; unlocks: string[] }
 
@@ -58,7 +58,8 @@ export function countShift(): string[] {
 
 /** She finished and served this customer's drink. Pays tip, friendship and Barista XP. */
 export function serveCustomer(c: Customer, perfects: number): ServeResult {
-  const r = RECIPES.find((x) => x.id === c.drink)!;
+  const r = RECIPES.find((x) => x.id === c.drink);
+  if (!r) return { tip: 0, friend: 0, xp: 0, text: c.def.liked, unlocks: [] }; // unknown drink id: serve nothing, never crash
   const tip = tipFor(c, perfects);
   const xp = r.xp + perfects * 4;
   const reply = shiftServe(c.def, c.drink, perfects);
@@ -78,7 +79,7 @@ const ORDER_LINES = [
   'One {d}! I have been thinking about it since breakfast.',
   'Ooh, a {d} for me, if the foam is feeling friendly.',
 ];
-export const orderLine = (c: Customer) => ORDER_LINES[(c.def.id.length + c.drink.length) % ORDER_LINES.length].replace('{d}', ITEMS[c.drink].name);
+export const orderLine = (c: Customer) => ORDER_LINES[(c.def.id.length + c.drink.length) % ORDER_LINES.length].replace('{d}', ITEMS[c.drink]?.name ?? 'something cozy');
 export const TIER_QUIP = [
   'Cozy and close. It tastes like a hug anyway.',
   'Sweet! The foam is wearing a little smile.',

@@ -162,8 +162,8 @@ function recipeList(body: HTMLElement, api: PanelApi, bench: Bench) {
   }
 }
 
-export function openCafe() {
-  let tab: 'brew' | 'bake' | 'shifts' | 'pantry' = 'brew';
+export function openCafe(start: 'brew' | 'bake' | 'shifts' | 'pantry' = 'brew') {
+  let tab = start;
   enterPlace('cafe');
   openPanel('Puddle & Pip Café', (body, api) => {
     const t = (id: typeof tab, label: string) => tabBtn(label, tab === id, () => { tab = id; api.rerender(); });
@@ -188,8 +188,8 @@ function shiftsTab(body: HTMLElement) {
     h('div', 'muted', 'Tie on an apron and run the counter! A few friends drop in, one at a time. Make each order with a little timing game: a prettier cup means bigger tips, more hearts and more Barista XP.'),
     h('div', 'card', h('b', '', `Shifts today: ${left} of ${SHIFTS_PER_DAY} left`),
       h('div', 'muted', `The pantry stocks everything for shifts, so your bag stays untouched. Shifts worked so far: ${state.cafe.shifts}.`),
-      h('div', 'muted small', `On the menu: ${menu.map((r) => ITEMS[r.id].name).join(', ')}. More drinks unlock as your Barista level grows.`)),
-    btn(left > 0 ? 'Start a shift ☕' : 'All done for today ☾', () => openShift(), 'shift-go', left <= 0),
+      h('div', 'muted small', `On the menu: ${menu.map((r) => ITEMS[r.id].name).join(', ') || 'nothing yet'}. More drinks unlock as your Barista level grows.`)),
+    btn(left <= 0 ? 'All done for today ☾' : menu.length ? 'Start a shift ☕' : 'Unlock a drink first ☕', () => openShift(() => openCafe('shifts')), 'shift-go', left <= 0 || !menu.length),
   );
 }
 

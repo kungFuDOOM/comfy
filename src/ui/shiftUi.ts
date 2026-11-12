@@ -4,13 +4,13 @@
 import { drawVillager } from '../art/characters';
 import { drawCup } from '../art/shiftCup';
 import { itemIcon } from '../art/icons';
-import { sfx } from '../audio';
+import { enterPlace, leavePlace, sfx } from '../audio';
 import { toast } from '../bus';
 import { ITEMS } from '../data';
-import { SHIFTS_PER_DAY, TIER_QUIP, countShift, orderLine, pickCustomers, serveCustomer, shiftsLeft, type Customer, type ServeResult } from '../shift';
+import { SHIFTS_PER_DAY, TIER_QUIP, countShift, orderLine, orderable, pickCustomers, serveCustomer, shiftsLeft, type Customer, type ServeResult } from '../shift';
 import { skillLevel } from '../skills';
 import { state } from '../state';
-import { btn, h, openPanel, type PanelApi } from './dom';
+import { btn, h, isPanelOpen, openPanel, type PanelApi } from './dom';
 import './shift.css';
 
 type Rating = 'perfect' | 'nice' | 'cozy';
@@ -21,9 +21,13 @@ const STEPS = [
   { name: 'Foam flourish', hint: 'One swirl for a pretty top', press: 'Swirl!', width: 0.24, speed: 1.1 },
 ];
 
-/** Start a shift (the café panel's Shifts tab calls this). */
-export function openShift() {
+/**
+ * Start a shift (the café panel's Shifts tab calls this). `onExit` runs after the window closes, once nothing else has
+ * opened in its place: the café passes "reopen me on the Shifts tab", so Done / ✕ / Back land her at the counter again.
+ */
+export function openShift(onExit?: () => void) {
   if (shiftsLeft() <= 0) { toast('You have worked today\'s shifts. Come back tomorrow ☾'); return; }
+  if (!orderable().length) { toast('Unlock a café drink first ☕'); return; }
   const customers = pickCustomers();
   if (!customers.length) { toast('No customers yet. Make some friends first!'); return; }
   let idx = 0, phase: 'order' | 'make' | 'serve' | 'recap' = 'order', step = 0, ratings: Rating[] = [];
@@ -43,8 +47,12 @@ export function openShift() {
     renderServe(body, api, c);
   }, () => {
     closed = true;
+    leavePlace();
     if (phase !== 'recap' && tot.served > 0) toast(`Closed up early: ${tot.tips} pips in tips ✿`);
+    // deferred: closePanel() may be running inside another openPanel(), which must win
+    if (onExit) setTimeout(() => { if (!isPanelOpen()) onExit(); }, 0);
   });
+  enterPlace('cafe'); // replacing the café window ran its leavePlace(); keep the café music through the shift
 
   function customerHead(c: Customer) {
     const cv = document.createElement('canvas');
@@ -83,7 +91,7 @@ export function openShift() {
     const marker = h('div', 'pie-marker', '♥');
     bar.append(zone, core, marker);
     const noteEl = h('div', 'pie-note', note || s.hint);
-    const press = btn(s.press, () => stop(), 'pie-press');
+    const press = btn(s.press, () => stop(), 'pie-press shift-press');
     const prog = h('div', 'pie-steps', ...STEPS.map((x, i) => h('span', 'pie-step' + (i < step ? ' done' : i === step ? ' now' : ''), i < step ? '✓ ' : '', x.name)));
     body.append(
       h('div', 'muted', `${ITEMS[c.drink].name}: three cozy steps. There is no way to fail, only to be extra pretty.`),
@@ -121,6 +129,7 @@ export function openShift() {
   }
 
   function finishDrink(c: Customer) {
+    if (phase !== 'make' || closed) return; // never serve twice or after closing
     if (!counted) { counted = true; tot.unlocks.push(...countShift()); }
     result = serveCustomer(c, perfects());
     tot.tips += result.tip; tot.friend += result.friend; tot.xp += result.xp; tot.served++;
@@ -135,7 +144,7 @@ export function openShift() {
       h('div', 'pie-note perfect', TIER_QUIP[perfects()]),
       h('div', 'bubble', r.text),
       h('div', 'shift-pay', h('span', '', `+${r.tip} pips`), h('span', '', `+${r.friend} ♥`), h('span', '', `+${r.xp} Barista XP`)),
-      btn(last ? 'Close up shop ✿' : 'Next customer', () => { if (last) { phase = 'recap'; } else { idx++; phase = 'order'; } api.rerender(); }, 'shift-go'),
+      btn(last ? 'Close up shop ✿' : 'Next customer', () => { if (phase !== 'serve') return; if (last) { phase = 'recap'; } else { idx++; phase = 'order'; } api.rerender(); }, 'shift-go'),
     );
   }
 
