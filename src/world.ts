@@ -16,12 +16,16 @@ export const T = { Water: 0, Sand: 1, Grass: 2, Path: 3, Hill: 4, Soil: 5, Lawn:
 const terrain = new Uint8Array(MAP_W * MAP_H);
 const solid = new Uint8Array(MAP_W * MAP_H);
 const reserved = new Uint8Array(MAP_W * MAP_H);
+/** Temporary blockers that come and go at runtime (seasonal event props such as the feast table). */
+const dyn = new Uint8Array(MAP_W * MAP_H);
 const region = new Uint8Array(MAP_W * MAP_H);
 const idx = (x: number, y: number) => y * MAP_W + x;
 const inMap = (x: number, y: number) => x >= 0 && y >= 0 && x < MAP_W && y < MAP_H;
 
 export const terrainAt = (x: number, y: number) => (inMap(x, y) ? terrain[idx(x, y)] : T.Water);
-export const isSolidTile = (x: number, y: number) => !inMap(x, y) || terrain[idx(x, y)] === T.Water || solid[idx(x, y)] === 1;
+export const isSolidTile = (x: number, y: number) => !inMap(x, y) || terrain[idx(x, y)] === T.Water || solid[idx(x, y)] === 1 || dyn[idx(x, y)] === 1;
+/** Block or free a tile for a while (not part of the saved map). */
+export function setDynamicBlock(x: number, y: number, on: boolean) { if (inMap(x, y)) dyn[idx(x, y)] = on ? 1 : 0; }
 
 // ---- Regions ----
 const AREA_ORDER: AreaId[] = ['town', 'blossom', 'pond', 'meadow', 'lighthouse', 'farbeach'];

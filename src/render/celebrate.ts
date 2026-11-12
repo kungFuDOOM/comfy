@@ -167,3 +167,11 @@ export function confettiAt(at: THREE.Vector3) {
   celebrate.burst(at, { count: 90, colors: cols, shapes: [Shape.Dot, Shape.Dot, Shape.Heart], spread: 0.4, speed: 2.4, up: 5.2, gravity: 4.2, size: [0.14, 0.24], life: [1.4, 2.1], stagger: 0.25 });
   celebrate.burst(at, { count: 40, colors: cols, shapes: [Shape.Star], spread: 0.6, speed: 2.0, up: 4.2, gravity: 2.4, size: [0.16, 0.28], life: [1.0, 1.6], stagger: 0.5 });
 }
+
+/** Harvest Hush Feast: a swirl of autumn leaves, hearts and sparkles. */
+export function harvestAt(at: THREE.Vector3) {
+  const leaves = ['#ffb48a', '#ff9fa8', '#ffd36e', '#f6946f', '#ffc2d8'];
+  celebrate.burst(at, { count: 80, colors: leaves, shapes: [Shape.Puff, Shape.Dot], spread: 1.6, speed: 2.2, up: 4.6, gravity: 2.2, size: [0.14, 0.26], life: [1.6, 2.4], stagger: 0.6 });
+  celebrate.burst(at, { count: 28, colors: ['#ff8fb6', '#ffd9e8', '#ffffff'], shapes: [Shape.Heart], spread: 1.4, speed: 1.6, up: 3.8, gravity: 1.2, size: [0.2, 0.32], life: [1.4, 2.0], stagger: 0.5 });
+  celebrate.burst(at, { count: 30, colors: PASTEL, shapes: [Shape.Star], spread: 1.8, speed: 1.8, up: 3.4, gravity: 1.4, size: [0.14, 0.24], life: [1.0, 1.6], stagger: 0.6 });
+}

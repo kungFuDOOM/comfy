@@ -3,6 +3,7 @@ import './catalogDress';
 import './catalogTop';
 import './catalogGear';
 import './catalogSpecial';
+import './catalogEvents';
 import { CLOTHES } from './build';
 import type { ClothDef, Slot } from './types';
 

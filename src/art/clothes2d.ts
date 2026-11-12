@@ -122,6 +122,7 @@ function extras2d(ctx: CanvasRenderingContext2D, c: ClothDef, top: number, bot: 
   if (has(c, 'collar')) { oe(ctx, -2.6, top + 0.9, 3, 1.8, '#fff', 0.8); oe(ctx, 2.6, top + 0.9, 3, 1.8, '#fff', 0.8); }
   if (has(c, 'sailor')) { ctx.beginPath(); ctx.moveTo(-7, top); ctx.lineTo(7, top); ctx.lineTo(0, top + 7); ctx.closePath(); fs(ctx, tr, 0.8); circle(ctx, 0, top + 6.2, 1, '#ff6f84'); }
   if (has(c, 'turtle')) { ctx.beginPath(); ctx.roundRect?.(-3.8, top - 1.6, 7.6, 3.2, 1.4); fs(ctx, fillOf(ctx, c), 0.8); }
+  if (has(c, 'scarf')) { oe(ctx, 0, top + 0.6, 6.4, 2.2, tr, 0.8); ctx.beginPath(); ctx.roundRect?.(2, top + 1, 2.8, 7.4, 1); fs(ctx, tr, 0.8); }
   if (has(c, 'fur')) { oe(ctx, -3, top + 1, 3.6, 2.1, '#fff', 0.8); oe(ctx, 3, top + 1, 3.6, 2.1, '#fff', 0.8); }
   if (has(c, 'hood')) { ctx.beginPath(); ctx.ellipse(0, top - 1, 7.6, 2.4, 0, 0, Math.PI); fs(ctx, fillOf(ctx, c), 0.8); }
   if (has(c, 'buttons')) for (const k of [0.25, 0.5, 0.75]) circle(ctx, 0, top + (bot - top) * k, 0.85, c.pattern || c.trim === '#ffffff' ? '#fff' : c.trim);
@@ -225,6 +226,7 @@ export function drawHat(ctx: CanvasRenderingContext2D, hat: ClothDef | undefined
     case 'bunnyears': for (const d of [-1, 1]) { oe(ctx, hx + d * 5, hy - 18.5, 2.8, 8.5, f, LW, INK, d * 0.1); oe(ctx, hx + d * 5, hy - 18, 1.4, 6, hat.trim, 0.4, INK, d * 0.1); } break;
     case 'flowercrown': for (let i = 0; i < 7; i++) { const a = Math.PI * (1.08 + (i / 6) * 0.84); const x = hx + Math.cos(a) * 11.4, y = hy + 1 + Math.sin(a) * 11.4; oc(ctx, x, y, 2.6, i % 2 ? '#fff' : hat.trim, 0.7); circle(ctx, x, y, 0.9, '#ffd86e'); } break;
     case 'beanie': ctx.beginPath(); ctx.ellipse(hx, hy - 4.5, 12.4, 10, 0, Math.PI, 0); ctx.closePath(); fs(ctx, f, LW); ctx.beginPath(); ctx.roundRect?.(hx - 12.4, hy - 6.6, 24.8, 3.6, 1.6); fs(ctx, hat.trim, 0.8); oc(ctx, hx, hy - 15.2, 2.6, hat.trim, 0.8); break;
+    case 'acorn': ctx.beginPath(); ctx.ellipse(hx, hy - 5.2, 11.6, 8.6, 0, Math.PI, 0); ctx.closePath(); fs(ctx, f, LW); ctx.beginPath(); ctx.roundRect?.(hx - 12, hy - 6.4, 24, 2.8, 1.4); fs(ctx, hat.trim, 0.8); ctx.beginPath(); ctx.roundRect?.(hx - 1, hy - 17.6, 2, 3.8, 1); fs(ctx, hat.trim, 0.7); break;
     case 'bucket': ctx.beginPath(); ctx.moveTo(hx - 8, hy - 9); ctx.lineTo(hx - 6.6, hy - 17); ctx.lineTo(hx + 6.6, hy - 17); ctx.lineTo(hx + 8, hy - 9); ctx.closePath(); fs(ctx, f, LW); oe(ctx, hx, hy - 8.2, 13.6, 3.2, f, LW); break;
     case 'cap': ctx.beginPath(); ctx.ellipse(hx, hy - 6.6, 11.6, 8.6, 0, Math.PI, 0); ctx.closePath(); fs(ctx, f, LW); if (!back) oe(ctx, hx + 2, hy - 6.4, 8.4, 2.2, hat.trim, 0.8); break;
     case 'tiara': for (const [dx, h] of [[-6, 3], [-3, 4.6], [0, 5.8], [3, 4.6], [6, 3]] as const) { ctx.beginPath(); ctx.moveTo(hx + dx - 1.4, hy - 10.4); ctx.lineTo(hx + dx, hy - 10.4 - h); ctx.lineTo(hx + dx + 1.4, hy - 10.4); ctx.closePath(); fs(ctx, f, 0.7); } circle(ctx, hx, hy - 12.2, 1.1, hat.trim); break;

@@ -11,7 +11,7 @@ import { tileHeight } from './terrain';
 import { createNodeLayer } from './nodes3d';
 import { createBarriers } from './barriers';
 
-const SPAWN_COLOR: Record<string, string> = { shell: '#ffe0d0', blossom: '#ff9ec0', moth: '#fff3a8', button: '#ffffff' };
+const SPAWN_COLOR: Record<string, string> = { shell: '#ffe0d0', blossom: '#ff9ec0', moth: '#fff3a8', button: '#ffffff', pumpkin: '#ffa763', apple: '#ff7f93' };
 
 /** Placeholder decor models keyed by item id. */
 export function createDecor(id: string): THREE.Group {
@@ -23,6 +23,23 @@ export function createDecor(id: string): THREE.Group {
     case 'd_shelf': g.add(box(0.6, 1.0, 0.3, '#ffc3da', 0, 0.5, 0)); break;
     case 'd_teacup': g.add(cyl(0.28, 0.2, 0.3, '#ffffff', 0, 0.15, 0)); g.add(ball(0.2, '#ff9ec0', 0, 0.35, 0)); break;
     case 'd_chair': g.add(box(0.6, 0.4, 0.6, '#f9deb0', 0, 0.2, 0)); g.add(box(0.6, 0.5, 0.12, '#f9deb0', 0, 0.65, -0.24)); break;
+    case 'd_cornucopia': {
+      const horn = cyl(0.3, 0.07, 0.8, '#e8b98a', -0.04, 0.36, 0, 12); horn.rotation.z = 1.05; g.add(horn);
+      g.add(ball(0.2, '#ffa763', 0.32, 0.62, 0.05)); g.add(ball(0.17, '#ff7f93', 0.4, 0.4, -0.12)); g.add(ball(0.14, '#c9a8e8', 0.18, 0.46, 0.2)); g.add(ball(0.13, '#ffd36e', 0.38, 0.22, 0.14));
+      break;
+    }
+    case 'd_haybale': {
+      const bale = cyl(0.42, 0.42, 0.6, '#f3d28b', 0, 0.42, 0, 18); bale.rotation.x = Math.PI / 2; g.add(bale);
+      const band = cyl(0.435, 0.435, 0.1, '#ffb3cf', 0, 0.42, 0, 18); band.rotation.x = Math.PI / 2; g.add(band);
+      g.add(ball(0.07, '#ff8fb6', 0, 0.86, 0));
+      break;
+    }
+    case 'd_pieshelf': {
+      g.add(box(0.8, 0.07, 0.4, '#e8b98a', 0, 0.45, 0)); g.add(box(0.8, 0.07, 0.4, '#e8b98a', 0, 0.95, 0));
+      for (const x of [-0.36, 0.36]) g.add(box(0.07, 1.0, 0.36, '#c98f5f', x, 0.5, 0));
+      for (const [x, y, c] of [[-0.2, 0.5, '#ffa14f'], [0.2, 0.5, '#f0b565'], [0, 1.0, '#ff7f93']] as [number, number, string][]) { g.add(cyl(0.16, 0.14, 0.07, '#f5cf9c', x, y + 0.06, 0)); g.add(cyl(0.12, 0.12, 0.04, c, x, y + 0.1, 0)); }
+      break;
+    }
     default: g.add(ball(0.3, '#ffb3cf', 0, 0.3, 0));
   }
   if (id !== 'd_rug') g.add(contactShadow(0.9));
