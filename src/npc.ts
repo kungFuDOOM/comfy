@@ -6,6 +6,8 @@ import { ITEMS, VILLAGERS, type VillagerDef } from './data';
 import { feastChat } from './events/pieLines';
 import { pieReply } from './events/pieLines';
 import { feastGathering, feastSeatFor } from './events/feastSeats';
+import { gatherKind, gatherSeatFor } from './events/twinkleSeats';
+import { twinkleChat } from './events/twinkleText';
 import { removeItem } from './inventory';
 import { moment } from './lanterns';
 import { bump } from './quests';
@@ -13,11 +15,11 @@ import { ensureDaily, isAreaOpen, state } from './state';
 import { getClock } from './time';
 import { TS, areaAt, isWalkable } from './world';
 
-export interface Npc { def: VillagerDef; x: number; y: number; tx: number; ty: number; wait: number; facing: Facing; moving: boolean; busy: boolean; /** At the feast table (seasonal event). */ seated?: boolean }
+export interface Npc { def: VillagerDef; x: number; y: number; tx: number; ty: number; wait: number; facing: Facing; moving: boolean; busy: boolean; /** At the feast table or the Twinkle tree (seasonal event). */ seated?: boolean }
 export const npcs: Npc[] = [];
 
 /** Is this villager around right now? (Nimbus only drifts in at dusk.) */
-export const isPresent = (n: Npc, phase = getClock().phase) => !n.def.phases || n.def.phases.includes(phase) || feastGathering();
+export const isPresent = (n: Npc, phase = getClock().phase) => !n.def.phases || n.def.phases.includes(phase) || feastGathering() || gatherKind() !== null;
 /** Villagers currently on the island; use this for rendering, picking and interaction. */
 export const presentNpcs = (): Npc[] => { const ph = getClock().phase; return npcs.filter((n) => isPresent(n, ph)); };
 
@@ -40,7 +42,7 @@ export const initNpcs = syncNpcs;
 export function updateNpcs(dt: number) {
   for (const n of npcs) {
     // feast day: everyone is at the long table in the square (and goes home again afterwards)
-    const seat = feastSeatFor(n.def.id);
+    const seat = feastSeatFor(n.def.id) ?? gatherSeatFor(n.def.id);
     if (seat) {
       n.seated = true;
       n.x = n.tx = seat.x * TS; n.y = n.ty = seat.z * TS;
@@ -89,7 +91,7 @@ export function talk(def: VillagerDef): Reply {
     addFriend(def.id, 6);
     bump('talked');
   }
-  const pool = feastGathering() && Math.random() < 0.6 ? feastChat(def.id) : Math.random() < 0.4 ? [def.phase[getClock().phase]] : def.lines[tier(def.id)];
+  const pool = feastGathering() && Math.random() < 0.6 ? feastChat(def.id) : gatherKind() && Math.random() < 0.6 ? twinkleChat(def.id) : Math.random() < 0.4 ? [def.phase[getClock().phase]] : def.lines[tier(def.id)];
   return { text: pool[(Math.random() * pool.length) | 0], gain: first ? 6 : 0 };
 }
 

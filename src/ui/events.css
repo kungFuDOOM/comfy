@@ -45,3 +45,23 @@ body.scene .event-banner { display: none; }
 .pie-note.perfect { color: #d6407a; font-size: 16px; } .pie-note.nice { color: #3d9a52; }
 .btn.pie-press { align-self: center; font-size: 18px; padding: 12px 36px; margin: 6px auto 0; display: flex; }
 .pie-done { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 10px; }
+
+/* Twinkle Season: cookie oven, tree decorating, cocoa stall, chapters */
+.ck-bar { position: relative; height: 34px; margin: 14px 12px 4px; background: #fff; border: 3px solid #ffd9a8; border-radius: 18px; overflow: hidden; }
+.ck-fill { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #fff0d6, #ffd9b0); width: 0; }
+.ck-zone { position: absolute; top: 3px; bottom: 3px; background: #ffe39a; border: 2px solid #ffc94d; border-radius: 12px; }
+.ck-marker { position: absolute; top: -6px; transform: translateX(-50%); font-size: 26px; line-height: 38px; color: #e0507f; text-shadow: 0 2px 0 #fff; pointer-events: none; }
+.ck-note { text-align: center; font-weight: 700; font-size: 14px; min-height: 22px; color: var(--ink-l); margin-top: 10px; }
+.ck-note.golden { color: #c98a00; font-size: 16px; } .ck-note.toasty { color: #3d9a52; }
+.tw-opts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.tw-opt { display: inline-flex; align-items: center; gap: 6px; }
+.tw-dot { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1.5px #ffc3da; }
+.tw-step { flex-direction: column; align-items: stretch; }
+.tw-step.done { border-color: #bfe6b8; }
+.ev-chap { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; padding: 3px 8px; border-radius: 12px; background: #fff7fa; border: 1.5px solid #ffd6e6; }
+.ev-chap.now { background: #ffeaf2; border-color: #ff9ec0; }
+.ev-chap.locked { color: var(--ink-l); background: #f6f1f3; border-color: #e6dce1; }
+.ev-act.locked { opacity: 0.55; }
+.event-banner { flex-direction: column; align-items: stretch; gap: 4px; }
+.event-banner .ev-row { display: flex; align-items: center; gap: 8px; }
+.event-banner.multi .ev-row + .ev-row { border-top: 1.5px dashed #ffc3a8; padding-top: 4px; }

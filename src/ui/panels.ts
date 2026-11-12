@@ -29,7 +29,8 @@ import { getClock } from '../time';
 import { glyphEl } from '../input/prompts';
 import { btn, h, openPanel, type PanelApi } from './dom';
 import { renderEventsTab } from './eventsUi';
-import { getActiveEvents } from '../events';
+import { eventItemOpen, getActiveEvents } from '../events';
+import { openCookieBake } from '../events/cookieBake';
 import { canBakePie, openPieBake } from '../events/pieBake';
 import { openPause } from './menuPanels';
 import { npcs } from '../npc';
@@ -144,8 +145,8 @@ function recipeList(body: HTMLElement, api: PanelApi, bench: Bench) {
       h('div', 'grow', h('b', '', def.name), h('div', 'muted', def.desc),
         open ? null : h('div', 'lock-note', `🔒 Needs ${skillName(r.skill)} level ${r.level}`),
         h('div', 'needs', ...Object.entries(r.needs).map(([k, n]) => h('span', count(k) >= n ? 'need ok' : 'need no', itemIcon(k, 16), `${ITEMS[k].name} ${count(k)}/${n}`))),
-        open ? h('div', 'muted small', `${seasonal ? 'Seasonal pie, a little timing game · ' : ''}+${r.xp} ${skillName(r.skill)} XP`) : null),
-      btn(seasonal ? 'Bake 🥧' : BENCH_VERB[bench], () => { if (seasonal) openPieBake(r.id); else if (startBrew(r.id)) api.rerender(); }, '', !ok || !open),
+        open ? h('div', 'muted small', `${seasonal ? (r.event === 'twinkle' ? 'Seasonal cookies, a little timing game · ' : 'Seasonal pie, a little timing game · ') : ''}+${r.xp} ${skillName(r.skill)} XP`) : null),
+      btn(seasonal ? (r.event === 'twinkle' ? 'Bake 🍪' : 'Bake 🥧') : BENCH_VERB[bench], () => { if (seasonal) (r.event === 'twinkle' ? openCookieBake : openPieBake)(r.id); else if (startBrew(r.id)) api.rerender(); }, '', !ok || !open),
     ));
   }
   if (brewing.id) {
@@ -170,7 +171,7 @@ export function openCafe() {
       body.append(h('div', 'muted', 'Fresh ingredients for the counter.'));
       for (const id of SHOP_INGREDIENTS) body.append(shopRow(id, ITEMS[id].buy!, () => buyItem(id, api)));
       for (const e of getActiveEvents()) {
-        const extra = EVENT_PANTRY[e.id] ?? [];
+        const extra = (EVENT_PANTRY[e.id] ?? []).filter(eventItemOpen); // week-gated goods wait for their chapter
         if (extra.length) body.append(h('div', 'ev-sec', `${e.icon} ${e.name} specials`), ...extra.map((id) => shopRow(id, ITEMS[id].buy!, () => buyItem(id, api))));
       }
     }
@@ -460,7 +461,7 @@ export function openJournal(start = 'quests') {
   let tab = start;
   openPanel('Journal', (body, api) => {
     const t = (id: string, label: string) => tabBtn(label, tab === id, () => { tab = id; api.rerender(); });
-    body.append(h('div', 'tabs', t('quests', 'Quests'), t('skills', 'Skills'), t('collection', 'Collection'), t('friends', 'Friends'), t('island', 'Island'), t('map', 'Map'), t('lanterns', 'Lanterns'), t('events', getActiveEvents().length ? 'Events 🍂' : 'Events')));
+    body.append(h('div', 'tabs', t('quests', 'Quests'), t('skills', 'Skills'), t('collection', 'Collection'), t('friends', 'Friends'), t('island', 'Island'), t('map', 'Map'), t('lanterns', 'Lanterns'), t('events', getActiveEvents().length ? `Events ${getActiveEvents()[0].icon}` : 'Events')));
     // the card widens / goes two-column for skills on phones (scenes.css); other tabs keep their usual size
     body.parentElement?.classList.toggle('skills-open', tab === 'skills');
     if (tab === 'skills') {

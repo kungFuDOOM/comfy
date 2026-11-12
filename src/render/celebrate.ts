@@ -175,3 +175,10 @@ export function harvestAt(at: THREE.Vector3) {
   celebrate.burst(at, { count: 28, colors: ['#ff8fb6', '#ffd9e8', '#ffffff'], shapes: [Shape.Heart], spread: 1.4, speed: 1.6, up: 3.8, gravity: 1.2, size: [0.2, 0.32], life: [1.4, 2.0], stagger: 0.5 });
   celebrate.burst(at, { count: 30, colors: PASTEL, shapes: [Shape.Star], spread: 1.8, speed: 1.8, up: 3.4, gravity: 1.4, size: [0.14, 0.24], life: [1.0, 1.6], stagger: 0.6 });
 }
+
+/** Twinkle Season: a soft burst of snow puffs, gold and pink stars and hearts. */
+export function twinkleAt(at: THREE.Vector3) {
+  celebrate.burst(at, { count: 70, colors: ['#ffffff', '#fff3d6', '#ffe9f1'], shapes: [Shape.Puff, Shape.Dot], spread: 1.7, speed: 1.8, up: 4.2, gravity: 1.3, size: [0.14, 0.26], life: [1.8, 2.6], stagger: 0.6 });
+  celebrate.burst(at, { count: 36, colors: ['#ffe27a', '#ffb3cf', '#a8f0d0', '#ffffff'], shapes: [Shape.Star], spread: 1.8, speed: 1.8, up: 3.6, gravity: 1.0, size: [0.16, 0.28], life: [1.4, 2.0], stagger: 0.6 });
+  celebrate.burst(at, { count: 20, colors: ['#ff8fb6', '#ffd9e8'], shapes: [Shape.Heart], spread: 1.4, speed: 1.5, up: 3.4, gravity: 1.0, size: [0.2, 0.3], life: [1.4, 2.0], stagger: 0.5 });
+}
