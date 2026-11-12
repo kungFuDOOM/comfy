@@ -4,6 +4,7 @@ import { ITEMS, SEED_CROP } from './data';
 import { addItem, removeItem, selectedItem } from './inventory';
 import { moment } from './lanterns';
 import { bump } from './quests';
+import { grantXp, skillLevel } from './skills';
 import { state, type Plot } from './state';
 import { circle, ellipse, rr } from './art/draw';
 import { AREAS, TS } from './world';
@@ -37,23 +38,24 @@ export function useGarden(x: number, y: number, wx: number, wy: number) {
   const sel = selectedItem();
   const now = Date.now();
   if (!p) {
-    if (sel === 'trowel') { state.plots[k] = { crop: '', progress: 0, wetUntil: 0, lastTick: now, need: 0 }; toast('Tilled! Now plant some seeds.'); }
+    if (sel === 'trowel') { state.plots[k] = { crop: '', progress: 0, wetUntil: 0, lastTick: now, need: 0 }; toast('Tilled! Now plant some seeds.'); grantXp('gardening', 2); }
     else toast('Select the Tilly Trowel (slot 1) to till this soil.');
   } else if (!p.crop) {
     if (sel && SEED_CROP[sel] && removeItem(sel)) {
       p.crop = SEED_CROP[sel].crop; p.need = SEED_CROP[sel].need; p.progress = 0; p.lastTick = now; p.wetUntil = 0;
-      toast('Planted! Water it with the Dewdrop Can.');
+      toast('Planted! Water it with the Dewdrop Can.'); grantXp('gardening', 3);
     } else toast('Select some seeds from your hotbar first.');
   } else if (p.progress >= p.need) {
-    const n = 1 + (Math.random() < 0.4 ? 1 : 0);
+    const n = 1 + (Math.random() < 0.4 + 0.02 * (skillLevel('gardening') - 1) ? 1 : 0);
     addItem(p.crop, n);
     toast(`Harvested ${n} ${ITEMS[p.crop].name}!`);
     state.plots[k] = { crop: '', progress: 0, wetUntil: 0, lastTick: now, need: 0 };
     bump('harvested');
+    grantXp('gardening', 14);
     moment('garden', wx, wy);
   } else if (sel === 'can') {
     p.wetUntil = now + WET_MS; p.lastTick = Math.min(p.lastTick, now);
-    toast('Splish! Watered.');
+    toast('Splish! Watered.'); grantXp('gardening', 1);
   } else toast('Still growing. Water it with the Dewdrop Can!');
   changed();
 }

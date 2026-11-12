@@ -124,17 +124,34 @@ export const sfx = {
     const t = g.ctx.currentTime;
     [72, 76, 79, 84, 88].forEach((m, i) => tone(g, t + i * 0.08, M(m), 0.42, { type: 'triangle', peak: 0.15 }));
   },
+  /** Gathering something: a short, soft two-note pluck. */
+  harvest() {
+    const g = live(); if (!g || !gate('harvest', 80)) return;
+    const t = g.ctx.currentTime;
+    tone(g, t, M(79), 0.14, { type: 'triangle', peak: 0.16 });
+    tone(g, t + 0.07, M(86), 0.22, { type: 'sine', peak: 0.16 });
+  },
+  /** A skill level-up: a little rising sparkle run. */
+  levelUp() {
+    const g = live(); if (!g) return;
+    const t = g.ctx.currentTime;
+    [76, 80, 83, 88, 92, 95].forEach((m, i) => tone(g, t + i * 0.07, M(m), 0.4, { type: 'triangle', peak: 0.14 }));
+    tone(g, t + 0.42, M(100), 0.5, { type: 'sine', peak: 0.12 });
+    // a soft bell-ish shimmer on top: two quiet high twinkles that ring out
+    tone(g, t + 0.48, M(107), 0.7, { type: 'sine', peak: 0.05 });
+    tone(g, t + 0.58, M(112), 0.6, { type: 'sine', peak: 0.035 });
+  },
   /** One footstep. `alt` alternates feet; run = quicker, snappier. */
   step(surface: FootSurface = 'grass', alt = false, run = false) {
-    const g = live(); if (!g || !gate('step', 90)) return;
-    const t = g.ctx.currentTime, k = run ? 1.15 : 1, d = alt ? 1 : 0.92;
+    const g = live(); if (!g || !gate('step', 70)) return;
+    const t = g.ctx.currentTime, k = run ? 1.15 : 1, d = (alt ? 1 : 0.92) * (run ? 1.12 : 1);
     if (surface === 'path') {
-      puff(g, t, 1800 * d, 1.4, 0.07 * k, 0.045);
+      puff(g, t, 1800 * d, 1.4, 0.07 * k, run ? 0.035 : 0.045);
       tone(g, t, 190 * d, 0.05, { type: 'sine', peak: 0.06 * k, slideTo: 120 });
     } else if (surface === 'sand') {
-      puff(g, t, 2600 * d, 0.7, 0.06 * k, 0.09);
+      puff(g, t, 2600 * d, 0.7, 0.06 * k, run ? 0.065 : 0.09);
     } else {
-      puff(g, t, 650 * d, 0.9, 0.09 * k, 0.07);
+      puff(g, t, 650 * d, 0.9, 0.09 * k, run ? 0.055 : 0.07);
       tone(g, t, 150 * d, 0.06, { type: 'sine', peak: 0.05 * k, slideTo: 90 });
     }
   },

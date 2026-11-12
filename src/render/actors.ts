@@ -12,7 +12,7 @@ export interface ActorMesh {
   /** Rotates around Y, smoothed. */
   setFacing(f: Facing, dt: number): void;
   /** Idle breathing / walk bob. */
-  animate(t: number, moving: boolean): void;
+  animate(t: number, moving: boolean, run?: boolean): void;
   setAlert?(on: boolean): void;
 }
 
@@ -289,31 +289,34 @@ function build(sp: Spec) {
   marker.visible = false;
   root.add(marker);
 
-  let ang = 0, last = -1, walk = 0, phase = 0;
+  let ang = 0, last = -1, walk = 0, phase = 0, runK = 0;
+  model.rotation.order = 'YXZ'; // yaw first, so the lean tips along the facing direction
   const off = Math.random() * 10;
   const api: ActorMesh & { dressMat: THREE.MeshToonMaterial; bandMat: THREE.MeshToonMaterial; head: THREE.Group } = {
     root, dressMat, bandMat, head,
     setFacing(f, dt) { ang = lerpAngle(ang, FACE_ANGLE[f], Math.min(1, dt * 14)); model.rotation.y = ang; },
-    animate(t, moving) {
+    animate(t, moving, run = false) {
       const dt = last < 0 ? 0 : Math.min(0.05, Math.max(0, t - last));
       last = t;
       walk += ((moving ? 1 : 0) - walk) * Math.min(1, dt * 10);
-      if (walk > 0.01) phase += dt * 11; else phase = 0;
+      runK += ((moving && run ? 1 : 0) - runK) * Math.min(1, dt * 9);
+      if (walk > 0.01) phase += dt * (11 + runK * 6); else phase = 0;
       const w = walk, idle = 1 - w;
       const s = Math.sin(phase), hop = Math.abs(Math.cos(phase)); // feet land at the swing extremes
       const br = Math.sin(t * 2.3 + off);
       // hop with squash on landing, stretch at the top
       const sq = (hop - 0.45) * w;
-      model.position.y = hop * 0.075 * w * sp.scale;
+      model.position.y = hop * (0.075 + runK * 0.02) * w * sp.scale;
+      model.rotation.x = runK * 0.17; // slight forward lean
       model.scale.set(sp.scale * (1 - sq * 0.07), sp.scale * (1 + sq * 0.14), sp.scale * (1 - sq * 0.07));
       model.rotation.z = s * 0.045 * w;
       // breathing
       body.scale.set(1 - br * 0.014 * idle, 1 + br * 0.035 * idle, 1 - br * 0.014 * idle);
       head.position.y = HEAD_Y + br * 0.016 * idle - (1 - hop) * 0.02 * w;
       head.rotation.z = Math.sin(t * 1.1 + off) * 0.035 * idle - s * 0.05 * w;
-      for (const a of arms) a.pivot.rotation.x = a.sx * s * 0.8 * w + br * 0.05 * idle;
-      legs[0].rotation.x = -s * 0.75 * w;
-      legs[1].rotation.x = s * 0.75 * w;
+      for (const a of arms) a.pivot.rotation.x = a.sx * s * (0.8 + runK * 0.25) * w + br * 0.05 * idle;
+      legs[0].rotation.x = -s * (0.75 + runK * 0.2) * w;
+      legs[1].rotation.x = s * (0.75 + runK * 0.2) * w;
       eyes.scale.y = ((t + off * 3) % 3.7 < 0.12 ? 0.12 : 1) * eyeK; // blink
       marker.position.y = 2.0 * sp.scale + Math.sin(t * 3) * 0.06;
       tick?.(t, w);
@@ -325,7 +328,34 @@ function build(sp: Spec) {
   return api;
 }
 
-export function createPlayerMesh(): ActorMesh & { setOutfit(o: OutfitDef): void } {
+/** Handmade accessories (item ids of kind 'accessory') as tiny props on the player's head. */
+function buildAccessories(): Record<string, THREE.Object3D> {
+  const pin = (o: THREE.Object3D, yaw: number, pitch: number, tilt = 0) => {
+    o.position.set(...on(yaw, pitch, 1.02));
+    o.lookAt(o.position.clone().multiplyScalar(2)); // face straight out from the head (no parent yet: local = world)
+    o.rotateZ(tilt);
+    o.scale.setScalar(1.45);
+    o.visible = false;
+    return o;
+  };
+  // ribbon bow clip: a rosy bow with a white knot, on the right of the bangs
+  const bowClip = bowGeo(new Batch(), '#ff7fa9', 0.7).add(G.ball(0.03, 8), '#ffffff', { z: 0.02 }).build();
+  // seashell hair clip: a little scalloped fan, left side by the ear
+  const shell = new Batch();
+  for (let i = -2; i <= 2; i++) shell.add(G.ball(0.045, 8), i % 2 ? '#ffc8b6' : '#ffe2d4', { x: Math.sin(i * 0.36) * 0.05, y: Math.cos(i * 0.36) * 0.05, rz: -i * 0.36, s: [0.55, 1.45, 0.4] });
+  shell.add(G.ball(0.03, 8), '#ffb3a0', { y: -0.005, s: [1.3, 0.8, 0.6] });
+  // moonpetal pin: five lilac petals around a golden heart
+  const petal = new Batch();
+  for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; petal.add(G.ball(0.042, 8), i % 2 ? '#e6cbff' : '#d8b8ff', { x: Math.cos(a) * 0.05, y: Math.sin(a) * 0.05, rz: a, s: [1.25, 0.75, 0.4] }); }
+  petal.add(G.ball(0.03, 8), PALETTE.gold, { z: 0.01 });
+  return {
+    bow_pin: pin(bowClip, 30, 40, -0.3),
+    shell_charm: pin(shell.build(), -52, 14, 0.2),
+    petal_pin: pin(petal.build(vertexToon(PALETTE.gold)), 44, 24, 0.4),
+  };
+}
+
+export function createPlayerMesh(): ActorMesh & { setOutfit(o: OutfitDef): void; setAccessory(id: string | null): void } {
   const a = build({
     kind: 'player', skin: '#ffe9f4', accent: PALETTE.pink, dress: '#fff1e0', band: 'pink', shoes: '#ff8fb8',
     scale: 1, bag: true, headScale: [1.1, 1.06, 1.08], headDrop: -0.04, bodyScale: [1.08, 0.92, 1.08], eyeScale: 1.16,
@@ -368,9 +398,16 @@ export function createPlayerMesh(): ActorMesh & { setOutfit(o: OutfitDef): void 
   sunhat.rotation.x = -0.3;
 
   a.head.add(bow, beret, sunhat);
+  const accessories = buildAccessories();
+  a.head.add(...Object.values(accessories));
   const tmp = new THREE.Color();
-  let cur = '';
+  let cur = '', curAcc: string | null = null;
   return Object.assign(a, {
+    setAccessory(id: string | null) {
+      if (id === curAcc) return;
+      curAcc = id;
+      for (const [k, o] of Object.entries(accessories)) o.visible = k === id;
+    },
     setOutfit(o: OutfitDef) {
       if (cur === o.id) return;
       cur = o.id;

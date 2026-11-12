@@ -1,7 +1,7 @@
 // Which input device was used last decides the on-screen prompt glyphs.
 // Glyph spans render ALL variants and CSS shows the one matching `body.input-<mode>`, so no refresh is needed.
 export type Mode = 'keyboard' | 'gamepad' | 'touch';
-export type PromptKey = 'interact' | 'tool' | 'cancel' | 'bag' | 'journal' | 'lantern' | 'bagAlt' | 'help' | 'hotbar' | 'run' | 'move' | 'tabs' | 'camera';
+export type PromptKey = 'interact' | 'tool' | 'cancel' | 'bag' | 'journal' | 'skills' | 'lantern' | 'bagAlt' | 'help' | 'hotbar' | 'run' | 'move' | 'tabs' | 'camera';
 
 const TABLE: Record<PromptKey, Record<Mode, string>> = {
   interact: { keyboard: 'E', gamepad: 'A', touch: 'A' },
@@ -10,6 +10,7 @@ const TABLE: Record<PromptKey, Record<Mode, string>> = {
   bag: { keyboard: 'B', gamepad: 'Y', touch: 'Y' },
   journal: { keyboard: 'J', gamepad: 'Start', touch: '' },
   bagAlt: { keyboard: '', gamepad: 'View', touch: '' },
+  skills: { keyboard: 'K', gamepad: '', touch: '' },
   lantern: { keyboard: 'L', gamepad: '', touch: '' },
   help: { keyboard: 'H', gamepad: '', touch: '' },
   hotbar: { keyboard: '1-9', gamepad: 'LB RB', touch: '' },

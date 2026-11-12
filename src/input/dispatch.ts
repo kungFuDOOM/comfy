@@ -1,9 +1,10 @@
 // Device-independent actions. Keyboard, touch and gamepad all funnel through trigger(), which routes to
 // the open panel (focus navigation), then to a full-screen scene (main menu / cutscene), then to the game.
 import { closePanel, isPanelOpen } from '../ui/dom';
+import { dismissLevelUp } from '../ui/levelUp';
 import { confirmFocus, cycleTab, moveFocus, type Dir } from '../ui/focus';
 
-export type Action = 'interact' | 'tool' | 'cancel' | 'bag' | 'journal' | 'lantern' | 'help' | 'menu' | 'hotbarPrev' | 'hotbarNext' | 'camReset';
+export type Action = 'interact' | 'tool' | 'cancel' | 'bag' | 'journal' | 'skills' | 'lantern' | 'help' | 'menu' | 'hotbarPrev' | 'hotbarNext' | 'camReset';
 
 export interface Handlers {
   interact(): void;
@@ -34,6 +35,10 @@ export function setSceneHandler(fn: (k: SceneKey) => void): () => void {
 export const sceneInputActive = () => scene !== null;
 
 export function trigger(a: Action) {
+  // A / B / Esc tuck away a level-up sticker. B / Esc stop there (so Esc doesn't also close the journal);
+  // A carries on, so the next gather / talk press is never swallowed.
+  if (a === 'cancel' || a === 'menu') { if (dismissLevelUp()) return; }
+  else if (a === 'interact') dismissLevelUp();
   if (isPanelOpen()) {
     if (a === 'interact') confirmFocus();
     else if (a === 'hotbarPrev') cycleTab(-1);
@@ -54,6 +59,7 @@ export function trigger(a: Action) {
     case 'bag': H.bag(); break;
     case 'journal': H.journal('quests'); break;
     case 'menu': H.pause(); break;
+    case 'skills': H.journal('skills'); break;
     case 'lantern': H.journal('lanterns'); break;
     case 'help': H.help(); break;
     case 'hotbarPrev': H.hotbarStep(-1); break;

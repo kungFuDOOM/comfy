@@ -11,7 +11,7 @@ import { h } from './dom';
 
 let clockEl: HTMLElement, seasonEl: HTMLElement, coinEl: HTMLElement, lanternEl: HTMLElement, hotbarEl: HTMLElement, hintEl: HTMLElement, lanternCanvas: HTMLCanvasElement;
 
-export function buildHud(actions: { journal(tab: string): void; bag(): void; help(): void }) {
+export function buildHud(actions: { skills(): void; journal(tab: string): void; bag(): void; help(): void }) {
   const ui = document.getElementById('ui')!;
   clockEl = h('div', 'clock');
   seasonEl = h('div', 'season');
@@ -25,7 +25,7 @@ export function buildHud(actions: { journal(tab: string): void; bag(): void; hel
     (() => { const b = h('button', 'chip lantern', lanternCanvas, lanternEl); b.title = 'Afterglow Lanterns (L)'; b.onclick = () => actions.journal('lanterns'); return b; })(),
   );
   const quick = h('div', 'hud-quick',
-    ...([['✿ Journal', () => actions.journal('quests'), 'journal'], ['❖ Bag', actions.bag, 'bag'], ['? Help', actions.help, 'help']] as [string, () => void, PromptKey][])
+    ...([['✿ Journal', () => actions.journal('quests'), 'journal'], ['✧ Skills', actions.skills, 'skills'], ['❖ Bag', actions.bag, 'bag'], ['? Help', actions.help, 'help']] as [string, () => void, PromptKey][])
       .map(([t, f, k]) => { const b = h('button', 'btn small', t, glyphEl(k)); b.onclick = f; return b; }),
   );
   hotbarEl = h('div', 'hotbar');

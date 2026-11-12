@@ -1,16 +1,18 @@
 // Game orchestration: loop, interaction, and hooking simulation up to the Three.js renderer.
 import { cheetahDataUrl } from './art/cheetah';
 import { setMood, sfx, updateDirector } from './audio';
-import { currentOutfit } from './boutique';
+import { currentAccessory, currentOutfit } from './boutique';
 import { updateBrew } from './cafe';
 import { spawnOne, updateCollect } from './collect';
 import { decorHint, useYard } from './decorate';
 import { gardenHint, tickGarden, useGarden } from './garden';
-import { glyph, initInput, pollInput, readCamera, readMove } from './input';
+import { glyph, initInput, pollInput, readCamera, readMove, readSpin } from './input';
+import { dressing, tickDressing } from './dressing';
 import { updateLanterns } from './lanterns';
 import { initNpcs, npcs, presentNpcs, talkedToday, updateNpcs, type Npc } from './npc';
 import { faceToward, frontTile, placePlayer, player, tileOf, updatePlayer, walkTo, cancelPath } from './player';
-import { selectSlot } from './inventory';
+import { count, selectedItem, selectSlot } from './inventory';
+import { nodeAtTile, nodeCenter, nodeHint, nodeNear, updateNodes, useNode } from './nodes';
 import { changed, toast } from './bus';
 import { sceneActive } from './render/stage';
 import { sharedWorld3D, type World3D } from './render/world3d';
@@ -19,7 +21,7 @@ import { state } from './state';
 import { getClock } from './time';
 import { isPanelOpen } from './ui/dom';
 import { buildHud, setHint, tickHud } from './ui/hud';
-import { openBag, openBoutique, openCafe, openDialogue, openHelp, openJournal, openMarket } from './ui/panels';
+import { openBag, openBoutique, openCafe, openChest, openDialogue, openHelp, openJournal, openMarket } from './ui/panels';
 import { openPause } from './ui/menuPanels';
 import { T, TS, buildWorld, inYard, isPlotTile, isSolidTile, stations, terrainAt, type Station } from './world';
 
@@ -51,6 +53,7 @@ function openStation(s: Station) {
   if (s.id === 'cafe') openCafe();
   else if (s.id === 'boutique') openBoutique();
   else if (s.id === 'market') openMarket();
+  else if (s.id === 'chest') openChest();
   else openJournal('lanterns');
 }
 
@@ -62,11 +65,13 @@ function tileTarget(tx: number, ty: number): Target {
 }
 
 function currentTarget(): Target {
-  const n = npcNear(), s = stationNear();
+  const n = npcNear(), s = stationNear(), nd = nodeNear();
   const dn = n ? Math.hypot(n.x - player.x, n.y - player.y) : Infinity;
   const ds = s ? Math.hypot((s.x + s.w / 2) * TS - player.x, s.y * TS + TS / 2 - (player.y - 8)) - 16 : Infinity;
-  if (n && dn <= ds) return { label: `Chat with ${n.def.name.split(' ')[0]}`, run: () => openDialogue(n.def) };
-  if (s) return { label: `${s.label} — ${s.prompt}`, run: () => openStation(s) };
+  const dd = nd ? Math.hypot(nodeCenter(nd).x - player.x, nodeCenter(nd).y - (player.y - 8)) : Infinity;
+  if (n && dn <= ds && dn <= dd) return { label: `Chat with ${n.def.name.split(' ')[0]}`, run: () => openDialogue(n.def) };
+  if (s && ds <= dd) return { label: `${s.label} — ${s.prompt}`, run: () => openStation(s) };
+  if (nd) return { label: nodeHint(nd), run: () => useNode(nd) };
   const f = frontTile();
   return tileTarget(f.x, f.y);
 }
@@ -106,6 +111,18 @@ function handleClick(sx: number, sy: number) {
     else if (!walkTo(around(tx, ty), go, { x: tx, y: ty })) cancelPath();
     return;
   }
+  // gathering node: walk up (fishing spots sit in the water, so stand on a neighbouring tile) and use it
+  const nd = nodeAtTile(tx, ty);
+  if (nd) {
+    const c = nodeCenter(nd);
+    const go = () => { faceToward(c.x, c.y); useNode(nd); };
+    if (Math.hypot(c.x - player.x, c.y - (player.y - 8)) < 54) go();
+    else {
+      const goals = around(tx, ty).filter((g) => !isSolidTile(g.x, g.y));
+      if (!goals.length || !walkTo(goals, go, { x: tx, y: ty })) cancelPath();
+    }
+    return;
+  }
   // plain walking
   const goals = isSolidTile(tx, ty) ? around(tx, ty) : [{ x: tx, y: ty }];
   walkTo(goals);
@@ -114,6 +131,11 @@ function handleClick(sx: number, sy: number) {
 /** X / "use tool": act on the tile in front of the player with the selected hotbar item. */
 function useTool() {
   const f = frontTile();
+  if (selectedItem() === 'rod') {
+    const nd = nodeAtTile(f.x, f.y) ?? nodeNear();
+    if (nd?.kind === 'fish') { useNode(nd); return; }
+    if (count('rod')) { toast('Face a fishing ripple on the water to cast.'); return; }
+  }
   const t = tileTarget(f.x, f.y);
   if (t) t.run();
   else toast('Face a garden plot or your yard to use this.');
@@ -124,14 +146,16 @@ function update(dt: number) {
   pollInput(dt);
   const panel = isPanelOpen();
   const cam = readCamera();
+  tickDressing(dt, readSpin());
   world3d.orbit(cam.orbit * 1.1 * dt, cam.tilt * 0.6 * dt, cam.zoom * 0.9 * dt);
   // camera-relative movement: input forward (-y) is away from the camera
   const mv = readMove(), yaw = world3d.yaw(), c = Math.cos(yaw), sn = Math.sin(yaw);
   updatePlayer(dt, c * mv.x + sn * mv.y, -sn * mv.x + c * mv.y, mv.run, mv.analog);
-  footsteps(mv.run);
+  footsteps(player.running);
   updateDirector(dt);
   updateNpcs(dt);
   updateBrew(dt);
+  updateNodes(dt);
   updateLanterns(dt);
   tickGarden();
   updateCollect(dt, player.x, player.y);
@@ -150,10 +174,15 @@ function footsteps(run: boolean) {
   lastX = player.x; lastY = player.y;
   if (!player.moving || d > 20) { if (!player.moving) stepDist = Math.max(0, stepDist - 2); return; } // (big jumps are teleports)
   stepDist += d;
-  if (stepDist < (run ? 26 : 20)) return;
+  if (stepDist < (run ? 30 : 20)) return;
   stepDist = 0; stepAlt = !stepAlt;
   const t = tileOf(), ter = terrainAt(t.x, t.y);
   sfx.step(ter === T.Sand ? 'sand' : ter === T.Path || ter === T.Plaza ? 'path' : 'grass', stepAlt, run);
+}
+
+function surfaceUnder(): 'sand' | 'path' | 'grass' {
+  const t = tileOf(), ter = terrainAt(t.x, t.y);
+  return ter === T.Sand ? 'sand' : ter === T.Path || ter === T.Plaza ? 'path' : 'grass';
 }
 
 /** Write the player's position and the save now. */
@@ -165,9 +194,11 @@ export function persist() {
 // ---- Render ----
 function render(t: number, dt: number) {
   const clock = getClock();
+  // the fitting room keeps a soft, bright midday light so outfits read true at any hour
+  const dress = dressing.active;
   world3d.render({
-    t, dt, hour: clock.hour, season: clock.season,
-    player, outfit: currentOutfit(), npcs: presentNpcs(), talkedToday,
+    t, dt, hour: dress ? 12.5 : clock.hour, season: clock.season,
+    player: dress ? { x: player.x, y: player.y, facing: 'down', moving: false, running: false, surface: 'grass' } : { ...player, running: player.running, surface: surfaceUnder() }, outfit: currentOutfit(), accessory: currentAccessory(), npcs: presentNpcs(), talkedToday,
   });
 }
 
@@ -197,7 +228,7 @@ export function startGame() {
   world3d = sharedWorld3D(canvas);
   world3d.resize();
   window.addEventListener('resize', () => world3d.resize());
-  buildHud({ journal: (tab) => !isPanelOpen() && openJournal(tab), bag: () => !isPanelOpen() && openBag(), help: () => !isPanelOpen() && openHelp() });
+  buildHud({ skills: () => !isPanelOpen() && openJournal('skills'), journal: (tab) => !isPanelOpen() && openJournal(tab), bag: () => !isPanelOpen() && openBag(), help: () => !isPanelOpen() && openHelp() });
   initInput(canvas, {
     interact, tool: useTool, cancel: cancelPath, pause: openPause,
     bag: openBag, journal: openJournal, help: openHelp,

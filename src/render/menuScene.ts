@@ -2,7 +2,7 @@
 // paper lanterns rising over the square, blossom petals on the breeze, and a slow drifting camera.
 // Purely visual; the DOM menu sits on top (ui/mainMenu.ts).
 import * as THREE from 'three';
-import { currentOutfit } from '../boutique';
+import { currentAccessory, currentOutfit } from '../boutique';
 import { initNpcs, npcs, updateNpcs } from '../npc';
 import { state } from '../state';
 import { getClock } from '../time';
@@ -129,7 +129,7 @@ export function startMenuScene(opts: MenuSceneOptions = {}) {
     world.render({
       t, dt, hour, season: getClock().season,
       player: { x: state.px, y: state.py, facing: state.facing, moving: false },
-      outfit: currentOutfit(), npcs, talkedToday: () => true,
+      outfit: currentOutfit(), accessory: currentAccessory(), npcs, talkedToday: () => true,
     });
   });
   stop = () => {
