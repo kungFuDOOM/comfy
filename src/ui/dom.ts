@@ -44,7 +44,8 @@ export function openPanel(title: string, render: (body: HTMLElement, api: PanelA
   const foot = h('div', 'panel-foot');
   card.append(head, body, foot);
   root.append(card);
-  root.addEventListener('pointerdown', (e) => { if (e.target === root) closePanel(); });
+  // tapping outside closes the window, except in the dressing room, where the open area is the drag-to-spin stage
+  root.addEventListener('pointerdown', (e) => { if (e.target === root && !root.classList.contains('dressing')) closePanel(); });
   document.getElementById('ui')!.append(root);
   const me: Open = { root, cleanups: [], onClose };
   current = me;

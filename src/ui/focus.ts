@@ -1,5 +1,7 @@
 // Focus navigation inside the open panel, for gamepad / keyboard (D-pad, stick, arrows).
 // Spatial: pick the nearest focusable in the pressed direction; fall back to scrolling the body.
+import { nudgeSpin } from '../dressing';
+
 export type Dir = 'up' | 'down' | 'left' | 'right';
 
 const SEL = 'button:not(:disabled), [tabindex]:not([tabindex="-1"])';
@@ -38,6 +40,12 @@ export function moveFocus(dir: Dir) {
   if (cur instanceof HTMLInputElement && cur.type === 'range' && (dir === 'left' || dir === 'right')) {
     if (dir === 'left') cur.stepDown(); else cur.stepUp();
     cur.dispatchEvent(new Event('input', { bubbles: true }));
+    cur.classList.add('pf');
+    return;
+  }
+  // dressing-room spin buttons (◀ ▶): left / right turn the character instead of moving the ring
+  if (cur.dataset.spin && (dir === 'left' || dir === 'right')) {
+    nudgeSpin(dir === 'left' ? -1 : 1);
     cur.classList.add('pf');
     return;
   }
