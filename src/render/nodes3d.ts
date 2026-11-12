@@ -50,6 +50,22 @@ function build(n: NodeDef): Rec {
       root.add(contactShadow(1.0));
       break;
     }
+    case 'wood': {
+      // a sugarwood stump with a pink-ringed top; ready ones carry a little bundle of twigs
+      for (const g of [full, bare]) {
+        g.add(cyl(0.3, 0.36, 0.34, '#d9a98f', 0, 0.17, 0, 12));
+        g.add(cyl(0.27, 0.27, 0.02, '#ffd9e8', 0, 0.35, 0, 12));
+        g.add(cyl(0.15, 0.15, 0.025, '#ffb3cf', 0, 0.355, 0, 12));
+        g.add(ball(0.12, '#a9e0a4', 0.2, 0.3, 0.2, 7));
+      }
+      for (const [x, z, r] of [[-0.12, 0.05, 0.4], [0.08, -0.06, -0.5], [0.0, 0.12, 0.1]]) {
+        const t = cyl(0.02, 0.025, 0.42, '#c99a86', x, 0.55, z, 5);
+        t.rotation.z = r; full.add(t);
+        full.add(ball(0.035, '#ffb3cf', x + Math.sin(r) * -0.2, 0.74, z, 6));
+      }
+      root.add(contactShadow(0.9));
+      break;
+    }
     case 'fish': {
       const ring = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.035, 6, 24), mat(RING[Math.min(n.tier, 2)]));
       ring.rotation.x = Math.PI / 2; ring.position.y = 0.03;

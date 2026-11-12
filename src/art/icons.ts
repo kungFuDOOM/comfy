@@ -154,6 +154,18 @@ export function drawItem(ctx: CanvasRenderingContext2D, id: string) {
       if (id === 'star_brew') { star(ctx, 11, 21, 1.6, '#fff3a8'); star(ctx, 19, 19, 1.4, '#fff3a8'); }
       break;
     }
+    case 'twig': {
+      ctx.strokeStyle = '#c99a86'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(6, 25); ctx.lineTo(25, 8); ctx.stroke();
+      ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(14, 18); ctx.lineTo(10, 11); ctx.moveTo(19, 14); ctx.lineTo(24, 18); ctx.stroke();
+      circle(ctx, 10, 10, 2.2, '#ffb3cf'); circle(ctx, 25, 19, 2, '#ffb3cf'); circle(ctx, 26, 7, 2.4, '#ffd9e8');
+      break;
+    }
+    case 'plank': {
+      rr(ctx, 4, 10, 24, 12, 3); ctx.fillStyle = '#f2c3b0'; ctx.fill(); ctx.strokeStyle = '#d9937e'; ctx.lineWidth = 1.3; ctx.stroke();
+      ctx.strokeStyle = '#e3a692'; ctx.lineWidth = 1; for (const y of [13.5, 16, 18.5]) { ctx.beginPath(); ctx.moveTo(7, y); ctx.lineTo(25, y); ctx.stroke(); }
+      circle(ctx, 8, 16, 1.2, '#ff8fb6'); circle(ctx, 24, 16, 1.2, '#ff8fb6');
+      break;
+    }
     case 'bow_pin':
       ctx.fillStyle = '#ff8fb6'; ctx.beginPath(); ctx.moveTo(16, 15); ctx.quadraticCurveTo(4, 4, 4, 15); ctx.quadraticCurveTo(4, 26, 16, 15); ctx.fill();
       ctx.beginPath(); ctx.moveTo(16, 15); ctx.quadraticCurveTo(28, 4, 28, 15); ctx.quadraticCurveTo(28, 26, 16, 15); ctx.fill();

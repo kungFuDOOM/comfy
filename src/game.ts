@@ -23,7 +23,8 @@ import { isPanelOpen } from './ui/dom';
 import { buildHud, setHint, tickHud } from './ui/hud';
 import { openBag, openBoutique, openCafe, openChest, openDialogue, openHelp, openJournal, openMarket } from './ui/panels';
 import { openPause } from './ui/menuPanels';
-import { T, TS, buildWorld, inYard, isPlotTile, isSolidTile, stations, terrainAt, type Station } from './world';
+import { barrierHint, barrierNear, syncUnlocks, useBarrier } from './unlocks';
+import { T, TS, barrierAtTile, buildWorld, inYard, isPlotTile, isSolidTile, stations, terrainAt, type Station } from './world';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 let world3d: World3D;
@@ -65,7 +66,8 @@ function tileTarget(tx: number, ty: number): Target {
 }
 
 function currentTarget(): Target {
-  const n = npcNear(), s = stationNear(), nd = nodeNear();
+  const n = npcNear(), s = stationNear(), nd = nodeNear(), bar = barrierNear();
+  if (bar && !(n && Math.hypot(n.x - player.x, n.y - player.y) < bar.d)) return { label: barrierHint(bar.b), run: () => useBarrier(bar.b) };
   const dn = n ? Math.hypot(n.x - player.x, n.y - player.y) : Infinity;
   const ds = s ? Math.hypot((s.x + s.w / 2) * TS - player.x, s.y * TS + TS / 2 - (player.y - 8)) - 16 : Infinity;
   const dd = nd ? Math.hypot(nodeCenter(nd).x - player.x, nodeCenter(nd).y - (player.y - 8)) : Infinity;
@@ -109,6 +111,14 @@ function handleClick(sx: number, sy: number) {
     const go = () => { faceToward(tx * TS + 16, ty * TS + 16); tileTarget(tx, ty)?.run(); };
     if (adj) go();
     else if (!walkTo(around(tx, ty), go, { x: tx, y: ty })) cancelPath();
+    return;
+  }
+  // a barrier: walk up to it and try the latch
+  const bar = barrierAtTile(tx, ty);
+  if (bar) {
+    const goals = around(tx, ty).filter((g) => !isSolidTile(g.x, g.y));
+    const go = () => useBarrier(bar);
+    if (!goals.length || !walkTo(goals, go, { x: tx, y: ty })) cancelPath();
     return;
   }
   // gathering node: walk up (fishing spots sit in the water, so stand on a neighbouring tile) and use it
@@ -177,12 +187,12 @@ function footsteps(run: boolean) {
   if (stepDist < (run ? 30 : 20)) return;
   stepDist = 0; stepAlt = !stepAlt;
   const t = tileOf(), ter = terrainAt(t.x, t.y);
-  sfx.step(ter === T.Sand ? 'sand' : ter === T.Path || ter === T.Plaza ? 'path' : 'grass', stepAlt, run);
+  sfx.step(ter === T.Sand ? 'sand' : ter === T.Path || ter === T.Plaza || ter === T.Bridge ? 'path' : 'grass', stepAlt, run);
 }
 
 function surfaceUnder(): 'sand' | 'path' | 'grass' {
   const t = tileOf(), ter = terrainAt(t.x, t.y);
-  return ter === T.Sand ? 'sand' : ter === T.Path || ter === T.Plaza ? 'path' : 'grass';
+  return ter === T.Sand ? 'sand' : ter === T.Path || ter === T.Plaza || ter === T.Bridge ? 'path' : 'grass';
 }
 
 /** Write the player's position and the save now. */
@@ -209,6 +219,7 @@ let booted = false;
  */
 export function startGame() {
   buildWorld();
+  syncUnlocks();
   initNpcs();
   placePlayer();
   for (const n of npcs) n.busy = false;

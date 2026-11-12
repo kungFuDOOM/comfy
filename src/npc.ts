@@ -6,9 +6,9 @@ import { ITEMS, VILLAGERS, type VillagerDef } from './data';
 import { removeItem } from './inventory';
 import { moment } from './lanterns';
 import { bump } from './quests';
-import { ensureDaily, state } from './state';
+import { ensureDaily, isAreaOpen, state } from './state';
 import { getClock } from './time';
-import { TS, isWalkable } from './world';
+import { TS, areaAt, isWalkable } from './world';
 
 export interface Npc { def: VillagerDef; x: number; y: number; tx: number; ty: number; wait: number; facing: Facing; moving: boolean; busy: boolean }
 export const npcs: Npc[] = [];
@@ -18,13 +18,21 @@ export const isPresent = (n: Npc, phase = getClock().phase) => !n.def.phases || 
 /** Villagers currently on the island; use this for rendering, picking and interaction. */
 export const presentNpcs = (): Npc[] => { const ph = getClock().phase; return npcs.filter((n) => isPresent(n, ph)); };
 
-export function initNpcs() {
-  if (npcs.length) return;
+/** Is this friend living on the island yet? Friends from a gated area are absent until it opens. */
+export const hasMovedIn = (def: VillagerDef) => !def.area || isAreaOpen(def.area);
+
+/** Make the cast match what is unlocked: friends from opened areas appear at home, friends of locked ones vanish. */
+export function syncNpcs() {
   for (const def of VILLAGERS) {
-    const x = def.home.x * TS + TS / 2, y = def.home.y * TS + TS - 4;
-    npcs.push({ def, x, y, tx: x, ty: y, wait: 1 + Math.random() * 3, facing: 'down', moving: false, busy: false });
+    const at = npcs.findIndex((n) => n.def.id === def.id);
+    if (hasMovedIn(def)) {
+      if (at >= 0) continue;
+      const x = def.home.x * TS + TS / 2, y = def.home.y * TS + TS - 4;
+      npcs.push({ def, x, y, tx: x, ty: y, wait: 1 + Math.random() * 3, facing: 'down', moving: false, busy: false });
+    } else if (at >= 0) npcs.splice(at, 1);
   }
 }
+export const initNpcs = syncNpcs;
 
 export function updateNpcs(dt: number) {
   for (const n of npcs) {
@@ -43,7 +51,8 @@ export function updateNpcs(dt: number) {
         n.wait = 3 + Math.random() * 5;
         const r = n.def.radius;
         const gx = Math.floor(n.def.home.x + (Math.random() * 2 - 1) * r), gy = Math.floor(n.def.home.y + (Math.random() * 2 - 1) * r);
-        if (isWalkable(gx, gy)) { n.tx = gx * TS + TS / 2; n.ty = gy * TS + TS - 4; }
+        // stay in the friend's own area, so nobody wanders through a barrier or a wall
+        if (isWalkable(gx, gy) && areaAt(gx, gy) === areaAt(n.def.home.x, n.def.home.y)) { n.tx = gx * TS + TS / 2; n.ty = gy * TS + TS - 4; }
       }
     }
   }
