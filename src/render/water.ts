@@ -4,12 +4,11 @@
 // - shoreline data is baked once into a tiny distance texture (tiles to the nearest land), never rebuilt per frame
 // The light rig writes waterLight every frame so the sea follows day / golden hour / night with everything else.
 import * as THREE from 'three';
-import { MAP_H, MAP_W, T, terrainAt } from '../world';
+import { MAP_H, MAP_W } from '../world';
+import { SEA_Y, shoreField } from './shore';
 
 /** Distance (tiles) the shore texture covers; anything farther counts as open sea. */
 const MAX_D = 6;
-/** Texels per tile in the shore texture. */
-const RES = 4;
 
 /** Light uniforms shared with lighting.ts (colors are pre-scaled by intensity / PI, like the toon ramp sees them). */
 export const waterLight = {
@@ -20,27 +19,11 @@ export const waterLight = {
   uNight: { value: 0 },
 };
 
-/** Euclidean distance from each texel to the nearest land tile, normalized by MAX_D. Runs once at startup. */
+/** Distance from each texel to the smoothed waterline (shore.ts), normalized by MAX_D, so the foam hugs the same
+ *  rounded shore the sand mesh draws. Runs once at startup. */
 function bakeShore(): THREE.DataTexture {
-  const w = MAP_W * RES, h = MAP_H * RES, data = new Uint8Array(w * h);
-  const land: number[] = [];
-  for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) if (terrainAt(x, y) !== T.Water && terrainAt(x, y) !== T.Bridge) land.push(x, y);
-  // bucket land tiles by tile so each texel only checks its neighbourhood
-  const isLand = new Uint8Array(MAP_W * MAP_H);
-  for (let i = 0; i < land.length; i += 2) isLand[land[i + 1] * MAP_W + land[i]] = 1;
-  const R = MAX_D;
-  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
-    const px = (i + 0.5) / RES, py = (j + 0.5) / RES, tx = Math.floor(px), ty = Math.floor(py);
-    let best = MAX_D * MAX_D;
-    if (isLand[ty * MAP_W + tx]) best = 0;
-    else for (let y = Math.max(0, ty - R); y <= Math.min(MAP_H - 1, ty + R); y++) for (let x = Math.max(0, tx - R); x <= Math.min(MAP_W - 1, tx + R); x++) {
-      if (!isLand[y * MAP_W + x]) continue;
-      const dx = Math.max(0, Math.abs(px - (x + 0.5)) - 0.5), dy = Math.max(0, Math.abs(py - (y + 0.5)) - 0.5);
-      const d2 = dx * dx + dy * dy;
-      if (d2 < best) best = d2;
-    }
-    data[j * w + i] = Math.round(Math.min(1, Math.sqrt(best) / MAX_D) * 255);
-  }
+  const f = shoreField(), w = f.w, h = f.h, data = new Uint8Array(w * h);
+  for (let i = 0; i < data.length; i++) data[i] = Math.round(Math.min(1, Math.max(0, -f.sdf[i]) / MAX_D) * 255);
   const tex = new THREE.DataTexture(data, w, h, THREE.RedFormat, THREE.UnsignedByteType);
   tex.minFilter = tex.magFilter = THREE.LinearFilter;
   tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
@@ -56,7 +39,7 @@ const vertexShader = /* glsl */ `
   varying vec3 vWorld;
   varying vec2 vGrad;
 
-  // a few long, soft swells; amplitudes add up to ~0.06 so the sea never climbs onto the wet sand (-0.08)
+  // a few long, soft swells; amplitudes add up to ~0.06, so the waterline just washes up and down the sloped sand (shore.ts)
   #define SWELL(dir, k, spd, amp) { float ph = dot(p, dir) * k + t * spd; h += amp * sin(ph); g += dir * (amp * k * cos(ph)); }
 
   void main() {
@@ -192,7 +175,7 @@ export function createWater(): Water {
   Object.assign(mat.uniforms, waterLight);
   mat.uniforms.uShore.value = bakeShore();
   const mesh = new THREE.Mesh(geo, mat);
-  mesh.position.set(MAP_W / 2, -0.25, MAP_H / 2);
+  mesh.position.set(MAP_W / 2, SEA_Y, MAP_H / 2);
   mesh.frustumCulled = false; // huge plane that is always on screen; skip the bounds test (displacement is tiny anyway)
   return {
     mesh,

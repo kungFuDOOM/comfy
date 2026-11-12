@@ -1,12 +1,15 @@
 // The cute barriers: fallen blossom logs, a broken (then mended) bridge, a soft fog veil and pastel locked gates.
 // Each stands until the world says its barrier is open (world.barrierOpen). Static meshes are merged; the fog is animated.
-// Polish hook: when a barrier opens, hide/replace it in `sync()` below (a later pass can add a poof + sparkle there).
+// Opening one this session (bus 'areaUnlocked') pops it away with a poof of sparkles and petals; the broken bridge
+// sparkles into the mended one. Barriers restored open from a save just appear open, with no fanfare.
 import * as THREE from 'three';
 import { BARRIERS, type Barrier } from '../areas';
+import { bus } from '../bus';
 import { barrierOpen } from '../world';
 import { contactShadow, makeToon, PALETTE } from './materials';
 import { Batch, G } from './util';
 import { tileHeight } from './terrain';
+import { poofAt } from './celebrate';
 
 const BARK = '#c99a86', BARK_DARK = '#b07f72', CUT = '#fde0d0', MOSS = '#a9e0a4', PLANK = '#f2c3b0', PLANK_DARK = '#e3a692';
 
@@ -137,6 +140,13 @@ function fog(b: Barrier): { g: THREE.Group; update(t: number): void } {
 
 export interface BarrierLayer { group: THREE.Group; update(t: number): void }
 
+/** Barriers the player opened this session: their next standing -> open flip gets the poof. */
+const celebrating = new Set<string>();
+bus.on('areaUnlocked', (area: string) => { const b = BARRIERS.find((x) => x.area === area); if (b) celebrating.add(b.id); });
+
+const POP = 0.42; // seconds: the barrier swells, squashes and shrinks away
+const easeBack = (x: number) => 1 + 2.7 * Math.pow(x - 1, 3) + 1.7 * Math.pow(x - 1, 2);
+
 export function createBarriers(): BarrierLayer {
   const group = new THREE.Group();
   const recs = BARRIERS.map((b) => {
@@ -149,16 +159,56 @@ export function createBarriers(): BarrierLayer {
       case 'fog': { const f = fog(b); standing.add(f.g); fx = f.update; break; }
       case 'gate': standing.add(gate(b, b.id === 'meadowgate' ? 'pink' : 'mint')); break;
     }
+    // scale about the barrier's own foot point so the pop squashes in place
+    const pivot = new THREE.Vector3(b.cx, tileHeight(Math.floor(b.cx), Math.floor(b.cy)), b.cy);
+    for (const g of [standing, opened]) {
+      const inner = new THREE.Group();
+      inner.position.copy(pivot).negate();
+      inner.add(...g.children);
+      g.add(inner);
+      g.position.copy(pivot);
+    }
     group.add(standing, opened);
-    return { b, standing, opened, fx, state: null as boolean | null };
+    return { b, standing, opened, fx, pivot, state: null as boolean | null, anim: -1 };
   });
+  const at = new THREE.Vector3();
   return {
     group,
     update(t) {
       for (const r of recs) {
         const open = barrierOpen(r.b.id);
-        if (open !== r.state) { r.state = open; r.standing.visible = !open; r.opened.visible = open; } // ← poof/sparkle goes here later
-        if (!open) r.fx?.(t);
+        if (open !== r.state) {
+          const party = open && r.state === false && celebrating.delete(r.b.id);
+          r.state = open;
+          if (party) {
+            r.anim = t; // keep the old barrier up for the pop; the poof hides the swap
+            r.standing.visible = true; r.opened.visible = r.b.kind === 'bridge';
+            r.opened.scale.setScalar(0.001);
+            poofAt(at.copy(r.pivot).setY(r.pivot.y + (r.b.kind === 'bridge' ? 0.25 : 0.5)), r.b.kind === 'fog' ? 4 : 2.2);
+          } else {
+            r.anim = -1;
+            r.standing.visible = !open; r.opened.visible = open;
+            r.standing.scale.setScalar(1); r.opened.scale.setScalar(1);
+          }
+        }
+        if (r.anim >= 0) {
+          const k = Math.min(1, (t - r.anim) / POP);
+          // swell a little, then squash down to nothing
+          const sw = k < 0.3 ? 1 + 0.14 * Math.sin((k / 0.3) * Math.PI * 0.5) : 1.14 * (1 - (k - 0.3) / 0.7);
+          const sq = k < 0.3 ? 1 : Math.max(0.001, 1 - Math.pow((k - 0.3) / 0.7, 0.7));
+          r.standing.scale.set(Math.max(0.001, sw), Math.max(0.001, sq * sw), Math.max(0.001, sw));
+          if (r.opened.visible) {
+            // the mended bridge bounces in just behind the sparkles
+            const m = Math.max(0, Math.min(1, (t - r.anim - POP * 0.45) / 0.5));
+            r.opened.scale.setScalar(Math.max(0.001, easeBack(m)));
+          }
+          if (k >= 1 && t - r.anim > POP * 0.45 + 0.5) {
+            r.anim = -1;
+            r.standing.visible = false; r.standing.scale.setScalar(1);
+            r.opened.visible = open; r.opened.scale.setScalar(1);
+          }
+        }
+        if (!open || r.anim >= 0) r.fx?.(t);
       }
     },
   };
