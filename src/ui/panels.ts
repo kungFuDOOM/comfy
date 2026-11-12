@@ -5,10 +5,14 @@ import { coinIcon, itemIcon } from '../art/icons';
 import { drawLantern, LANTERN_KINDS } from '../art/lantern';
 import { enterPlace, leavePlace, sfx } from '../audio';
 import { toast } from '../bus';
-import { canBrew, brewing, startBrew } from '../cafe';
-import { buyDecor, buyOutfit, currentOutfit, endPreview, outfitById, tryOn, wear } from '../boutique';
-import { CURRENCY, ITEMS, OUTFITS, QUESTS, RECIPES, SHOP_DECOR, SHOP_INGREDIENTS, SHOP_SEEDS, VILLAGERS, type VillagerDef } from '../data';
-import { addItem, assignHotbar, count, earn, removeItem, spend } from '../inventory';
+import { canBrew, brewing, isUnlocked, recipesFor, startBrew } from '../cafe';
+import { buyDecor, buyOutfit, currentAccessory, currentOutfit, endPreview, ownedAccessories, previewOutfit, toggleAccessory, tryOn, wear } from '../boutique';
+import { dragSpin, dressing, nudgeSpin } from '../dressing';
+import { startDressingRoom, stopDressingRoom } from '../render/dressingRoom';
+import { CURRENCY, ITEMS, OUTFITS, QUESTS, SHOP_DECOR, SKILLS, type Bench, type Recipe, SHOP_INGREDIENTS, SHOP_SEEDS, VILLAGERS, type VillagerDef } from '../data';
+import { addItem, assignHotbar, BAG_SLOTS, BANK_SLOTS, count, earn, moveStack, removeItem, spend, tidyBag } from '../inventory';
+import { LOG_QUESTS, questsFrom, questStatus, startQuest, STATUS_TEXT, turnIn } from '../questlog';
+import { skillName, skillProgress } from '../skills';
 import { lanternCounts, SETS, slotPos } from '../lanterns';
 import { give, hearts, talk } from '../npc';
 import { progress } from '../quests';
@@ -67,7 +71,7 @@ export function openDialogue(def: VillagerDef) {
   line = first.text; note = first.gain ? `+${first.gain} friendship` : '';
   openPanel(def.name, (body, api) => {
     const portrait = canvasEl(110, 120, (g) => { g.fillStyle = '#fff0f6'; g.fillRect(0, 0, 110, 120); drawVillager(g, def, 55, 108, performance.now() / 1000, 'down', false, 2.3); }, 'portrait');
-    const giftable = Object.keys(state.inv).filter((id) => ['crop', 'drink', 'collectible', 'ingredient', 'seed'].includes(ITEMS[id].kind));
+    const giftable = Object.keys(state.inv).filter((id) => ['crop', 'drink', 'collectible', 'ingredient', 'seed', 'fish', 'treat', 'accessory'].includes(ITEMS[id].kind));
     body.append(
       h('div', 'dlg',
         portrait,
@@ -78,9 +82,10 @@ export function openDialogue(def: VillagerDef) {
           note ? h('div', 'note', note) : null,
         ),
       ),
+      ...questsFrom(def.id).map((q) => questBlock(q, (t) => { line = t; note = ''; api.rerender(); })).filter((e): e is HTMLElement => !!e),
       h('div', 'sub', `Give or serve something (${def.name.split(' ')[0]} likes: ${def.likes.map((l) => ITEMS[l].name).join(', ')})`),
       giftable.length ? h('div', 'chips', ...giftable.map((id) => {
-        const label = ITEMS[id].kind === 'drink' ? 'Serve' : 'Give';
+        const label = ITEMS[id].kind === 'drink' || ITEMS[id].kind === 'treat' ? 'Serve' : 'Give';
         const c = h('button', 'chip-item', itemIcon(id, 26), h('span', '', `${label} ${ITEMS[id].name} ×${count(id)}`));
         c.addEventListener('click', () => { const r = give(def, id); if (r) { line = r.text; note = r.gain ? `+${r.gain} friendship ♥` : ''; api.rerender(); } });
         return c;
@@ -90,34 +95,65 @@ export function openDialogue(def: VillagerDef) {
   }, () => { if (npc) npc.busy = false; });
 }
 
+/** A quest offer / reminder / turn-in card inside a giver's dialogue. */
+function questBlock(q: (typeof LOG_QUESTS)[number], say: (line: string) => void): HTMLElement | null {
+  const st = questStatus(q);
+  if (st === 'done') return null;
+  const want = `${ITEMS[q.want.item].name} ${Math.min(count(q.want.item), q.want.n)}/${q.want.n}`;
+  const card = h('div', 'card quest-offer', h('b', '', `✿ ${q.title}`));
+  if (st === 'available') {
+    card.append(h('div', 'muted', q.steps), btn('Sure, I\'ll help!', () => { startQuest(q); say(q.offer); }, 'small'));
+  } else if (st === 'active') {
+    card.append(h('div', 'muted', q.steps), h('div', 'needs', h('span', 'need no', itemIcon(q.want.item, 16), want)));
+  } else {
+    card.append(h('div', 'muted', 'You have everything she asked for!'),
+      btn(h('span', 'inline', 'Hand it over ', price(q.reward)), () => { if (turnIn(q)) say(q.thanks); }, 'small'));
+  }
+  return card;
+}
+
 // ---------- Café ----------
+const BENCH_VERB: Record<Bench, string> = { brew: 'Brew', bake: 'Bake', craft: 'Craft' };
+const BENCH_INTRO: Record<Bench, string> = {
+  brew: 'Brew a drink, then offer it to a friend — serving a cup is a lovely moment.',
+  bake: 'Warm treats from the café oven. Berries and blossoms from the meadow work wonders.',
+  craft: 'Make small handmade accessories at the worktable. Sell them, or keep them close.',
+};
+
+/** Recipe cards for one bench (locked ones stay visible but greyed), plus the shared timer bar. */
+function recipeList(body: HTMLElement, api: PanelApi, bench: Bench) {
+  body.append(h('div', 'muted', BENCH_INTRO[bench]));
+  for (const r of recipesFor(bench) as Recipe[]) {
+    const def = ITEMS[r.id], open = isUnlocked(r);
+    const ok = canBrew(r.id) && !brewing.id;
+    body.append(h('div', 'card row-card' + (open ? '' : ' locked'),
+      itemIcon(r.id, 40),
+      h('div', 'grow', h('b', '', def.name), h('div', 'muted', def.desc),
+        open ? null : h('div', 'lock-note', `🔒 Needs ${skillName(r.skill)} level ${r.level}`),
+        h('div', 'needs', ...Object.entries(r.needs).map(([k, n]) => h('span', count(k) >= n ? 'need ok' : 'need no', itemIcon(k, 16), `${ITEMS[k].name} ${count(k)}/${n}`))),
+        open ? h('div', 'muted small', `+${r.xp} ${skillName(r.skill)} XP`) : null),
+      btn(BENCH_VERB[bench], () => { if (startBrew(r.id)) api.rerender(); }, '', !ok || !open),
+    ));
+  }
+  if (brewing.id) {
+    const bar = h('div', 'bar', h('div', 'fill'));
+    body.append(h('div', 'brewing', `Making ${ITEMS[brewing.id].name}…`, bar));
+    const iv = setInterval(() => {
+      if (!brewing.id) { api.rerender(); return; }
+      (bar.firstChild as HTMLElement).style.width = `${100 - (brewing.left / brewing.total) * 100}%`;
+    }, 80);
+    api.cleanup(() => clearInterval(iv));
+  }
+}
+
 export function openCafe() {
-  let tab: 'brew' | 'pantry' = 'brew';
+  let tab: 'brew' | 'bake' | 'pantry' = 'brew';
   enterPlace('cafe');
   openPanel('Puddle & Pip Café', (body, api) => {
-    body.append(h('div', 'tabs', tabBtn('Brew', tab === 'brew', () => { tab = 'brew'; api.rerender(); }), tabBtn('Pantry', tab === 'pantry', () => { tab = 'pantry'; api.rerender(); })));
-    if (tab === 'brew') {
-      body.append(h('div', 'muted', 'Brew a drink, then offer it to a friend — serving a cup is a lovely moment.'));
-      for (const r of RECIPES) {
-        const def = ITEMS[r.id];
-        const ok = canBrew(r.id) && !brewing.id;
-        body.append(h('div', 'card row-card',
-          itemIcon(r.id, 40),
-          h('div', 'grow', h('b', '', def.name), h('div', 'muted', def.desc),
-            h('div', 'needs', ...Object.entries(r.needs).map(([k, n]) => h('span', count(k) >= n ? 'need ok' : 'need no', itemIcon(k, 16), `${ITEMS[k].name} ${count(k)}/${n}`)))),
-          btn('Brew', () => { if (startBrew(r.id)) { api.rerender(); } }, '', !ok),
-        ));
-      }
-      if (brewing.id) {
-        const bar = h('div', 'bar', h('div', 'fill'));
-        body.append(h('div', 'brewing', `Brewing ${ITEMS[brewing.id].name}…`, bar));
-        const iv = setInterval(() => {
-          if (!brewing.id) { api.rerender(); return; }
-          (bar.firstChild as HTMLElement).style.width = `${100 - (brewing.left / brewing.total) * 100}%`;
-        }, 80);
-        api.cleanup(() => clearInterval(iv));
-      }
-    } else {
+    const t = (id: typeof tab, label: string) => tabBtn(label, tab === id, () => { tab = id; api.rerender(); });
+    body.append(h('div', 'tabs', t('brew', 'Brew'), t('bake', 'Bake'), t('pantry', 'Pantry')));
+    if (tab === 'brew' || tab === 'bake') recipeList(body, api, tab);
+    else {
       body.append(h('div', 'muted', 'Fresh ingredients for the counter.'));
       for (const id of SHOP_INGREDIENTS) body.append(shopRow(id, ITEMS[id].buy!, () => buyItem(id, api)));
     }
@@ -133,33 +169,126 @@ function shopRow(id: string, cost: number, onBuy: () => void) {
     h('span', 'own', `own ${count(id)}`), btn(price(cost), onBuy, '', state.coins < cost));
 }
 
+// ---------- Dressing room (boutique Outfits tab, Bag › Wardrobe) ----------
+/**
+ * Switch the open panel into (or out of) the fitting-room layout: the camera cuts to a close-up of the
+ * player in a little boutique fitting room (render/dressingRoom.ts), the card docks to the side (landscape)
+ * or the bottom (portrait), and the open area becomes a drag-to-spin stage.
+ */
+function setDressing(body: HTMLElement, api: PanelApi, on: boolean) {
+  const card = body.parentElement!, root = card.parentElement!;
+  card.classList.toggle('dress', on);
+  root.classList.toggle('dressing', on);
+  root.querySelector(':scope > .dress-hint')?.remove();
+  if (!on) {
+    // leaving the fitting room for another tab: take off whatever was only being tried on
+    if (dressing.active) { stopDressingRoom(); endPreview(); }
+    document.body.classList.remove('dressing');
+    return;
+  }
+  document.body.classList.add('dressing');
+  api.cleanup(() => document.body.classList.remove('dressing')); // re-added straight away by a re-render
+  startDressingRoom();
+  root.prepend(h('div', 'dress-hint',
+    h('span', 'dh-touch', '☜ drag to spin ☞'), h('span', 'dh-keyboard', '[ ] or ◀ ▶ to turn'), h('span', 'dh-gamepad', 'Stick to turn ✿')));
+  // drag / swipe anywhere outside the card turns the character, and a flick keeps it twirling
+  let id = -1, lx = 0, lt = 0;
+  const down = (e: PointerEvent) => {
+    if (e.target !== root && !(e.target as Element).classList?.contains('dress-hint')) return;
+    id = e.pointerId; lx = e.clientX; lt = performance.now();
+    dressing.dragging = true; dressing.vel = 0;
+    root.setPointerCapture(id); root.classList.add('dragging');
+  };
+  const move = (e: PointerEvent) => {
+    if (e.pointerId !== id) return;
+    const now = performance.now();
+    dragSpin(e.clientX - lx, (now - lt) / 1000);
+    lx = e.clientX; lt = now;
+  };
+  const up = (e: PointerEvent) => {
+    if (e.pointerId !== id) return;
+    id = -1; dressing.dragging = false; root.classList.remove('dragging');
+    if (performance.now() - lt > 90) dressing.vel = 0; // held still before letting go: no flick
+  };
+  root.addEventListener('pointerdown', down);
+  root.addEventListener('pointermove', move);
+  root.addEventListener('pointerup', up);
+  root.addEventListener('pointercancel', up);
+  api.cleanup(() => {
+    root.removeEventListener('pointerdown', down); root.removeEventListener('pointermove', move);
+    root.removeEventListener('pointerup', up); root.removeEventListener('pointercancel', up);
+    dressing.dragging = false; dressing.hold = 0;
+  });
+}
+
+/** ◀ / ▶: hold (touch / mouse) to keep turning; click, Enter / A, or ◀ ▶ while focused nudge a quarter-ish turn. */
+function spinBtn(label: string, aria: string, dir: number) {
+  const b = btn(label, () => nudgeSpin(dir), 'small spin');
+  b.dataset.spin = String(dir);
+  b.setAttribute('aria-label', aria);
+  b.title = aria;
+  b.addEventListener('pointerdown', () => { dressing.hold = dir; });
+  for (const ev of ['pointerup', 'pointerleave', 'pointercancel'] as const) b.addEventListener(ev, () => { dressing.hold = 0; });
+  return b;
+}
+
+/** The fitting-room controls: turn buttons, the selected look, Buy / Wear + Back, then the outfit and accessory picks. */
+function dressingView(body: HTMLElement, api: PanelApi, mode: 'shop' | 'wardrobe') {
+  const shop = mode === 'shop';
+  const sel = currentOutfit();
+  const owned = state.ownedOutfits.includes(sel.id), wearing = state.outfit === sel.id;
+  const status = wearing ? 'Wearing ✓' : owned ? (shop ? 'Yours · trying on' : 'Trying on') : 'Trying on';
+  body.append(
+    h('div', 'dress-stage',
+      spinBtn('◀', 'Turn left', -1),
+      h('div', 'dress-name', h('b', '', sel.name), h('span', 'dress-status', status, !owned ? price(sel.price) : null)),
+      spinBtn('▶', 'Turn right', 1)),
+    h('div', 'dress-actions',
+      !owned ? btn(h('span', 'inline', 'Buy ', price(sel.price)), () => { buyOutfit(sel.id); api.rerender(); }, 'dress-main', state.coins < sel.price)
+        : !wearing ? btn('Wear ✿', () => { wear(sel.id); api.rerender(); }, 'dress-main')
+          : btn('Wearing ✓', () => {}, 'dress-main', true),
+      btn('Back', () => api.close(), 'ghost dress-back')),
+  );
+  const list = h('div', 'dress-list');
+  for (const o of shop ? OUTFITS : OUTFITS.filter((x) => state.ownedOutfits.includes(x.id))) {
+    const mine = state.ownedOutfits.includes(o.id);
+    const tile = h('button', 'dress-tile' + (sel.id === o.id ? ' on' : '') + (state.outfit === o.id ? ' worn' : ''),
+      canvasEl(40, 46, (g) => { g.fillStyle = '#fff0f6'; g.fillRect(0, 0, 40, 46); drawPlayer(g, 20, 40, o, 'down', false, 0, 0.95); }),
+      h('span', 'dt-text', h('b', '', o.name), h('span', 'muted small', state.outfit === o.id ? '✓ Wearing' : mine ? 'Owned' : '', !mine ? price(o.price) : null)));
+    tile.title = o.desc;
+    tile.addEventListener('click', () => { if (shop) tryOn(o.id); else previewOutfit(o.id); api.rerender(); });
+    list.append(tile);
+  }
+  body.append(h('div', 'muted small dress-desc', shop ? `${sel.desc} Tap any look to try it on — it's free!` : sel.desc), list);
+  // accessories: handmade at the boutique worktable, worn as a small visible clip on the head
+  const accs = ownedAccessories(), worn = currentAccessory();
+  body.append(h('div', 'sub', 'Accessories'),
+    accs.length ? h('div', 'chips dress-acc', ...accs.map((id) => {
+      const c = h('button', 'chip-item' + (worn === id ? ' on' : ''), itemIcon(id, 22), h('span', '', `${ITEMS[id].name}${worn === id ? ' ✓' : ''}`));
+      c.title = worn === id ? 'Tap to take it off' : 'Tap to wear it';
+      c.addEventListener('click', () => { toggleAccessory(id); api.rerender(); });
+      return c;
+    })) : h('div', 'muted small', 'Make a bow clip, seashell charm or petal pin at the worktable (Craft tab) to wear it here.'));
+}
+
 // ---------- Boutique ----------
 export function openBoutique() {
-  let tab: 'outfits' | 'decor' = 'outfits';
+  let tab: 'outfits' | 'decor' | 'craft' = 'outfits';
   enterPlace('boutique');
   openPanel('Spot & Bow Boutique', (body, api) => {
     body.style.setProperty('--cheetah', `url(${cheetahDataUrl('classic')})`);
     body.append(h('div', 'cheetah-band'),
-      h('div', 'tabs', tabBtn('Outfits', tab === 'outfits', () => { tab = 'outfits'; api.rerender(); }), tabBtn('Decor', tab === 'decor', () => { tab = 'decor'; api.rerender(); })));
+      h('div', 'tabs', tabBtn('Outfits', tab === 'outfits', () => { tab = 'outfits'; api.rerender(); }), tabBtn('Decor', tab === 'decor', () => { tab = 'decor'; api.rerender(); }), tabBtn('Craft', tab === 'craft', () => { tab = 'craft'; api.rerender(); })));
+    setDressing(body, api, tab === 'outfits');
     if (tab === 'outfits') {
-      const worn = currentOutfit();
-      body.append(h('div', 'muted', 'Try anything on for free. Tap Buy to take it home!'));
-      const grid = h('div', 'grid');
-      for (const o of OUTFITS) {
-        const owned = state.ownedOutfits.includes(o.id);
-        const prev = canvasEl(84, 96, (g) => { g.fillStyle = '#fff0f6'; g.fillRect(0, 0, 84, 96); drawPlayer(g, 42, 80, o, 'down', false, 0, 2); });
-        grid.append(h('div', 'card outfit' + (worn.id === o.id ? ' worn' : ''), prev, h('b', '', o.name), h('div', 'muted small', o.desc),
-          h('div', 'row',
-            btn('Try on', () => { tryOn(o.id); api.rerender(); }, 'small ghost'),
-            owned ? btn(state.outfit === o.id ? 'Wearing' : 'Wear', () => { wear(o.id); api.rerender(); }, 'small', state.outfit === o.id)
-              : btn(h('span', 'inline', 'Buy ', price(o.price)), () => { buyOutfit(o.id); api.rerender(); }, 'small', state.coins < o.price))));
-      }
-      body.append(grid);
+      dressingView(body, api, 'shop');
+    } else if (tab === 'craft') {
+      recipeList(body, api, 'craft');
     } else {
       body.append(h('div', 'muted', 'Decor for your yard. Select it on the hotbar and face a yard tile.'));
       for (const id of SHOP_DECOR) body.append(shopRow(id, ITEMS[id].buy!, () => { if (buyDecor(id)) api.rerender(); }));
     }
-  }, () => { endPreview(); leavePlace(); }, true);
+  }, () => { stopDressingRoom(); endPreview(); leavePlace(); }, true);
 }
 
 // ---------- Market ----------
@@ -183,31 +312,67 @@ export function openMarket() {
 }
 
 // ---------- Bag + wardrobe ----------
+/** Old saves may hold more stacks than the bag fits; send the overflow to the chest once and say so. */
+function tidyOnOpen() {
+  const n = tidyBag();
+  if (n > 0) toast(`${n} ${n === 1 ? 'stack' : 'stacks'} moved to the Softkeep Chest to make room.`);
+}
+
 export function openBag() {
   let tab: 'items' | 'wardrobe' = 'items';
+  tidyOnOpen();
   openPanel('Bag', (body, api) => {
     body.append(h('div', 'tabs', tabBtn('Items', tab === 'items', () => { tab = 'items'; api.rerender(); }), tabBtn('Wardrobe', tab === 'wardrobe', () => { tab = 'wardrobe'; api.rerender(); })));
+    setDressing(body, api, tab === 'wardrobe');
     if (tab === 'items') {
-      body.append(h('div', 'muted', 'Tap an item to put it in your selected hotbar slot.'));
+      const ids = Object.keys(state.inv);
+      body.append(h('div', 'muted', `Tap an item to put it in your selected hotbar slot. ${ids.length}/${BAG_SLOTS} slots used.`));
       const grid = h('div', 'bag');
-      for (const id of Object.keys(state.inv)) {
+      for (const id of ids) {
         const cell = h('button', 'bagcell', itemIcon(id, 36), h('span', 'qty', ITEMS[id].kind === 'tool' ? '' : String(state.inv[id])), h('span', 'nm', ITEMS[id].name));
         cell.title = ITEMS[id].desc;
         cell.addEventListener('click', () => { assignHotbar(id); api.rerender(); });
         grid.append(cell);
       }
-      body.append(grid);
+      for (let i = ids.length; i < BAG_SLOTS; i++) grid.append(h('div', 'bagcell empty', h('span', 'nm', '\u00a0')));
+      body.append(grid, h('div', 'muted small', 'Spare things keep safe in the Softkeep Chest, in the yard by your home.'));
     } else {
-      const grid = h('div', 'grid');
-      for (const id of state.ownedOutfits) {
-        const o = outfitById(id);
-        grid.append(h('div', 'card outfit' + (state.outfit === id ? ' worn' : ''),
-          canvasEl(84, 96, (g) => { g.fillStyle = '#fff0f6'; g.fillRect(0, 0, 84, 96); drawPlayer(g, 42, 80, o, 'down', false, 0, 2); }),
-          h('b', '', o.name), btn(state.outfit === id ? 'Wearing' : 'Wear', () => { wear(id); api.rerender(); }, 'small', state.outfit === id)));
-      }
-      body.append(grid);
+      dressingView(body, api, 'wardrobe');
     }
-  });
+  }, () => { stopDressingRoom(); endPreview(); });
+}
+
+// ---------- Softkeep Chest ----------
+export function openChest() {
+  let tab: 'bag' | 'chest' = 'bag';
+  tidyOnOpen();
+  openPanel('Softkeep Chest', (body, api) => {
+    const inBag = tab === 'bag';
+    const store = inBag ? state.inv : state.bank;
+    const ids = Object.keys(store);
+    body.append(h('div', 'tabs', tabBtn(`Bag ${Object.keys(state.inv).length}/${BAG_SLOTS}`, inBag, () => { tab = 'bag'; api.rerender(); }),
+      tabBtn(`Chest ${Object.keys(state.bank).length}/${BANK_SLOTS}`, !inBag, () => { tab = 'chest'; api.rerender(); })));
+    body.append(h('div', 'muted', inBag ? 'Tap an item to tuck 1 into the chest. Tools stay with you.' : 'Tap an item to take 1 back into your bag.'));
+    const grid = h('div', 'bag');
+    for (const id of ids) {
+      const n = store[id], to = inBag ? 'bank' : 'bag';
+      const cell = h('button', 'bagcell', itemIcon(id, 36), h('span', 'qty', ITEMS[id].kind === 'tool' ? '' : String(n)), h('span', 'nm', ITEMS[id].name));
+      cell.title = ITEMS[id].desc;
+      cell.addEventListener('click', () => { moveStack(id, 1, to); api.rerender(); });
+      grid.append(cell);
+    }
+    for (let i = ids.length; i < (inBag ? BAG_SLOTS : BANK_SLOTS); i++) grid.append(h('div', 'bagcell empty', h('span', 'nm', '\u00a0')));
+    body.append(grid);
+    const movable = ids.filter((id) => !(inBag && ITEMS[id].kind === 'tool'));
+    body.append(h('div', 'row end',
+      btn(inBag ? 'Move all to chest' : 'Move all to bag', () => {
+        let moved = 0;
+        for (const id of movable) moved += moveStack(id, store[id] ?? 0, inBag ? 'bank' : 'bag') > 0 ? 1 : 0;
+        if (moved) toast(`${moved} ${moved === 1 ? 'stack' : 'stacks'} moved.`);
+        api.rerender();
+      }, 'small', !movable.length),
+      btn('Done', () => api.close(), 'small ghost')));
+  }, undefined, true);
 }
 
 // ---------- Journal ----------
@@ -215,8 +380,31 @@ export function openJournal(start = 'quests') {
   let tab = start;
   openPanel('Journal', (body, api) => {
     const t = (id: string, label: string) => tabBtn(label, tab === id, () => { tab = id; api.rerender(); });
-    body.append(h('div', 'tabs', t('quests', 'Quests'), t('collection', 'Collection'), t('friends', 'Friends'), t('lanterns', 'Lanterns')));
-    if (tab === 'quests') {
+    body.append(h('div', 'tabs', t('quests', 'Quests'), t('skills', 'Skills'), t('collection', 'Collection'), t('friends', 'Friends'), t('lanterns', 'Lanterns')));
+    // the card widens / goes two-column for skills on phones (scenes.css); other tabs keep their usual size
+    body.parentElement?.classList.toggle('skills-open', tab === 'skills');
+    if (tab === 'skills') {
+      body.append(h('div', 'muted skills-intro', 'Everything you do around the island quietly grows a skill. No rush — there is no losing here.'));
+      const list = h('div', 'skills-list');
+      for (const sk of SKILLS) {
+        const p = skillProgress(sk.id);
+        const bar = h('div', 'bar', h('div', 'fill'));
+        (bar.firstChild as HTMLElement).style.width = `${p.maxed ? 100 : Math.round((p.into / p.need) * 100)}%`;
+        list.append(h('div', 'card skill-card',
+          h('div', 'skill-icon', sk.icon),
+          h('div', 'grow',
+            h('div', 'skill-head', h('span', 'skill-name', sk.name), h('span', 'skill-lvl', `Lv ${p.level}`)),
+            h('div', 'muted skill-blurb', sk.blurb), bar,
+            h('div', 'muted small skill-xp', p.maxed ? 'Fully bloomed ✿' : `${p.into} / ${p.need} XP to Lv ${p.level + 1}`))));
+      }
+      body.append(list);
+    } else if (tab === 'quests') {
+      for (const q of LOG_QUESTS) {
+        const st = questStatus(q);
+        body.append(h('div', 'card quest' + (st === 'done' ? ' done' : ''),
+          h('div', 'grow', h('b', '', (st === 'done' ? '✓ ' : '✿ ') + q.title), h('div', 'muted', st === 'available' ? STATUS_TEXT.available : q.steps), h('div', 'muted small', STATUS_TEXT[st])),
+          h('span', 'tag', 'Errand'), h('span', 'price', coinIcon(14), String(q.reward))));
+      }
       for (const q of QUESTS) {
         const done = !!state.quests[q.id];
         body.append(h('div', 'card quest' + (done ? ' done' : ''),
@@ -298,7 +486,7 @@ export const HELP: { mode: 'keyboard' | 'gamepad' | 'touch'; title: string; rows
     ['WASD / Arrows', 'Walk, smoothly and relative to the camera'], ['Shift', 'Hold to run'],
     ['E / Space', 'Talk, shop, and use what you are facing'], ['F', 'Use the selected hotbar item on the tile in front'],
     ['Click', 'Walk there, or interact with what you click'], ['1–9 / Q R / Wheel', 'Choose a hotbar slot'],
-    ['B', 'Bag & wardrobe'], ['J', 'Journal'], ['L', 'Lantern grove'], ['H', 'This help'], ['Esc', 'Pause menu (settings, back to title) · closes a window'],
+    ['B', 'Bag & wardrobe'], ['J', 'Journal'], ['K', 'Skills'], ['L', 'Lantern grove'], ['H', 'This help'], ['Esc', 'Pause menu (settings, back to title) · closes a window'],
     ['[ ]  ·  - =', 'Orbit camera  ·  zoom (Backspace resets)'],
   ] },
   { mode: 'gamepad', title: 'Controller', rows: [
@@ -312,7 +500,7 @@ export const HELP: { mode: 'keyboard' | 'gamepad' | 'touch'; title: string; rows
     ['Drag the left side', 'A joystick appears under your thumb — a gentle drag walks, a full drag runs'],
     ['A', 'Talk, shop, interact'], ['B', 'Hold to run · cancel'], ['X', 'Use the selected hotbar item on the tile in front'],
     ['Y', 'Bag & wardrobe'], ['Hotbar', 'Tap a slot to switch tools'], ['Tap the island', 'Walk there, or talk to who you tap'],
-    ['Top buttons', 'Journal, bag and this help'], ['Journal › Pause', 'Resume, settings, or back to the title'],
+    ['Top buttons', 'Journal, skills, bag and this help'], ['Journal › Pause', 'Resume, settings, or back to the title'],
   ] },
 ];
 
@@ -343,6 +531,7 @@ export function openHelp() {
     state.seenHelp = true;
     body.append(
       h('p', 'muted', 'Hushbell: the Long Frost put Sugarlily Isle to sleep when the Hush Bell in the lighthouse wound down. Wake it one small kindness at a time — brew, gift, decorate, and light lanterns — until the Bell rings again. Somewhere soft is waking up.'),
+      h('p', 'muted small', 'Gather berries, blossoms, shells, coffee cherries and fish from the glimmering spots around the island — they grow back after a while. Everything you do grows a skill (see the Skills tab, or press K). Spare things keep safe in the Softkeep Chest by your home.'),
       h('p', 'muted small', 'Play with a keyboard, a controller or your fingers — the button hints on screen follow whichever you touched last, and its card hops to the top here.'),
       ...helpCards(),
       h('p', 'muted small help-tip', 'Tip: the café, boutique, cart, and grove altar open when you stand close and press the interact button. Time and season follow your real clock. Progress saves automatically.'),

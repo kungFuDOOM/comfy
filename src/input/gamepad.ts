@@ -4,6 +4,7 @@ import { toast } from '../bus';
 import { isPanelOpen } from '../ui/dom';
 import { navigate, sceneInputActive, trigger, type Action } from './dispatch';
 import { markInput } from './prompts';
+import { dressing } from '../dressing';
 
 const DEADZONE = 0.2;
 const NAV_THRESH = 0.55;
@@ -22,6 +23,8 @@ function stick(x: number, y: number) {
 }
 
 export const padMove = () => ({ x: ls.x, y: ls.y, run: runHeld });
+/** Dressing room: either stick turns the character (left / right). */
+export const padSpin = () => (dressing.active ? ls.x + rs.x : 0);
 /** Right stick orbit (x) + tilt (y), triggers zoom (RT in, LT out). */
 export const padCamera = () => ({ orbit: rs.x, tilt: rs.y, zoom: lt - rt });
 
@@ -72,10 +75,10 @@ export function pollGamepad(dt: number) {
   fire(RB, 'hotbarNext');
   fire(R3, 'camReset');
 
-  // D-pad / left stick: menu focus when a window or the main menu is up; D-pad ◀ ▶ steps the hotbar in the world.
+  // D-pad / left stick: menu focus when a window or the main menu is up (in the dressing room the sticks spin the model); D-pad ◀ ▶ steps the hotbar in the world.
   let dir: 'up' | 'down' | 'left' | 'right' | null = null;
   if (btns[UP]) dir = 'up'; else if (btns[DOWN]) dir = 'down'; else if (btns[LEFT]) dir = 'left'; else if (btns[RIGHT]) dir = 'right';
-  else if (panel && Math.hypot(ls.x, ls.y) > NAV_THRESH) dir = Math.abs(ls.x) > Math.abs(ls.y) ? (ls.x < 0 ? 'left' : 'right') : ls.y < 0 ? 'up' : 'down';
+  else if (panel && !dressing.active && Math.hypot(ls.x, ls.y) > NAV_THRESH) dir = Math.abs(ls.x) > Math.abs(ls.y) ? (ls.x < 0 ? 'left' : 'right') : ls.y < 0 ? 'up' : 'down';
   if (dir !== navDir) { navDir = dir; navT = dir ? 0.32 : 0; if (dir) step(dir); }
   else if (dir) { navT -= dt; if (navT <= 0) { navT = 0.11; step(dir); } }
 

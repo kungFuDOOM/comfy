@@ -139,9 +139,19 @@ v0.1 has a gentle, open-ended ladder instead of levels:
 ## 7. Technical notes
 
 - Vite + TypeScript, plain 2D canvas for the world, DOM for HUD/panels. `base: '/comfy/'` for GitHub Pages.
-- `src/` modules: `world` (map, tiles, buildings), `player` (movement, BFS click-to-move), `npc`, `cafe`, `boutique`, `decorate`, `garden`, `collect`, `lanterns`, `inventory`, `quests`, `time`, `save`, `state`, `ui/*`, and `art/*` (characters, icons, decor, lanterns, cheetah print).
+- `src/` modules: `world` (map, tiles, buildings), `player` (movement, BFS click-to-move), `npc`, `cafe`, `boutique`, `decorate`, `garden`, `collect`, `lanterns`, `inventory`, `quests`, `questlog`, `skills`, `nodes`, `time`, `save`, `state`, `ui/*`, and `art/*` (characters, icons, decor, lanterns, cheetah print).
 - Save/load: one JSON blob in localStorage (`comfy.save.v1`), autosaved every 5 s and on tab hide/close. It holds position, inventory, hotbar, pips, friendships, plots, decor, outfit, lanterns, quests, stats and collectible spawns. Plants keep growing while the tab is closed (progress uses timestamps).
 - No backend, no external assets.
+
+## 7b. Soft Skills
+
+Skills *wrap* the existing cozy loops; they never replace them. Gardening, gifting, brewing, decorating and lanterns stay equal-weight ways to play. Everything here is original to Hushbell — there is **no combat, no stamina, no energy bar and nothing to lose**.
+
+- **Six skills:** Foraging, Fishing, Gardening, Baking, Brewing, Crafting (level cap 25, XP to next level = 40 × level^1.6). Total XP is saved; the level is derived. The Journal's *Skills* tab (or `K`, or the HUD "✧ Skills" button) shows each level and XP bar.
+- **Gathering nodes (~36):** puffberry/lanternberry bushes and ribbon/moonpetal patches in Ribbon Meadow, shell and rosepearl beds on the beaches, coffee and starfreckle shrubs in the grove south-east of the square, and fishing ripples along Dewdrop Shore and the west coast. Gather with the interact button; a spot rests for a while (timestamps persist) and looks bare until it blooms back. Higher tiers need a skill level; the deeper fishing spots also need the Dew-line Rod.
+- **Softkeep Chest:** a 48-slot chest in the yard by home. The bag holds 24 stacks; when it is full a new kind of item goes to the chest with a gentle toast, so nothing is ever lost. Tools stay in the bag.
+- **Recipes with levels:** the café counter (*Brew*), café oven (*Bake*) and boutique worktable (*Craft*) share one short timer. Locked recipes stay visible, greyed, with the skill and level they need — e.g. Lanternberry Latte (Brewing 5), Cloud Cake (Baking 8), Moonpetal Pin (Crafting 8).
+- **Mimsy's Soft Errand:** the starter quest. Mimsy asks for 3 puffberries from the meadow bushes and rewards 60 pips and the Dew-line Rod, teaching gathering and opening up fishing.
 
 ## 8. Roadmap beyond v0.1
 

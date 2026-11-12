@@ -9,6 +9,7 @@ import { createPlayerMesh, createVillagerMesh, type ActorMesh } from './actors';
 import { createDynamic } from './dynamic';
 import { createLightRig } from './lighting';
 import { PALETTE } from './materials';
+import { createBeach } from './beach';
 import { createNature } from './nature';
 import { createParticles } from './particles';
 import { createPost } from './post';
@@ -20,8 +21,10 @@ export interface FrameInput {
   dt: number;
   hour: number;
   season: Season;
-  player: { x: number; y: number; facing: Facing; moving: boolean };
+  player: { x: number; y: number; facing: Facing; moving: boolean; running?: boolean; surface?: 'sand' | 'path' | 'grass' };
   outfit: OutfitDef;
+  /** Worn accessory item id (see boutique.currentAccessory). Omitted = none. */
+  accessory?: string | null;
   npcs: Npc[];
   talkedToday(id: string): boolean;
 }
@@ -82,10 +85,11 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
 
   const terrain = createTerrain();
   const nature = createNature();
+  const beach = createBeach();
   const structures = createStructures();
   const dynamic = createDynamic();
   const particles = createParticles(); // after structures: reads the café steam vents
-  scene.add(terrain.group, nature.group, structures, dynamic.group, particles.group);
+  scene.add(terrain.group, nature.group, beach, structures, dynamic.group, particles.group);
 
   const player = createPlayerMesh();
   scene.add(player.root);
@@ -161,9 +165,11 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       if (f.season.id !== seasonId) { seasonId = f.season.id; terrain.setSeason(f.season); nature.setSeason(f.season); particles.setSeason(f.season); }
 
       player.setOutfit(f.outfit);
+      player.setAccessory(f.accessory ?? null);
       place(player, f.player.x, f.player.y);
       player.setFacing(f.player.facing, f.dt);
-      player.animate(f.t, f.player.moving);
+      player.animate(f.t, f.player.moving, !!f.player.running);
+      particles.dust(f.dt, !!f.player.running, player.root.position, f.player.surface ?? 'grass');
       for (const [id, v] of villagers) v.root.visible = f.npcs.some((n) => n.def.id === id); // absent villagers (e.g. Nimbus by day) hide
       for (const n of f.npcs) {
         let v = villagers.get(n.def.id);

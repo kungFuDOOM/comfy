@@ -56,6 +56,8 @@ export interface Particles {
   group: THREE.Group;
   setSeason(s: Season): void;
   /** pxScale = drawing-buffer height / (2·tan(fov/2)), so point sizes are in world units. */
+  /** Tiny dust puffs kicked up under the feet while running. */
+  dust(dt: number, running: boolean, at: THREE.Vector3, surface: 'sand' | 'path' | 'grass'): void;
   update(t: number, night: number, target: THREE.Vector3, pxScale: number, groundAt: (x: number, z: number) => number): void;
 }
 
@@ -64,6 +66,14 @@ export function createParticles(): Particles {
   const day = cloud(DAY, false), flies = cloud(FLIES, true), steam = cloud(Math.max(1, steamVents.length * STEAM_PER), false);
   group.add(day.pts, flies.pts, steam.pts);
   const c = new THREE.Color();
+
+  // dust: a tiny pool of soft puffs spawned at the feet while running
+  const DUST = 14, DLIFE = 0.45;
+  const dust = cloud(DUST, false);
+  group.add(dust.pts);
+  const dAge = new Float32Array(DUST).fill(DLIFE), dVel = new Float32Array(DUST * 3);
+  let dNext = 0, dTimer = 0, dAny = false;
+  const DCOL: Record<string, string> = { sand: '#f1dfb4', path: '#d9cdb8', grass: '#cfe0b0' };
 
   // static per-particle colors
   const FLY_HDR = 3.2; // above the bloom threshold so fireflies glow softly at night
@@ -86,8 +96,33 @@ export function createParticles(): Particles {
       }
       day.pts.geometry.attributes.aColor.needsUpdate = true;
     },
+    dust(dt, running, at, surface) {
+      dTimer -= dt;
+      if (running && dTimer <= 0) {
+        dTimer = 0.11;
+        const i = dNext; dNext = (dNext + 1) % DUST;
+        dAge[i] = 0; dAny = true;
+        const a = Math.random() * Math.PI * 2;
+        dust.pos.set([at.x + Math.cos(a) * 0.1, at.y + 0.06, at.z + Math.sin(a) * 0.1], i * 3);
+        dVel[i * 3] = Math.cos(a) * 0.25; dVel[i * 3 + 1] = 0.3; dVel[i * 3 + 2] = Math.sin(a) * 0.25;
+        c.set(DCOL[surface]); dust.col.set([c.r, c.g, c.b], i * 3);
+        dust.pts.geometry.attributes.aColor.needsUpdate = true;
+      }
+      if (!dAny) return;
+      let live = false;
+      for (let i = 0; i < DUST; i++) {
+        if (dAge[i] >= DLIFE) { dust.alpha[i] = 0; continue; }
+        dAge[i] += dt; live = true;
+        const p = dAge[i] / DLIFE;
+        dust.pos[i * 3] += dVel[i * 3] * dt; dust.pos[i * 3 + 1] += dVel[i * 3 + 1] * dt; dust.pos[i * 3 + 2] += dVel[i * 3 + 2] * dt;
+        dust.alpha[i] = (1 - p) * 0.4;
+        dust.size[i] = 0.12 + p * 0.14;
+      }
+      for (const n of ['position', 'aAlpha', 'aSize']) dust.pts.geometry.attributes[n].needsUpdate = true;
+      dAny = live;
+    },
     update(t, night, target, pxScale, groundAt) {
-      for (const k of [day, flies, steam]) k.mat.uniforms.uScale.value = pxScale;
+      for (const k of [day, flies, steam, dust]) k.mat.uniforms.uScale.value = pxScale;
       const dayK = 1 - night, nightK = Math.max(0, (night - 0.35) / 0.65);
       day.pts.visible = dayK > 0.01; flies.pts.visible = nightK > 0.01;
       day.mat.uniforms.uOpacity.value = dayK; flies.mat.uniforms.uOpacity.value = nightK;

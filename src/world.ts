@@ -1,5 +1,6 @@
 // The island: tile map, areas, stations, walkability. Rendering lives in src/render/.
 import { hash } from './art/draw';
+import { NODES, type NodeDef } from './data';
 
 export const TS = 32;
 export const MAP_W = 60;
@@ -27,14 +28,18 @@ export const inYard = (x: number, y: number) => inRect(AREAS.yard, x, y);
 export const isPlotTile = (x: number, y: number) => inRect(AREAS.garden, x, y);
 export const inMeadow = (x: number, y: number) => inRect(AREAS.meadow, x, y) && terrainAt(x, y) === T.Grass;
 
-export type StationId = 'cafe' | 'boutique' | 'market' | 'grove';
+export type StationId = 'cafe' | 'boutique' | 'market' | 'grove' | 'chest';
 export interface Station { id: StationId; x: number; y: number; w: number; label: string; prompt: string }
 export const stations: Station[] = [
   { id: 'cafe', x: 23, y: 13, w: 1, label: 'Puddle & Pip Café', prompt: 'Brew & shop the pantry' },
   { id: 'boutique', x: 36, y: 13, w: 1, label: 'Spot & Bow Boutique', prompt: 'Browse outfits & decor' },
   { id: 'market', x: 29, y: 14, w: 2, label: 'Tuppence Cart', prompt: 'Buy seeds, sell goods' },
   { id: 'grove', x: 45, y: 9, w: 1, label: 'Afterglow Grove', prompt: 'View the lantern grove' },
+  { id: 'chest', x: 16, y: 27, w: 1, label: 'Softkeep Chest', prompt: 'Keep your things safe' },
 ];
+const nodeIdx = (n: NodeDef) => idx(n.x, n.y);
+/** Gathering nodes on a walkable tile (bushes, shrubs, patches) block it; shell beds are flat and fish spots sit in the water. */
+export const nodeBlocks = (n: NodeDef) => n.kind !== 'shell' && n.kind !== 'fish';
 export const GROVE = { x: 45 * TS + TS / 2, y: 9 * TS + TS / 2 };
 
 // ---- Objects ----
@@ -70,6 +75,7 @@ export function buildWorld() {
     const r = Math.hypot(nx, ny) + Math.sin(x * 0.7) * 0.02 + Math.cos(y * 0.6) * 0.02 + Math.sin((x + y) * 0.3) * 0.02;
     terrain[idx(x, y)] = r < 0.85 ? T.Grass : r < 0.93 ? T.Sand : T.Water;
   }
+  smoothShore();
   // hillside (lantern grove)
   const h = AREAS.hill;
   for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
@@ -108,6 +114,8 @@ export function buildWorld() {
   for (const b of buildings) for (let y = b.y0; y <= b.y1; y++) for (let x = b.x0; x <= b.x1; x++) { block(x, y); }
   // stations + props
   for (const s of stations) for (let i = 0; i < s.w; i++) block(s.x + i, s.y);
+  // reserve node tiles before flowers and trees are scattered so nothing grows on top of them
+  for (const nd of NODES) { if (nodeBlocks(nd)) block(nd.x, nd.y); else reserved[nodeIdx(nd)] = 1; }
   // station models are wider than their tile: café counter + chalkboard, boutique rail, grove plinth
   for (const [x, y] of [[22, 13], [24, 13], [25, 13], [35, 13], [37, 13], [44, 9], [46, 9]]) block(x, y);
   for (const p of [[21, 14], [26, 14]]) { props.push({ type: 'table', x: p[0], y: p[1] }); block(p[0], p[1]); }
@@ -120,6 +128,8 @@ export function buildWorld() {
     [29, 38, 'Dewdrop Shore'], [34, 24, 'Sugarlily Square'],
   ];
   for (const [x, y, text] of signs) { props.push({ type: 'sign', x, y, text }); block(x, y); }
+  // beach parasols (scenery, but the pole blocks its tile)
+  for (const p of PARASOLS) block(p.x, p.y);
   // glows (night lamps / windows)
   for (const p of props) if (p.type === 'lamp') glows.push({ x: p.x * TS + 16, y: p.y * TS - 6, r: 70, c: '255,220,170' });
   for (const b of buildings) {
@@ -146,6 +156,60 @@ export function buildWorld() {
       trees.push({ x, y, v: (hash(x, y) * 1000) | 0 }); block(x, y);
     }
   }
+  computeShoreDist();
+}
+
+// ---- Shore ----
+/** Beach parasols: one beside Dewdrop Shore, one on the north beach. v picks the canopy colors. */
+export const PARASOLS = [{ x: 33, y: 39, v: 0 }, { x: 18, y: 5, v: 1 }];
+const shore = new Uint8Array(MAP_W * MAP_H);
+/** Chebyshev distance (in tiles, capped at 9) from a land tile to the nearest water; 0 for water. 1 = waterline. */
+export const shoreDist = (x: number, y: number) => (inMap(x, y) ? shore[idx(x, y)] : 0);
+/** Tiles that already hold something (nodes, signs, stations, fences...), so scenery should stay off them. */
+export const isReservedTile = (x: number, y: number) => !inMap(x, y) || reserved[idx(x, y)] === 1;
+
+function computeShoreDist() {
+  shore.fill(9);
+  for (let i = 0; i < shore.length; i++) if (terrain[i] === T.Water) shore[i] = 0;
+  for (let k = 1; k < 9; k++) for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
+    if (shore[idx(x, y)] !== 9) continue;
+    near: for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      if ((inMap(x + dx, y + dy) ? shore[idx(x + dx, y + dy)] : 0) === k - 1) { shore[idx(x, y)] = k; break near; }
+    }
+  }
+}
+
+/** Soften the noisy shoreline into a gentle beach: fill notches, drop lone sand spits, and keep at least three tiles of
+ *  sand between the grass and the sea. Shell beds stay on sand and fishing spots stay in the water. */
+function smoothShore() {
+  const keep = new Set(NODES.filter((n) => n.kind === 'shell' || n.kind === 'fish').map(nodeIdx));
+  const at = (x: number, y: number) => (inMap(x, y) ? terrain[idx(x, y)] : T.Water);
+  const around = (x: number, y: number, f: (t: number) => boolean, ring = true) => {
+    let n = 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      if ((dx || dy) && (ring || !dx || !dy) && f(at(x + dx, y + dy))) n++;
+    }
+    return n;
+  };
+  for (let pass = 0; pass < 2; pass++) {
+    const next = terrain.slice();
+    for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) {
+      const i = idx(x, y), c = terrain[i];
+      if (keep.has(i)) continue;
+      const land = around(x, y, (t) => t !== T.Water), land4 = around(x, y, (t) => t !== T.Water, false);
+      const grass = around(x, y, (t) => t === T.Grass);
+      if (c === T.Water && (land >= 5 || land4 >= 3)) next[i] = T.Sand;
+      else if (c === T.Sand && (land <= 3 || land4 <= 1)) next[i] = T.Water;
+      else if (c === T.Grass && grass <= 3) next[i] = T.Sand;
+      else if (c === T.Sand && grass >= 6) next[i] = T.Grass;
+    }
+    terrain.set(next);
+  }
+  computeShoreDist();
+  // three tiles of sand everywhere: a wet waterline, a damp band, then warm dry sand (gathering nodes keep their grass)
+  const grassy = new Set(NODES.filter((n) => n.kind !== 'shell' && n.kind !== 'fish').map(nodeIdx));
+  for (let i = 0; i < terrain.length; i++) if (terrain[i] === T.Grass && shore[i] <= 3 && !grassy.has(i)) terrain[i] = T.Sand;
+  for (const n of NODES) if (n.kind === 'shell') terrain[nodeIdx(n)] = T.Sand;
 }
 
 export function isWalkable(x: number, y: number) { return !isSolidTile(x, y); }

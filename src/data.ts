@@ -1,5 +1,5 @@
 // Static content tables: items, outfits, recipes, villagers, quests, collectibles.
-export type ItemKind = 'tool' | 'seed' | 'crop' | 'ingredient' | 'drink' | 'collectible' | 'decor';
+export type ItemKind = 'tool' | 'seed' | 'crop' | 'ingredient' | 'drink' | 'collectible' | 'decor' | 'fish' | 'treat' | 'accessory';
 
 export interface ItemDef {
   id: string;
@@ -18,6 +18,7 @@ const add = (d: ItemDef) => (ITEMS[d.id] = d);
 // tools
 add({ id: 'trowel', name: 'Tilly Trowel', kind: 'tool', desc: 'Tills a patch of soil in the garden.' });
 add({ id: 'can', name: 'Dewdrop Can', kind: 'tool', desc: 'Waters sleepy sprouts.' });
+add({ id: 'rod', name: 'Dew-line Rod', kind: 'tool', desc: 'A bendy little rod for the shy fish out past the shallows.' });
 // seeds & crops (a small side loop)
 add({ id: 'seed_puffberry', name: 'Puffberry Seeds', kind: 'seed', buy: 10, desc: 'Grows fluffy pink berries.' });
 add({ id: 'seed_cottonbloom', name: 'Cottonbloom Seeds', kind: 'seed', buy: 16, desc: 'Grows a cloud-soft flower.' });
@@ -38,6 +39,25 @@ add({ id: 'shell', name: 'Dewdrop Shell', kind: 'collectible', sell: 14, desc: '
 add({ id: 'blossom', name: 'Ribbon Blossom', kind: 'collectible', sell: 12, desc: 'A flower shaped like a tied ribbon.' });
 add({ id: 'moth', name: 'Steam-Moth', kind: 'collectible', sell: 30, desc: 'Drifts out of café steam at dusk. Smells like cinnamon.' });
 add({ id: 'button', name: 'Starlit Button', kind: 'collectible', sell: 40, desc: 'Found on the hillside. Twinkles when nobody is looking.' });
+// gathered goods
+add({ id: 'glowberry', name: 'Lanternberry', kind: 'crop', sell: 46, desc: 'A berry that glows faintly pink after dusk.' });
+add({ id: 'moonpetal', name: 'Moonpetal', kind: 'crop', sell: 52, desc: 'A pale petal that smells like a lullaby.' });
+add({ id: 'pearlshell', name: 'Rosepearl Shell', kind: 'collectible', sell: 58, desc: 'A rosy shell with a tiny pearl tucked inside.' });
+add({ id: 'rare_beans', name: 'Starfreckle Beans', kind: 'ingredient', sell: 30, desc: 'Speckled beans that roast up extra dreamy.' });
+add({ id: 'minnow', name: 'Puddle Minnow', kind: 'fish', sell: 18, desc: 'Small, round, and always a little surprised.' });
+add({ id: 'perch', name: 'Ribbon Perch', kind: 'fish', sell: 42, desc: 'Stripes like a gift ribbon. Wiggles when it is happy.' });
+add({ id: 'koi', name: 'Mooncream Koi', kind: 'fish', sell: 90, desc: 'Creamy white with a moon-shaped blush on its cheek.' });
+// baked treats
+add({ id: 'berry_tart', name: 'Puffberry Tart', kind: 'treat', sell: 44, desc: 'A buttery little tart piled with puffberries.' });
+add({ id: 'blossom_scone', name: 'Blossom Scone', kind: 'treat', sell: 48, desc: 'Soft, honeyed, and dotted with petals.' });
+add({ id: 'cloud_cake', name: 'Cloud Cake', kind: 'treat', sell: 78, desc: 'So fluffy it nearly floats off the plate.' });
+// more drinks
+add({ id: 'lantern_latte', name: 'Lanternberry Latte', kind: 'drink', sell: 62, desc: 'A rosy latte that glows a touch at dusk.' });
+add({ id: 'star_brew', name: 'Starfreckle Brew', kind: 'drink', sell: 88, desc: 'Dark, sweet, and speckled like a night sky.' });
+// handmade accessories
+add({ id: 'bow_pin', name: 'Ribbon Bow Clip', kind: 'accessory', sell: 40, desc: 'A hand-tied bow on a tiny clip.' });
+add({ id: 'shell_charm', name: 'Seashell Charm', kind: 'accessory', sell: 56, desc: 'A shell on a ribbon. You can hear a tiny tide.' });
+add({ id: 'petal_pin', name: 'Moonpetal Pin', kind: 'accessory', sell: 96, desc: 'A pressed petal pin that shimmers softly.' });
 // decor
 add({ id: 'd_pouf', name: 'Pink Pouf', kind: 'decor', buy: 60, desc: 'A squashy seat in bubblegum pink.' });
 add({ id: 'd_rug', name: 'Cheetah Rug', kind: 'decor', buy: 120, desc: 'A flat, cheetah-print rug. Very plush.' });
@@ -55,16 +75,43 @@ export const SHOP_SEEDS = ['seed_puffberry', 'seed_cottonbloom'];
 export const SHOP_INGREDIENTS = ['beans', 'milk', 'syrup', 'honey', 'cocoa'];
 export const SHOP_DECOR = ['d_pouf', 'd_rug', 'd_lamp', 'd_shelf', 'd_teacup', 'd_chair'];
 
-// --- Cafe ---
+// --- Skills ---
+export type SkillId = 'foraging' | 'fishing' | 'gardening' | 'baking' | 'brewing' | 'crafting';
+export interface SkillDef { id: SkillId; name: string; icon: string; blurb: string }
+export const SKILLS: SkillDef[] = [
+  { id: 'foraging', name: 'Foraging', icon: '🍓', blurb: 'Picking berries, petals, shells and coffee beans around the island.' },
+  { id: 'fishing', name: 'Fishing', icon: '🐟', blurb: 'Sitting by the shore and waiting for something cute to nibble.' },
+  { id: 'gardening', name: 'Gardening', icon: '🌱', blurb: 'Tilling, watering and harvesting your little plot.' },
+  { id: 'baking', name: 'Baking', icon: '🧁', blurb: 'Turning berries, flowers and honey into sweet treats.' },
+  { id: 'brewing', name: 'Brewing', icon: '☕', blurb: 'Pulling lovely drinks at the café counter.' },
+  { id: 'crafting', name: 'Crafting', icon: '🎀', blurb: 'Making bows, charms and pins by hand.' },
+];
+
+// --- Recipes (café counter, café oven, boutique worktable) ---
+export type Bench = 'brew' | 'bake' | 'craft';
 export interface Recipe {
   id: string;
   needs: Record<string, number>;
   seconds: number;
+  bench: Bench;
+  skill: SkillId;
+  level: number;
+  xp: number;
+  /** Quest stat bumped when one is made. */
+  stat: string;
 }
 export const RECIPES: Recipe[] = [
-  { id: 'pink_latte', needs: { beans: 1, milk: 1, syrup: 1 }, seconds: 3 },
-  { id: 'honey_cap', needs: { beans: 1, milk: 1, honey: 1 }, seconds: 3 },
-  { id: 'spot_mocha', needs: { beans: 1, milk: 1, cocoa: 1 }, seconds: 4 },
+  { id: 'pink_latte', needs: { beans: 1, milk: 1, syrup: 1 }, seconds: 3, bench: 'brew', skill: 'brewing', level: 1, xp: 12, stat: 'brewed' },
+  { id: 'honey_cap', needs: { beans: 1, milk: 1, honey: 1 }, seconds: 3, bench: 'brew', skill: 'brewing', level: 1, xp: 12, stat: 'brewed' },
+  { id: 'spot_mocha', needs: { beans: 1, milk: 1, cocoa: 1 }, seconds: 4, bench: 'brew', skill: 'brewing', level: 1, xp: 14, stat: 'brewed' },
+  { id: 'lantern_latte', needs: { beans: 1, milk: 1, glowberry: 1 }, seconds: 5, bench: 'brew', skill: 'brewing', level: 5, xp: 34, stat: 'brewed' },
+  { id: 'star_brew', needs: { rare_beans: 1, milk: 1, honey: 1, cocoa: 1 }, seconds: 6, bench: 'brew', skill: 'brewing', level: 10, xp: 70, stat: 'brewed' },
+  { id: 'berry_tart', needs: { puffberry: 2, milk: 1, honey: 1 }, seconds: 5, bench: 'bake', skill: 'baking', level: 1, xp: 16, stat: 'baked' },
+  { id: 'blossom_scone', needs: { blossom: 2, milk: 1, honey: 1 }, seconds: 5, bench: 'bake', skill: 'baking', level: 4, xp: 30, stat: 'baked' },
+  { id: 'cloud_cake', needs: { cottonbloom: 1, milk: 2, syrup: 1 }, seconds: 7, bench: 'bake', skill: 'baking', level: 8, xp: 60, stat: 'baked' },
+  { id: 'bow_pin', needs: { blossom: 2 }, seconds: 4, bench: 'craft', skill: 'crafting', level: 1, xp: 16, stat: 'crafted' },
+  { id: 'shell_charm', needs: { shell: 2, blossom: 1 }, seconds: 5, bench: 'craft', skill: 'crafting', level: 4, xp: 32, stat: 'crafted' },
+  { id: 'petal_pin', needs: { moonpetal: 2, pearlshell: 1 }, seconds: 6, bench: 'craft', skill: 'crafting', level: 8, xp: 64, stat: 'crafted' },
 ];
 
 // --- Boutique ---
@@ -207,4 +254,67 @@ export const QUESTS: QuestDef[] = [
   { id: 'q_decor', title: 'Nest Builder', desc: 'Place a piece of decor in your yard.', stat: 'placed', goal: 1, reward: 40, loop: 'Decorating' },
   { id: 'q_lantern', title: 'First Glow', desc: 'Release your first Afterglow Lantern.', stat: 'lanterns', goal: 1, reward: 60, rewardItem: 'd_pouf', loop: 'Afterglow' },
   { id: 'q_sprout', title: 'Tiny Sprout', desc: 'Harvest something from the garden plot.', stat: 'harvested', goal: 1, reward: 30, loop: 'Garden' },
+  { id: 'q_forage', title: 'Basket Full', desc: 'Gather 5 things from bushes, patches, beds and shrubs.', stat: 'foraged', goal: 5, reward: 40, loop: 'Foraging' },
+  { id: 'q_fish', title: 'First Nibble', desc: 'Catch a fish at the shore.', stat: 'fished', goal: 1, reward: 35, loop: 'Fishing' },
+  { id: 'q_bake', title: 'Warm From the Oven', desc: 'Bake a treat at the café oven.', stat: 'baked', goal: 1, reward: 35, loop: 'Baking' },
+  { id: 'q_craft', title: 'Handmade With Love', desc: 'Make an accessory at the boutique worktable.', stat: 'crafted', goal: 1, reward: 35, loop: 'Crafting' },
+];
+
+// --- Gathering nodes ---
+export type NodeKind = 'berry' | 'flower' | 'shell' | 'coffee' | 'fish';
+export interface NodeTier {
+  name: string;
+  level: number;
+  item: string;
+  xp: number;
+  /** Seconds until it is ready again. */
+  respawn: number;
+  skill: SkillId;
+  /** Needs the Dew-line Rod in the bag. */
+  rod?: boolean;
+  verb: string;
+}
+export const NODE_KINDS: Record<NodeKind, NodeTier[]> = {
+  berry: [
+    { name: 'Puffberry Bush', level: 1, item: 'puffberry', xp: 10, respawn: 60, skill: 'foraging', verb: 'Pick berries' },
+    { name: 'Lanternberry Bush', level: 8, item: 'glowberry', xp: 34, respawn: 110, skill: 'foraging', verb: 'Pick berries' },
+  ],
+  flower: [
+    { name: 'Ribbon Blossom Patch', level: 1, item: 'blossom', xp: 9, respawn: 50, skill: 'foraging', verb: 'Gather blossoms' },
+    { name: 'Moonpetal Patch', level: 6, item: 'moonpetal', xp: 28, respawn: 100, skill: 'foraging', verb: 'Gather petals' },
+  ],
+  shell: [
+    { name: 'Shell Bed', level: 1, item: 'shell', xp: 8, respawn: 50, skill: 'foraging', verb: 'Dig for shells' },
+    { name: 'Rosepearl Bed', level: 7, item: 'pearlshell', xp: 30, respawn: 110, skill: 'foraging', verb: 'Dig for shells' },
+  ],
+  coffee: [
+    { name: 'Coffee Shrub', level: 2, item: 'beans', xp: 14, respawn: 75, skill: 'foraging', verb: 'Pick coffee cherries' },
+    { name: 'Starfreckle Shrub', level: 9, item: 'rare_beans', xp: 38, respawn: 120, skill: 'foraging', verb: 'Pick coffee cherries' },
+  ],
+  fish: [
+    { name: 'Puddle Spot', level: 1, item: 'minnow', xp: 10, respawn: 45, skill: 'fishing', verb: 'Cast a line' },
+    { name: 'Ribbon Spot', level: 6, item: 'perch', xp: 30, respawn: 80, skill: 'fishing', rod: true, verb: 'Cast a line' },
+    { name: 'Moonlit Spot', level: 12, item: 'koi', xp: 64, respawn: 150, skill: 'fishing', rod: true, verb: 'Cast a line' },
+  ],
+};
+
+export interface NodeDef { id: string; kind: NodeKind; tier: number; x: number; y: number }
+const n = (kind: NodeKind, tier: number, pts: [number, number][]): NodeDef[] =>
+  pts.map(([x, y], i) => ({ id: `${kind}${tier}_${i}`, kind, tier, x, y }));
+export const NODES: NodeDef[] = [
+  // Ribbon Meadow
+  ...n('berry', 0, [[11, 14], [10, 13], [12, 10], [15, 12], [9, 15]]),
+  ...n('berry', 1, [[7, 13], [18, 13]]),
+  ...n('flower', 0, [[6, 15], [11, 11], [16, 15], [8, 16], [13, 14]]),
+  ...n('flower', 1, [[9, 12], [19, 10]]),
+  // beaches
+  ...n('shell', 0, [[4, 16], [4, 20], [4, 24], [6, 12], [19, 39], [27, 40]]),
+  ...n('shell', 1, [[38, 40], [55, 22]]),
+  // the coffee grove, south-east of the square
+  ...n('coffee', 0, [[47, 24], [49, 24], [48, 26]]),
+  ...n('coffee', 1, [[50, 26], [51, 23]]),
+  // Dewdrop Shore and the west coast
+  ...n('fish', 0, [[24, 41], [28, 41], [2, 18], [3, 22]]),
+  ...n('fish', 1, [[34, 42], [37, 41], [3, 26]]),
+  ...n('fish', 2, [[41, 40], [11, 36]]),
 ];

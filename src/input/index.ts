@@ -1,7 +1,7 @@
 // Input façade: merges keyboard, touch joystick and gamepad into one movement/camera reading.
 import { isPanelOpen } from '../ui/dom';
 import { sceneInputActive, setHandlers, type Handlers } from './dispatch';
-import { initGamepad, padCamera, padMove, pollGamepad } from './gamepad';
+import { initGamepad, padCamera, padMove, padSpin, pollGamepad } from './gamepad';
 import { initKeyboard, keyCamera, keyMove } from './keyboard';
 import { initPrompts, markInput } from './prompts';
 import { initTouch, touchMove } from './touch';
@@ -35,6 +35,9 @@ export function readCamera() {
   const p = padCamera(), k = keyCamera();
   return { orbit: p.orbit + k.orbit, tilt: p.tilt, zoom: p.zoom + k.zoom };
 }
+
+/** Dressing-room turn rate (-1..1+): either gamepad stick, or [ ] on the keyboard. */
+export function readSpin() { return padSpin() + keyCamera().orbit; }
 
 export function pollInput(dt: number) { pollGamepad(dt); }
 

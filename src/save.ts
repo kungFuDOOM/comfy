@@ -13,6 +13,11 @@ export function loadGame(): boolean {
     Object.assign(state, base, data);
     state.daily = { ...base.daily, ...(data.daily ?? {}) };
     if (!Array.isArray(state.hotbar) || state.hotbar.length !== 9) state.hotbar = base.hotbar;
+    // fields added after the first release: old saves get fresh defaults, existing data stays untouched
+    for (const k of ['skills', 'bank', 'nodes', 'questLog'] as const) {
+      const v = state[k] as unknown;
+      if (!v || typeof v !== 'object' || Array.isArray(v)) (state as unknown as Record<string, unknown>)[k] = {};
+    }
     return true;
   } catch {
     return false;

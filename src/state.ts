@@ -24,6 +24,8 @@ export interface SaveData {
   sel: number;
   outfit: string;
   ownedOutfits: string[];
+  /** Handmade accessory worn on the model (an item id of kind 'accessory'), or null. Hidden if no longer owned. */
+  accessory: string | null;
   decor: PlacedDecor[];
   plots: Record<string, Plot>;
   friend: Record<string, number>;
@@ -38,6 +40,14 @@ export interface SaveData {
   seenHelp: boolean;
   /** The new-game arrival cutscene has played (or been skipped) for this save. */
   seenIntro: boolean;
+  /** Total XP per skill; the level is always derived from it (see skills.ts). */
+  skills: Record<string, number>;
+  /** Chest storage at home. */
+  bank: Record<string, number>;
+  /** Resource node id -> timestamp (ms) when it is ready again. Missing or past = ready. */
+  nodes: Record<string, number>;
+  /** Quest-log quests (see questlog.ts): 'active' once accepted, 'done' once turned in. */
+  questLog: Record<string, 'active' | 'done'>;
 }
 
 export function defaultState(): SaveData {
@@ -52,6 +62,7 @@ export function defaultState(): SaveData {
     sel: 0,
     outfit: 'cozy',
     ownedOutfits: ['cozy'],
+    accessory: null,
     decor: [],
     plots: {},
     friend: {},
@@ -65,6 +76,10 @@ export function defaultState(): SaveData {
     spawns: [],
     seenHelp: false,
     seenIntro: false,
+    skills: {},
+    bank: {},
+    nodes: {},
+    questLog: {},
   };
 }
 

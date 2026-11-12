@@ -8,6 +8,7 @@ export const player = {
   y: state.py,
   facing: 'down' as Facing,
   moving: false,
+  running: false, // true while a run input is actually carrying the player
   path: [] as { x: number; y: number }[],
   onArrive: null as null | (() => void),
   faceTile: null as null | { x: number; y: number },
@@ -15,9 +16,9 @@ export const player = {
 
 const SPEED = 100; // click-to-move pace
 const WALK = 96;
-const RUN = 156;
-const ACCEL = 11; // 1/s smoothing toward the target velocity
-const DECEL = 15;
+const RUN = 192; // 2x WALK
+const ACCEL = 12; // 1/s smoothing toward the target velocity
+const DECEL = 18;
 const HALF = 7;
 let vx = 0, vy = 0;
 
@@ -115,8 +116,9 @@ export function updatePlayer(dt: number, axisX: number, axisY: number, run = fal
     if (player.path.length) cancelPath();
     mx /= mag; my /= mag;
     if (analog) {
-      const walk = WALK * Math.min(1, Math.max(0.3, mag / 0.7));
-      speed = run ? RUN * Math.min(1, Math.max(0.45, mag / 0.7)) : mag >= 0.92 ? RUN : walk;
+      // tilt scales speed; a full tilt is a brisk walk. Only the run button reaches RUN.
+      const tilt = Math.min(1, Math.max(0.3, mag / 0.8));
+      speed = run ? RUN * Math.min(1, Math.max(0.6, mag / 0.5)) : WALK * tilt;
     } else speed = run ? RUN : WALK;
   } else if (player.path.length) {
     const tgt = player.path[0];
@@ -124,12 +126,12 @@ export function updatePlayer(dt: number, axisX: number, axisY: number, run = fal
     const d = Math.hypot(dx, dy);
     if (d < 3) {
       player.path.shift();
-      if (!player.path.length) { arrive(); player.moving = false; vx = vy = 0; return; }
+      if (!player.path.length) { arrive(); player.moving = false; vx = vy = 0; player.running = false; return; }
     } else {
       mx = dx / d; my = dy / d;
       // click-to-move is direct (no easing, so it can't overshoot waypoints)
       vx = mx * SPEED; vy = my * SPEED;
-      player.moving = true;
+      player.moving = true; player.running = false;
       faceMove(mx, my);
       tryMove(vx * dt, vy * dt);
       return;
@@ -140,6 +142,7 @@ export function updatePlayer(dt: number, axisX: number, axisY: number, run = fal
   vy += (my * speed - vy) * k;
   if (!input && Math.hypot(vx, vy) < 4) { vx = vy = 0; }
   player.moving = Math.hypot(vx, vy) > 8;
+  player.running = run && input && Math.hypot(vx, vy) > WALK * 1.15;
   if (input) faceMove(mx, my);
   if (vx || vy) tryMove(vx * dt, vy * dt);
 }
