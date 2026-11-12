@@ -244,3 +244,13 @@ body.input-touch .help-menu-row { display: none; }
 .skill-icon { font-size: 28px; width: 44px; height: 44px; display: grid; place-items: center; background: #fff0f6; border-radius: 14px; flex: none; }
 .quest-offer { margin: 8px 0; border-color: #ff9ec0; }
 @media (max-width: 640px) { .hud-quick { flex-wrap: wrap; justify-content: flex-end; max-width: 62vw; } .hud-quick .btn kbd, .hud-quick .btn .glyph { display: none; } }
+
+/* island map */
+.map-wrap { display: flex; justify-content: center; }
+.map-frame { position: relative; border: 3px solid #ffc3da; border-radius: 18px; overflow: hidden; background: #cdeaf5; box-shadow: 0 4px 0 rgba(224, 112, 154, 0.28); max-width: 100%; }
+.map-frame canvas { position: absolute; inset: 0; display: block; }
+.map-me { pointer-events: none; }
+.map-legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px 12px; font-size: 13px; }
+.map-leg { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.map-leg.locked { color: var(--ink-l); }
+.map-dot { width: 12px; height: 12px; border-radius: 50%; background: #ff5f9e; border: 2px solid #fff; box-shadow: 0 0 0 2px #ffc3da; align-self: center; animation: pfpulse 0.8s ease-in-out infinite alternate; }
