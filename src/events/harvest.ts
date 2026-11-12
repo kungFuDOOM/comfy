@@ -84,7 +84,7 @@ bus.on('eventsChanged', syncTable);
 // ---- pies handed to friends ----
 bus.on('gift', (g: { villager: string; item: string }) => {
   const it = ITEMS[g.item];
-  if (!it || it.event !== HARVEST || !it.loved) return;
+  if (!it || it.event !== HARVEST || !it.loved || !isEventActive(HARVEST)) return; // leftover pies after the event count for nothing
   bumpEvent(HARVEST, 'pieGifts', 1);
   if (!eventFlag(HARVEST, `pie_${g.villager}`)) {
     setEventFlag(HARVEST, `pie_${g.villager}`);
