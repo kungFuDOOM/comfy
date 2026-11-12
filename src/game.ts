@@ -1,12 +1,13 @@
 // Game orchestration: loop, interaction, and hooking simulation up to the Three.js renderer.
 import { cheetahDataUrl } from './art/cheetah';
 import { setMood, sfx, updateDirector } from './audio';
-import { currentOutfit } from './boutique';
+import { currentAccessory, currentOutfit } from './boutique';
 import { updateBrew } from './cafe';
 import { spawnOne, updateCollect } from './collect';
 import { decorHint, useYard } from './decorate';
 import { gardenHint, tickGarden, useGarden } from './garden';
-import { glyph, initInput, pollInput, readCamera, readMove } from './input';
+import { glyph, initInput, pollInput, readCamera, readMove, readSpin } from './input';
+import { dressing, tickDressing } from './dressing';
 import { updateLanterns } from './lanterns';
 import { initNpcs, npcs, presentNpcs, talkedToday, updateNpcs, type Npc } from './npc';
 import { faceToward, frontTile, placePlayer, player, tileOf, updatePlayer, walkTo, cancelPath } from './player';
@@ -145,6 +146,7 @@ function update(dt: number) {
   pollInput(dt);
   const panel = isPanelOpen();
   const cam = readCamera();
+  tickDressing(dt, readSpin());
   world3d.orbit(cam.orbit * 1.1 * dt, cam.tilt * 0.6 * dt, cam.zoom * 0.9 * dt);
   // camera-relative movement: input forward (-y) is away from the camera
   const mv = readMove(), yaw = world3d.yaw(), c = Math.cos(yaw), sn = Math.sin(yaw);
@@ -187,9 +189,11 @@ export function persist() {
 // ---- Render ----
 function render(t: number, dt: number) {
   const clock = getClock();
+  // the fitting room keeps a soft, bright midday light so outfits read true at any hour
+  const dress = dressing.active;
   world3d.render({
-    t, dt, hour: clock.hour, season: clock.season,
-    player, outfit: currentOutfit(), npcs: presentNpcs(), talkedToday,
+    t, dt, hour: dress ? 12.5 : clock.hour, season: clock.season,
+    player: dress ? { x: player.x, y: player.y, facing: 'down', moving: false } : player, outfit: currentOutfit(), accessory: currentAccessory(), npcs: presentNpcs(), talkedToday,
   });
 }
 

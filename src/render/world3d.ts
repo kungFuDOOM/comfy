@@ -23,6 +23,8 @@ export interface FrameInput {
   season: Season;
   player: { x: number; y: number; facing: Facing; moving: boolean };
   outfit: OutfitDef;
+  /** Worn accessory item id (see boutique.currentAccessory). Omitted = none. */
+  accessory?: string | null;
   npcs: Npc[];
   talkedToday(id: string): boolean;
 }
@@ -163,6 +165,7 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       if (f.season.id !== seasonId) { seasonId = f.season.id; terrain.setSeason(f.season); nature.setSeason(f.season); particles.setSeason(f.season); }
 
       player.setOutfit(f.outfit);
+      player.setAccessory(f.accessory ?? null);
       place(player, f.player.x, f.player.y);
       player.setFacing(f.player.facing, f.dt);
       player.animate(f.t, f.player.moving);

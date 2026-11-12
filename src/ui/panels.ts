@@ -6,7 +6,9 @@ import { drawLantern, LANTERN_KINDS } from '../art/lantern';
 import { enterPlace, leavePlace, sfx } from '../audio';
 import { toast } from '../bus';
 import { canBrew, brewing, isUnlocked, recipesFor, startBrew } from '../cafe';
-import { buyDecor, buyOutfit, currentOutfit, endPreview, outfitById, tryOn, wear } from '../boutique';
+import { buyDecor, buyOutfit, currentAccessory, currentOutfit, endPreview, ownedAccessories, previewOutfit, toggleAccessory, tryOn, wear } from '../boutique';
+import { dragSpin, dressing, nudgeSpin } from '../dressing';
+import { startDressingRoom, stopDressingRoom } from '../render/dressingRoom';
 import { CURRENCY, ITEMS, OUTFITS, QUESTS, SHOP_DECOR, SKILLS, type Bench, type Recipe, SHOP_INGREDIENTS, SHOP_SEEDS, VILLAGERS, type VillagerDef } from '../data';
 import { addItem, assignHotbar, BAG_SLOTS, BANK_SLOTS, count, earn, moveStack, removeItem, spend, tidyBag } from '../inventory';
 import { LOG_QUESTS, questsFrom, questStatus, startQuest, STATUS_TEXT, turnIn } from '../questlog';
@@ -167,6 +169,108 @@ function shopRow(id: string, cost: number, onBuy: () => void) {
     h('span', 'own', `own ${count(id)}`), btn(price(cost), onBuy, '', state.coins < cost));
 }
 
+// ---------- Dressing room (boutique Outfits tab, Bag › Wardrobe) ----------
+/**
+ * Switch the open panel into (or out of) the fitting-room layout: the camera cuts to a close-up of the
+ * player in a little boutique fitting room (render/dressingRoom.ts), the card docks to the side (landscape)
+ * or the bottom (portrait), and the open area becomes a drag-to-spin stage.
+ */
+function setDressing(body: HTMLElement, api: PanelApi, on: boolean) {
+  const card = body.parentElement!, root = card.parentElement!;
+  card.classList.toggle('dress', on);
+  root.classList.toggle('dressing', on);
+  root.querySelector(':scope > .dress-hint')?.remove();
+  if (!on) {
+    // leaving the fitting room for another tab: take off whatever was only being tried on
+    if (dressing.active) { stopDressingRoom(); endPreview(); }
+    document.body.classList.remove('dressing');
+    return;
+  }
+  document.body.classList.add('dressing');
+  api.cleanup(() => document.body.classList.remove('dressing')); // re-added straight away by a re-render
+  startDressingRoom();
+  root.prepend(h('div', 'dress-hint',
+    h('span', 'dh-touch', '☜ drag to spin ☞'), h('span', 'dh-keyboard', '[ ] or ◀ ▶ to turn'), h('span', 'dh-gamepad', 'Stick to turn ✿')));
+  // drag / swipe anywhere outside the card turns the character, and a flick keeps it twirling
+  let id = -1, lx = 0, lt = 0;
+  const down = (e: PointerEvent) => {
+    if (e.target !== root && !(e.target as Element).classList?.contains('dress-hint')) return;
+    id = e.pointerId; lx = e.clientX; lt = performance.now();
+    dressing.dragging = true; dressing.vel = 0;
+    root.setPointerCapture(id); root.classList.add('dragging');
+  };
+  const move = (e: PointerEvent) => {
+    if (e.pointerId !== id) return;
+    const now = performance.now();
+    dragSpin(e.clientX - lx, (now - lt) / 1000);
+    lx = e.clientX; lt = now;
+  };
+  const up = (e: PointerEvent) => {
+    if (e.pointerId !== id) return;
+    id = -1; dressing.dragging = false; root.classList.remove('dragging');
+    if (performance.now() - lt > 90) dressing.vel = 0; // held still before letting go: no flick
+  };
+  root.addEventListener('pointerdown', down);
+  root.addEventListener('pointermove', move);
+  root.addEventListener('pointerup', up);
+  root.addEventListener('pointercancel', up);
+  api.cleanup(() => {
+    root.removeEventListener('pointerdown', down); root.removeEventListener('pointermove', move);
+    root.removeEventListener('pointerup', up); root.removeEventListener('pointercancel', up);
+    dressing.dragging = false; dressing.hold = 0;
+  });
+}
+
+/** ◀ / ▶: hold (touch / mouse) to keep turning; click, Enter / A, or ◀ ▶ while focused nudge a quarter-ish turn. */
+function spinBtn(label: string, aria: string, dir: number) {
+  const b = btn(label, () => nudgeSpin(dir), 'small spin');
+  b.dataset.spin = String(dir);
+  b.setAttribute('aria-label', aria);
+  b.title = aria;
+  b.addEventListener('pointerdown', () => { dressing.hold = dir; });
+  for (const ev of ['pointerup', 'pointerleave', 'pointercancel'] as const) b.addEventListener(ev, () => { dressing.hold = 0; });
+  return b;
+}
+
+/** The fitting-room controls: turn buttons, the selected look, Buy / Wear + Back, then the outfit and accessory picks. */
+function dressingView(body: HTMLElement, api: PanelApi, mode: 'shop' | 'wardrobe') {
+  const shop = mode === 'shop';
+  const sel = currentOutfit();
+  const owned = state.ownedOutfits.includes(sel.id), wearing = state.outfit === sel.id;
+  const status = wearing ? 'Wearing ✓' : owned ? (shop ? 'Yours · trying on' : 'Trying on') : 'Trying on';
+  body.append(
+    h('div', 'dress-stage',
+      spinBtn('◀', 'Turn left', -1),
+      h('div', 'dress-name', h('b', '', sel.name), h('span', 'dress-status', status, !owned ? price(sel.price) : null)),
+      spinBtn('▶', 'Turn right', 1)),
+    h('div', 'dress-actions',
+      !owned ? btn(h('span', 'inline', 'Buy ', price(sel.price)), () => { buyOutfit(sel.id); api.rerender(); }, 'dress-main', state.coins < sel.price)
+        : !wearing ? btn('Wear ✿', () => { wear(sel.id); api.rerender(); }, 'dress-main')
+          : btn('Wearing ✓', () => {}, 'dress-main', true),
+      btn('Back', () => api.close(), 'ghost dress-back')),
+  );
+  const list = h('div', 'dress-list');
+  for (const o of shop ? OUTFITS : OUTFITS.filter((x) => state.ownedOutfits.includes(x.id))) {
+    const mine = state.ownedOutfits.includes(o.id);
+    const tile = h('button', 'dress-tile' + (sel.id === o.id ? ' on' : '') + (state.outfit === o.id ? ' worn' : ''),
+      canvasEl(40, 46, (g) => { g.fillStyle = '#fff0f6'; g.fillRect(0, 0, 40, 46); drawPlayer(g, 20, 40, o, 'down', false, 0, 0.95); }),
+      h('span', 'dt-text', h('b', '', o.name), h('span', 'muted small', state.outfit === o.id ? '✓ Wearing' : mine ? 'Owned' : '', !mine ? price(o.price) : null)));
+    tile.title = o.desc;
+    tile.addEventListener('click', () => { if (shop) tryOn(o.id); else previewOutfit(o.id); api.rerender(); });
+    list.append(tile);
+  }
+  body.append(h('div', 'muted small dress-desc', shop ? `${sel.desc} Tap any look to try it on — it's free!` : sel.desc), list);
+  // accessories: handmade at the boutique worktable, worn as a small visible clip on the head
+  const accs = ownedAccessories(), worn = currentAccessory();
+  body.append(h('div', 'sub', 'Accessories'),
+    accs.length ? h('div', 'chips dress-acc', ...accs.map((id) => {
+      const c = h('button', 'chip-item' + (worn === id ? ' on' : ''), itemIcon(id, 22), h('span', '', `${ITEMS[id].name}${worn === id ? ' ✓' : ''}`));
+      c.title = worn === id ? 'Tap to take it off' : 'Tap to wear it';
+      c.addEventListener('click', () => { toggleAccessory(id); api.rerender(); });
+      return c;
+    })) : h('div', 'muted small', 'Make a bow clip, seashell charm or petal pin at the worktable (Craft tab) to wear it here.'));
+}
+
 // ---------- Boutique ----------
 export function openBoutique() {
   let tab: 'outfits' | 'decor' | 'craft' = 'outfits';
@@ -175,27 +279,16 @@ export function openBoutique() {
     body.style.setProperty('--cheetah', `url(${cheetahDataUrl('classic')})`);
     body.append(h('div', 'cheetah-band'),
       h('div', 'tabs', tabBtn('Outfits', tab === 'outfits', () => { tab = 'outfits'; api.rerender(); }), tabBtn('Decor', tab === 'decor', () => { tab = 'decor'; api.rerender(); }), tabBtn('Craft', tab === 'craft', () => { tab = 'craft'; api.rerender(); })));
+    setDressing(body, api, tab === 'outfits');
     if (tab === 'outfits') {
-      const worn = currentOutfit();
-      body.append(h('div', 'muted', 'Try anything on for free. Tap Buy to take it home!'));
-      const grid = h('div', 'grid');
-      for (const o of OUTFITS) {
-        const owned = state.ownedOutfits.includes(o.id);
-        const prev = canvasEl(84, 96, (g) => { g.fillStyle = '#fff0f6'; g.fillRect(0, 0, 84, 96); drawPlayer(g, 42, 80, o, 'down', false, 0, 2); });
-        grid.append(h('div', 'card outfit' + (worn.id === o.id ? ' worn' : ''), prev, h('b', '', o.name), h('div', 'muted small', o.desc),
-          h('div', 'row',
-            btn('Try on', () => { tryOn(o.id); api.rerender(); }, 'small ghost'),
-            owned ? btn(state.outfit === o.id ? 'Wearing' : 'Wear', () => { wear(o.id); api.rerender(); }, 'small', state.outfit === o.id)
-              : btn(h('span', 'inline', 'Buy ', price(o.price)), () => { buyOutfit(o.id); api.rerender(); }, 'small', state.coins < o.price))));
-      }
-      body.append(grid);
+      dressingView(body, api, 'shop');
     } else if (tab === 'craft') {
       recipeList(body, api, 'craft');
     } else {
       body.append(h('div', 'muted', 'Decor for your yard. Select it on the hotbar and face a yard tile.'));
       for (const id of SHOP_DECOR) body.append(shopRow(id, ITEMS[id].buy!, () => { if (buyDecor(id)) api.rerender(); }));
     }
-  }, () => { endPreview(); leavePlace(); }, true);
+  }, () => { stopDressingRoom(); endPreview(); leavePlace(); }, true);
 }
 
 // ---------- Market ----------
@@ -230,6 +323,7 @@ export function openBag() {
   tidyOnOpen();
   openPanel('Bag', (body, api) => {
     body.append(h('div', 'tabs', tabBtn('Items', tab === 'items', () => { tab = 'items'; api.rerender(); }), tabBtn('Wardrobe', tab === 'wardrobe', () => { tab = 'wardrobe'; api.rerender(); })));
+    setDressing(body, api, tab === 'wardrobe');
     if (tab === 'items') {
       const ids = Object.keys(state.inv);
       body.append(h('div', 'muted', `Tap an item to put it in your selected hotbar slot. ${ids.length}/${BAG_SLOTS} slots used.`));
@@ -243,16 +337,9 @@ export function openBag() {
       for (let i = ids.length; i < BAG_SLOTS; i++) grid.append(h('div', 'bagcell empty', h('span', 'nm', '\u00a0')));
       body.append(grid, h('div', 'muted small', 'Spare things keep safe in the Softkeep Chest, in the yard by your home.'));
     } else {
-      const grid = h('div', 'grid');
-      for (const id of state.ownedOutfits) {
-        const o = outfitById(id);
-        grid.append(h('div', 'card outfit' + (state.outfit === id ? ' worn' : ''),
-          canvasEl(84, 96, (g) => { g.fillStyle = '#fff0f6'; g.fillRect(0, 0, 84, 96); drawPlayer(g, 42, 80, o, 'down', false, 0, 2); }),
-          h('b', '', o.name), btn(state.outfit === id ? 'Wearing' : 'Wear', () => { wear(id); api.rerender(); }, 'small', state.outfit === id)));
-      }
-      body.append(grid);
+      dressingView(body, api, 'wardrobe');
     }
-  });
+  }, () => { stopDressingRoom(); endPreview(); });
 }
 
 // ---------- Softkeep Chest ----------

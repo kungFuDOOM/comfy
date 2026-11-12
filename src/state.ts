@@ -24,6 +24,8 @@ export interface SaveData {
   sel: number;
   outfit: string;
   ownedOutfits: string[];
+  /** Handmade accessory worn on the model (an item id of kind 'accessory'), or null. Hidden if no longer owned. */
+  accessory: string | null;
   decor: PlacedDecor[];
   plots: Record<string, Plot>;
   friend: Record<string, number>;
@@ -60,6 +62,7 @@ export function defaultState(): SaveData {
     sel: 0,
     outfit: 'cozy',
     ownedOutfits: ['cozy'],
+    accessory: null,
     decor: [],
     plots: {},
     friend: {},

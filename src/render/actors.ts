@@ -325,7 +325,34 @@ function build(sp: Spec) {
   return api;
 }
 
-export function createPlayerMesh(): ActorMesh & { setOutfit(o: OutfitDef): void } {
+/** Handmade accessories (item ids of kind 'accessory') as tiny props on the player's head. */
+function buildAccessories(): Record<string, THREE.Object3D> {
+  const pin = (o: THREE.Object3D, yaw: number, pitch: number, tilt = 0) => {
+    o.position.set(...on(yaw, pitch, 1.02));
+    o.lookAt(o.position.clone().multiplyScalar(2)); // face straight out from the head (no parent yet: local = world)
+    o.rotateZ(tilt);
+    o.scale.setScalar(1.45);
+    o.visible = false;
+    return o;
+  };
+  // ribbon bow clip: a rosy bow with a white knot, on the right of the bangs
+  const bowClip = bowGeo(new Batch(), '#ff7fa9', 0.7).add(G.ball(0.03, 8), '#ffffff', { z: 0.02 }).build();
+  // seashell hair clip: a little scalloped fan, left side by the ear
+  const shell = new Batch();
+  for (let i = -2; i <= 2; i++) shell.add(G.ball(0.045, 8), i % 2 ? '#ffc8b6' : '#ffe2d4', { x: Math.sin(i * 0.36) * 0.05, y: Math.cos(i * 0.36) * 0.05, rz: -i * 0.36, s: [0.55, 1.45, 0.4] });
+  shell.add(G.ball(0.03, 8), '#ffb3a0', { y: -0.005, s: [1.3, 0.8, 0.6] });
+  // moonpetal pin: five lilac petals around a golden heart
+  const petal = new Batch();
+  for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; petal.add(G.ball(0.042, 8), i % 2 ? '#e6cbff' : '#d8b8ff', { x: Math.cos(a) * 0.05, y: Math.sin(a) * 0.05, rz: a, s: [1.25, 0.75, 0.4] }); }
+  petal.add(G.ball(0.03, 8), PALETTE.gold, { z: 0.01 });
+  return {
+    bow_pin: pin(bowClip, 30, 40, -0.3),
+    shell_charm: pin(shell.build(), -52, 14, 0.2),
+    petal_pin: pin(petal.build(vertexToon(PALETTE.gold)), 44, 24, 0.4),
+  };
+}
+
+export function createPlayerMesh(): ActorMesh & { setOutfit(o: OutfitDef): void; setAccessory(id: string | null): void } {
   const a = build({
     kind: 'player', skin: '#ffe9f4', accent: PALETTE.pink, dress: '#fff1e0', band: 'pink', shoes: '#ff8fb8',
     scale: 1, bag: true, headScale: [1.1, 1.06, 1.08], headDrop: -0.04, bodyScale: [1.08, 0.92, 1.08], eyeScale: 1.16,
@@ -368,9 +395,16 @@ export function createPlayerMesh(): ActorMesh & { setOutfit(o: OutfitDef): void 
   sunhat.rotation.x = -0.3;
 
   a.head.add(bow, beret, sunhat);
+  const accessories = buildAccessories();
+  a.head.add(...Object.values(accessories));
   const tmp = new THREE.Color();
-  let cur = '';
+  let cur = '', curAcc: string | null = null;
   return Object.assign(a, {
+    setAccessory(id: string | null) {
+      if (id === curAcc) return;
+      curAcc = id;
+      for (const [k, o] of Object.entries(accessories)) o.visible = k === id;
+    },
     setOutfit(o: OutfitDef) {
       if (cur === o.id) return;
       cur = o.id;
