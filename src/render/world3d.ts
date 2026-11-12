@@ -9,6 +9,7 @@ import type { Season } from '../time';
 import { MAP_H, MAP_W, TS } from '../world';
 import { createPlayerMesh, createVillagerMesh, type ActorMesh } from './actors';
 import { createDynamic } from './dynamic';
+import { visualSeason } from '../events';
 import { createEventLayer } from './eventLayer';
 import { createLightRig } from './lighting';
 import { PALETTE } from './materials';
@@ -203,7 +204,9 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       if (!d) { player.root.visible = true; camera.clearViewOffset(); target.y = 0; }
     },
     render(f) {
-      if (f.season.id !== seasonId) { seasonId = f.season.id; terrain.setSeason(f.season); nature.setSeason(f.season); particles.setSeason(f.season); }
+      // an active seasonal event can dress the island in another season's look (Twinkle Season is snowy from late November)
+      const season = visualSeason(f.season);
+      if (season.id !== seasonId) { seasonId = season.id; terrain.setSeason(season); nature.setSeason(season); particles.setSeason(season); }
 
       player.setLook(f.look);
       player.setAccessory(f.accessory ?? null);

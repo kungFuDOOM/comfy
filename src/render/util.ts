@@ -1,7 +1,7 @@
 // Small shared helpers for the Three.js layer.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { registerUnlit, toon, vertexToon, type GlowKind } from './materials';
+import { markOwned, registerUnlit, toon, vertexToon, type GlowKind } from './materials';
 
 /** Cached soft-toon material from the shared palette/ramp (materials.ts). Emissive colors fade in at night. */
 export function mat(color: string, emissive?: string, glow: GlowKind = 'window'): THREE.MeshToonMaterial {
@@ -35,6 +35,9 @@ function paintLabel(c: HTMLCanvasElement, text: string) {
   g.fillText(text, c.width / 2, c.height / 2 + 3);
 }
 
+/** Stop repainting a label that was thrown away (its texture is disposed with its material). */
+export function forgetLabel(tex: THREE.Texture) { const i = labels.findIndex((l) => l.tex === tex); if (i >= 0) labels.splice(i, 1); }
+
 /** A flat sign plane facing +z (towards the camera). Width in world units. */
 export function makeLabel(text: string, width: number): THREE.Mesh {
   const c = document.createElement('canvas');
@@ -43,7 +46,7 @@ export function makeLabel(text: string, width: number): THREE.Mesh {
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   labels.push({ tex, text, w: c.width, h: c.height });
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(width, width / 4), registerUnlit(new THREE.MeshBasicMaterial({ map: tex, transparent: true })));
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(width, width / 4), markOwned(registerUnlit(new THREE.MeshBasicMaterial({ map: tex, transparent: true }))));
   return m;
 }
 // Repaint once the web font is ready.
