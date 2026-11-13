@@ -9,16 +9,22 @@ import { state } from '../state';
 import { unclaimedGifts, unreadLetters } from '../friends';
 import { glyphEl, type PromptKey } from '../input/prompts';
 import { h } from './dom';
+import { drawWeatherIcon } from '../art/weatherIcon';
+import { getWeather, view, weatherBlurb, weatherLabel } from '../weather';
 import { buildEventBanner, refreshEventBanner } from './eventsUi';
 import { buildMerchantChip, refreshMerchantChip } from './merchantUi';
 
 let mailEl: HTMLButtonElement, mailCount: HTMLElement;
+let weatherCanvas: HTMLCanvasElement, rainbowEl: HTMLElement, weatherKey = '';
 let clockEl: HTMLElement, seasonEl: HTMLElement, coinEl: HTMLElement, lanternEl: HTMLElement, hotbarEl: HTMLElement, hintEl: HTMLElement, lanternCanvas: HTMLCanvasElement;
 
 export function buildHud(actions: { mail(): void; skills(): void; journal(tab: string): void; bag(): void; help(): void; map(): void; photo(): void }) {
   const ui = document.getElementById('ui')!;
   clockEl = h('div', 'clock');
   seasonEl = h('div', 'season');
+  weatherCanvas = document.createElement('canvas');
+  weatherCanvas.width = weatherCanvas.height = 64; weatherCanvas.className = 'weather-ico';
+  weatherCanvas.setAttribute('role', 'img');
   coinEl = h('span', '');
   lanternCanvas = document.createElement('canvas');
   lanternCanvas.width = lanternCanvas.height = 56; lanternCanvas.style.width = lanternCanvas.style.height = '28px';
@@ -28,7 +34,7 @@ export function buildHud(actions: { mail(): void; skills(): void; journal(tab: s
   mailEl.type = 'button'; mailEl.hidden = true; mailEl.title = 'Letters from friends';
   mailEl.onclick = () => actions.mail();
   const top = h('div', 'hud-top',
-    h('div', 'chip time', clockEl, seasonEl),
+    h('div', 'chip time', weatherCanvas, h('div', 'time-text', clockEl, seasonEl)),
     h('div', 'chip coin', coinIcon(20), coinEl),
     mailEl,
     (() => { const b = h('button', 'chip lantern', lanternCanvas, lanternEl); b.title = 'Afterglow Lanterns (L)'; b.onclick = () => actions.journal('lanterns'); return b; })(),
@@ -40,7 +46,8 @@ export function buildHud(actions: { mail(): void; skills(): void; journal(tab: s
   );
   hotbarEl = h('div', 'hotbar');
   hintEl = h('div', 'hint');
-  ui.append(top, quick, hotbarEl, hintEl);
+  rainbowEl = h('div', 'rainbow'); rainbowEl.setAttribute('aria-hidden', 'true');
+  ui.append(rainbowEl, top, quick, hotbarEl, hintEl);
   buildEventBanner(() => actions.journal('events'));
   bus.on('change', refreshHud);
   refreshHud();
@@ -56,6 +63,15 @@ export function tickHud() {
   clockEl.textContent = `${c.label} · ${c.phaseName}`;
   seasonEl.textContent = `${c.weekday}, ${c.dayOfMonth}/${c.month} · ${c.season.name}`;
   seasonEl.title = c.season.blurb;
+  const w = getWeather(), night = c.phase === 'night', key = `${w.kind}|${w.rainbow}|${night}`;
+  if (key !== weatherKey) {
+    weatherKey = key;
+    const g = weatherCanvas.getContext('2d')!;
+    g.setTransform(2, 0, 0, 2, 0, 0); drawWeatherIcon(g, w.kind, w.rainbow, night && w.kind === 'sunny');
+    const label = `${weatherLabel(w)}. ${weatherBlurb(w)}`;
+    weatherCanvas.title = label; weatherCanvas.setAttribute('aria-label', label);
+  }
+  rainbowEl.style.opacity = (view.rainbow * 0.6).toFixed(2);
   refreshEventBanner();
   refreshMerchantChip();
   const g = lanternCanvas.getContext('2d')!;
