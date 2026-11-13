@@ -1,4 +1,5 @@
 // A small garden plot: till, plant, water, harvest. Grows on a short real-time scale.
+import { startAct } from './actions';
 import { changed, toast } from './bus';
 import { ITEMS, SEED_CROP } from './data';
 import { addItem, removeItem, selectedItem } from './inventory';
@@ -38,16 +39,17 @@ export function useGarden(x: number, y: number, wx: number, wy: number) {
   const sel = selectedItem();
   const now = Date.now();
   if (!p) {
-    if (sel === 'trowel') { state.plots[k] = { crop: '', progress: 0, wetUntil: 0, lastTick: now, need: 0 }; toast('Tilled! Now plant some seeds.'); grantXp('gardening', 2); }
+    if (sel === 'trowel') { state.plots[k] = { crop: '', progress: 0, wetUntil: 0, lastTick: now, need: 0 }; toast('Tilled! Now plant some seeds.'); grantXp('gardening', 2); startAct('till', 1.0, { tx: wx, ty: wy }); }
     else toast('Select the Tilly Trowel (slot 1) to till this soil.');
   } else if (!p.crop) {
     if (sel && SEED_CROP[sel] && removeItem(sel)) {
       p.crop = SEED_CROP[sel].crop; p.need = SEED_CROP[sel].need; p.progress = 0; p.lastTick = now; p.wetUntil = 0;
-      toast('Planted! Water it with the Dewdrop Can.'); grantXp('gardening', 3);
+      toast('Planted! Water it with the Dewdrop Can.'); grantXp('gardening', 3); startAct('plant', 1.15, { tx: wx, ty: wy });
     } else toast('Select some seeds from your hotbar first.');
   } else if (p.progress >= p.need) {
     const n = 1 + (Math.random() < 0.4 + 0.02 * (skillLevel('gardening') - 1) ? 1 : 0);
     addItem(p.crop, n);
+    startAct('harvest', 1.3, { tx: wx, ty: wy, item: p.crop });
     toast(`Harvested ${n} ${ITEMS[p.crop].name}!`);
     state.plots[k] = { crop: '', progress: 0, wetUntil: 0, lastTick: now, need: 0 };
     bump('harvested');
@@ -55,7 +57,7 @@ export function useGarden(x: number, y: number, wx: number, wy: number) {
     moment('garden', wx, wy);
   } else if (sel === 'can') {
     p.wetUntil = now + WET_MS; p.lastTick = Math.min(p.lastTick, now);
-    toast('Splish! Watered.'); grantXp('gardening', 1);
+    toast('Splish! Watered.'); grantXp('gardening', 1); startAct('water', 1.6, { tx: wx, ty: wy });
   } else toast('Still growing. Water it with the Dewdrop Can!');
   changed();
 }

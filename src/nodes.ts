@@ -4,7 +4,8 @@ import { sfx } from './audio';
 import { changed, toast } from './bus';
 import { ITEMS, NODES, NODE_KINDS, type NodeDef, type NodeTier } from './data';
 import { addItem, count } from './inventory';
-import { player } from './player';
+import { faceToward, player } from './player';
+import { cancelAct, startAct, type ActKind } from './actions';
 import { bump } from './quests';
 import { skillLevel, skillName, grantXp } from './skills';
 import { state } from './state';
@@ -38,7 +39,17 @@ export function nodeHint(n: NodeDef): string {
 }
 
 export const casting = { id: '', left: 0, total: 0 };
-const CAST_SECONDS = 1.6;
+const CAST_SECONDS = 3.2; // cast, a little wait, the bite, then reel in (the animation follows these beats)
+
+/** Gathering animation per node kind. Gathering itself is instant; the act just plays it out. */
+const GATHER_ACT: Record<string, [ActKind, number]> = { berry: ['pick', 1.1], flower: ['pick', 1.1], coffee: ['pick', 1.1], shell: ['mine', 1.35], wood: ['chop', 1.55] };
+
+/** Bring the line in early (the player walked off). */
+export function cancelCast(msg: string) {
+  if (!casting.id) return;
+  casting.id = '';
+  toast(msg);
+}
 
 function lockedMessage(n: NodeDef): string | null {
   const t = tierOf(n);
@@ -59,12 +70,17 @@ export function useNode(n: NodeDef) {
   if (casting.id) { toast('Your line is already in the water…'); return; }
   const msg = lockedMessage(n);
   if (msg) { toast(msg); return; }
+  const c = nodeCenter(n);
+  faceToward(c.x, c.y);
   if (n.kind === 'fish') {
+    cancelAct(); // a fresh cast replaces any catch pose still playing
     casting.id = n.id; casting.left = casting.total = CAST_SECONDS;
     toast('You cast your line… ~');
     sfx.tick();
     return;
   }
+  const [kind, dur] = GATHER_ACT[n.kind] ?? ['pick', 1.1];
+  startAct(kind, dur, { tx: c.x, ty: c.y, item: tierOf(n).item });
   harvest(n);
 }
 
@@ -76,7 +92,7 @@ function harvest(n: NodeDef) {
   grantXp(t.skill, t.xp);
   noteGathered(areaAt(n.x, n.y), n.kind);
   const what = ITEMS[t.item].name;
-  if (n.kind === 'fish') toast(`You caught a ${what}! ✿`);
+  if (n.kind === 'fish') { toast(`You caught a ${what}! ✿`); startAct('catch', 1.7, { item: t.item }); }
   else toast(`Gathered ${qty > 1 ? qty + ' ' : ''}${what}${qty > 1 ? ' (a lucky bonus!)' : ''} +${t.xp} ${skillName(t.skill)} XP`);
   sfx.harvest();
   bump(n.kind === 'fish' ? 'fished' : 'foraged');
@@ -88,8 +104,7 @@ export function updateNodes(dt: number) {
   const n = NODES.find((v) => v.id === casting.id)!;
   const c = nodeCenter(n);
   if (Math.hypot(c.x - player.x, c.y - (player.y - 8)) > 90) {
-    casting.id = '';
-    toast('You wandered off, so the line came back in.');
+    cancelCast('You wandered off, so the line came back in.');
     return;
   }
   casting.left -= dt;

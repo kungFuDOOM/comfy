@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import type { Facing } from '../art/characters';
 import type { Look } from '../clothes/types';
+import type { Act } from '../actions';
 import { bus } from '../bus';
 import { VILLAGERS } from '../data';
 import { npcs, type Npc } from '../npc';
@@ -17,6 +18,7 @@ import { createBeach } from './beach';
 import { celebrate, confettiAt, welcomeAt, welcomeTrickle } from './celebrate';
 import { createNature } from './nature';
 import { createParticles } from './particles';
+import { createPlayerActs } from './playerActs';
 import { createPost } from './post';
 import { createStructures } from './structures';
 import { createTerrain, heightAtUnits } from './terrain';
@@ -31,6 +33,8 @@ export interface FrameInput {
   look: Look;
   /** Worn accessory item id (see boutique.currentAccessory). Omitted = none. */
   accessory?: string | null;
+  /** What the player is busy doing (fishing, watering...); omitted = nothing, so menus and cutscenes ease back to idle. */
+  act?: Act | null;
   npcs: Npc[];
   talkedToday(id: string): boolean;
 }
@@ -121,6 +125,8 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
 
   const player = createPlayerMesh();
   scene.add(player.root);
+  const acts = createPlayerActs(player); // activity poses, held props, fishing line and splashes
+  scene.add(acts.group);
   const villagers = new Map<string, ActorMesh>();
 
   let seasonId = '';
@@ -213,6 +219,7 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       place(player, f.player.x, f.player.y);
       player.setFacing(f.player.facing, f.dt);
       player.animate(f.t, f.player.moving, !!f.player.running);
+      acts.update(f.t, f.dt, f.act);
       particles.dust(f.dt, !!f.player.running, player.root.position, f.player.surface ?? 'grass');
       for (const [id, v] of villagers) v.root.visible = f.npcs.some((n) => n.def.id === id); // absent villagers (e.g. Nimbus by day) hide
       for (const n of f.npcs) {

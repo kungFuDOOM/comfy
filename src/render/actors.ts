@@ -367,8 +367,8 @@ function build(sp: Spec) {
   let ang = 0, last = -1, walk = 0, phase = 0, runK = 0;
   model.rotation.order = 'YXZ'; // yaw first, so the lean tips along the facing direction
   const off = Math.random() * 10;
-  const api: ActorMesh & { dressMat: THREE.MeshToonMaterial; bandMat: THREE.MeshToonMaterial; head: THREE.Group; body: THREE.Group; dress: THREE.Mesh; band: THREE.Mesh; arms: typeof arms; legs: typeof legs } = {
-    root, dressMat, bandMat, head, body, dress, band, arms, legs,
+  const api: ActorMesh & { model: THREE.Group; dressMat: THREE.MeshToonMaterial; bandMat: THREE.MeshToonMaterial; head: THREE.Group; body: THREE.Group; dress: THREE.Mesh; band: THREE.Mesh; arms: typeof arms; legs: typeof legs } = {
+    root, model, dressMat, bandMat, head, body, dress, band, arms, legs,
     setFacing(f, dt) { ang = lerpAngle(ang, FACE_ANGLE[f], Math.min(1, dt * 14)); model.rotation.y = ang; },
     animate(t, moving, run = false) {
       const dt = last < 0 ? 0 : Math.min(0.05, Math.max(0, t - last));
@@ -430,7 +430,14 @@ function buildAccessories(): Record<string, THREE.Object3D> {
   };
 }
 
-export function createPlayerMesh(): ActorMesh & { setLook(l: Look): void; setAccessory(id: string | null): void } {
+/** The player's toy rig: the activity animator (playerActs.ts) poses these joints on top of idle / walk. */
+export interface PlayerRig {
+  root: THREE.Group; model: THREE.Group; body: THREE.Group; head: THREE.Group;
+  arms: { pivot: THREE.Group; sx: number }[];
+  legs: { pivot: THREE.Group }[];
+}
+
+export function createPlayerMesh(): ActorMesh & PlayerRig & { setLook(l: Look): void; setAccessory(id: string | null): void } {
   const a = build({
     kind: 'player', skin: '#ffe9f4', accent: PALETTE.pink, dress: '#fff1e0', band: 'pink', shoes: '#ff8fb8',
     scale: 1, headScale: [1.1, 1.06, 1.08], headDrop: -0.04, bodyScale: [1.08, 0.92, 1.08], eyeScale: 1.16,

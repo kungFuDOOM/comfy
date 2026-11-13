@@ -1,4 +1,5 @@
 // Modal panels: dialogue, café, boutique, market, journal, bag, help.
+import { startAct } from '../actions';
 import { drawPlayer, drawVillager } from '../art/characters';
 import { cheetahDataUrl } from '../art/cheetah';
 import { coinIcon, itemIcon } from '../art/icons';
@@ -78,6 +79,7 @@ function typedBubble(text: string, speaker: string, api: PanelApi): HTMLElement 
 export function openDialogue(def: VillagerDef) {
   const npc = npcs.find((n) => n.def.id === def.id);
   if (npc) npc.busy = true;
+  startAct('wave', 1.1);
   let line = '';
   let note = '';
   const first = talk(def);
