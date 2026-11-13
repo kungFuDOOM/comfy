@@ -378,6 +378,30 @@ export function createStation(s: Station): THREE.Group {
       g.add(contactShadow(1.5, 1.0, 'rect', 0.22));
       break;
     }
+    case 'board': {
+      // Bulletin Board: two wooden posts, a cream cork panel in a pink frame with a scalloped little roof,
+      // pastel notes pinned at tilted angles, and a bow. Faces the camera (+z).
+      for (const sx of [-1, 1]) {
+        k.v.add(G.box(0.12, 1.5, 0.12), PALETTE.wood, { x: sx * 0.62, y: 0.75 });
+        k.v.add(G.ball(0.1, 8), '#fff4f8', { x: sx * 0.62, y: 1.54 });
+      }
+      k.v.add(G.box(1.5, 0.98, 0.1), '#ff9ec0', { y: 1.02, z: 0.02 });
+      k.v.add(G.box(1.32, 0.8, 0.06), '#f6dcb8', { y: 1.02, z: 0.07 });
+      const notes: [number, number, number, string][] = [[-0.38, 1.2, 0.12, '#fff3a8'], [0.02, 1.26, -0.08, '#ffd0e0'], [0.4, 1.14, 0.1, '#cfeedd'], [-0.3, 0.84, -0.1, '#e4d6ff'], [0.2, 0.86, 0.14, '#fff4f8']];
+      for (const [x, y, rz, c] of notes) {
+        k.v.add(G.box(0.3, 0.34, 0.015), c, { x, y, z: 0.11, rz });
+        k.v.add(G.ball(0.03, 6), '#ff5c8a', { x, y: y + 0.12, z: 0.13 });
+        for (const ly of [-0.02, -0.08]) k.v.add(G.box(0.18, 0.015, 0.005), '#c9a8b8', { x, y: y + ly, z: 0.12, rz });
+      }
+      const ridge = 7;
+      for (let i = 0; i < ridge; i++) k.v.add(G.ball(0.12, 8), i % 2 ? '#ffffff' : '#ffc3da', { x: -0.72 + i * 0.24, y: 1.55, z: 0.08, s: [1, 0.8, 0.9] });
+      k.v.add(G.box(1.62, 0.08, 0.2), '#ff7fa9', { y: 1.62, z: 0.04 });
+      k.v.add(G.ball(0.08, 8), '#ffffff', { x: -0.06, y: 1.74 }).add(G.ball(0.08, 8), '#ffffff', { x: 0.06, y: 1.74 });
+      k.v.add(G.ball(0.05, 8), '#ff5c8a', { y: 1.73 });
+      const l = makeLabel('Bulletin Board', 1.9); l.position.set(0, 2.2, 0.2); g.add(l);
+      g.add(contactShadow(1.6, 0.8, 'rect', 0.22));
+      break;
+    }
     case 'mailbox': {
       // Mailbox: a pink post with a plump rounded box, a gold heart plate and a little flag that rises when a letter waits
       k.v.add(G.box(0.12, 0.95, 0.12), '#f4d9b8', { y: 0.475 });

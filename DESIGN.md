@@ -218,6 +218,12 @@ QA preview examples:
 - `?event=twinkle` is Christmas Day (peak); `?event=twinkle&date=2026-11-27` week 1; `...&date=2026-12-04` week 2; `...&date=2026-12-11` week 3; `...&date=2026-12-18` week 4; `...&date=2026-12-24` Christmas Eve; `...&date=2026-12-25` Christmas Day; `...&date=2026-12-26` Afterglow.
 - `?date=2026-11-27` shows both Harvest and Twinkle (overlap); `?date=2026-11-19` shows neither.
 
+## 7e. Bulletin Board errands & Pet Care
+
+- **Bulletin Board** (station `board`, in Sugarlily Square beside the Tuppence Cart; also on the map panel): 3 daily and 2 weekly errands posted by villagers who have moved in. They refresh on the real local day and Monday-based week (`?date=` applies). Errands are either *do N of something* (fish, gather, pick up finds, serve or brew drinks, bake, harvest, craft, gift, care for the pet) or *deliver N items* from the bag. Do-errands read the lifetime `stats` counters (progress = stat minus its value when posted), so no gameplay system needed changes. Rewards: pips, friendship points, skill XP, and a small gift for weekly ones; finishing all three dailies pays a sweep bonus. A toast greets the new board once a day and again when an errand becomes claimable. Code: `errandData.ts` (types, templates, sanitising), `errands.ts` (posting, progress, claiming), `ui/errandsUi.ts`.
+- **Pet Care** (skill id `petcare`, listed with the other skills): pats, Play and Snack (a berry, tart or little fish) grow it; XP only pays for the first few of each per day (`petcare.ts`). Unlocks: Gold-star Bow (Lv 3), daily Treasure Sniff (Lv 5), Sunset Beret (Lv 8), Best-Friend Knit (Lv 12); care accessories are free and never sold. UI: a care card in the pet's corner, and a Play button on the pet card.
+- **Save:** `errands` and `petCare` are new optional fields, defaulted and sanitised in `save.ts`; the key stays `comfy.save.v1`.
+
 ## 8. Roadmap beyond v0.1
 
 - **v0.2 — Nooks.** Unlock the Moonlit Reading Nook and Lantern Terrace from lantern sets; a proper walk-in house interior with room-by-room decorating.

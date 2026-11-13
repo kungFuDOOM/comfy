@@ -246,6 +246,14 @@ export function petThePet() {
   bus.emit('petPetted');
 }
 
+/** A play burst (no toast, no card): she hops about happily for a moment. Used by Pet Care. */
+export function petHappy(secs = 2.2) {
+  if (!state.pet || !pet.active) return;
+  pet.happy = Math.max(pet.happy, secs); pet.still = 0; pet.vx = pet.vy = 0; pet.path = [];
+  pet.heading = Math.atan2(player.x - pet.x, player.y - pet.y);
+  bus.emit('petHearts', { x: pet.x, y: pet.y });
+}
+
 // ---- adopt / rename / dress ----
 export function adoptPet(kind: PetKind, rawName: string, coat: string): boolean {
   const name = cleanPetName(rawName);
@@ -274,7 +282,7 @@ export const petWearing = (id: string) => !!state.pet && (state.pet.worn.head ==
 
 export function buyPetItem(id: string): boolean {
   const item = petItemById(id), p = state.pet;
-  if (!item || !p || p.owned.includes(id)) return false;
+  if (!item || !p || item.care || p.owned.includes(id)) return false; // care pieces are earned, never bought
   if (!spend(item.price)) { toast('Not enough pips yet.'); return false; }
   p.owned.push(id);
   p.worn[item.slot] = id;
