@@ -5,6 +5,11 @@ import type { PetSave } from './petData';
 export type LanternKind = 'serve' | 'gift' | 'decor' | 'collect' | 'outfit' | 'garden';
 
 export interface PlacedDecor { id: string; x: number; y: number }
+/** A piece placed inside the home. `rot` is quarter turns (0..3), `x`/`y` a cell of the room grid (see homeData.ts). */
+export interface HomeItem { id: string; x: number; y: number; rot: number }
+/** The home interior: wallpaper + floor ids (homeData.ts) and the furniture on its grid. */
+export interface HomeSave { wall: string; floor: string; items: HomeItem[] }
+export const defaultHome = (): HomeSave => ({ wall: 'blush', floor: 'checker', items: [] });
 export interface Plot { crop: string; progress: number; wetUntil: number; lastTick: number; need: number }
 export interface Lantern { id: number; kind: LanternKind; at: number }
 export interface Spawn { item: string; x: number; y: number }
@@ -58,6 +63,19 @@ export interface Bonds {
   attended: string[];
 }
 export const defaultBonds = (): Bonds => ({ known: {}, letters: [], sent: [], wished: [], attended: [] });
+/** Collection Log progress (see collection.ts). Optional in old saves: loadGame() fills in safe defaults. */
+export interface CollectionSave {
+  /** Entry id -> time (ms) it was first obtained. Stays even if the item is later sold, gifted or used. */
+  got: Record<string, number>;
+  /** Set ids already completed (and rewarded, so a reward can never be paid twice). */
+  done: string[];
+  /** Entries found since the player last looked at their page (they get a NEW sticker). */
+  fresh: string[];
+  /** Titles earned from sets, and the one being shown (or null). */
+  titles: string[];
+  title: string | null;
+}
+export const emptyCollection = (): CollectionSave => ({ got: {}, done: [], fresh: [], titles: [], title: null });
 
 /** One thing on the traveling merchant's table. */
 export interface MerchantStock {
@@ -105,6 +123,8 @@ export interface SaveData {
   /** Handmade accessory worn on the model (an item id of kind 'accessory'), or null. Hidden if no longer owned. */
   accessory: string | null;
   decor: PlacedDecor[];
+  /** Home interior decorating. Older saves get an empty, default-styled room. */
+  home: HomeSave;
   plots: Record<string, Plot>;
   /** Friendship points per villager id: 20 per heart, up to 10 hearts (200). Old saves topped out at 100 (5 hearts). */
   friend: Record<string, number>;
@@ -135,6 +155,8 @@ export interface SaveData {
   events: Record<string, EventProgress>;
   /** The adopted pet companion (kind, name, coat, owned/worn pet accessories). null = not adopted yet. */
   pet: PetSave | null;
+  /** Collection Log: everything ever obtained, completed sets and titles. */
+  collection: CollectionSave;
   /** Map layout version the saved positions belong to (1 = the original small island). */
   mapV: number;
   /** Café shift totals; older saves get zeros. */
@@ -159,6 +181,7 @@ export function defaultState(): SaveData {
     partyHats: [],
     accessory: null,
     decor: [],
+    home: defaultHome(),
     plots: {},
     friend: {},
     bonds: defaultBonds(),
@@ -179,6 +202,7 @@ export function defaultState(): SaveData {
     unlocked: {},
     events: {},
     pet: null,
+    collection: emptyCollection(),
     mapV: 2,
     cafe: defaultCafe(),
     merchant: defaultMerchant(),

@@ -72,7 +72,9 @@ export type Source =
   /** Exclusive to a seasonal event (events.ts): handed out by its activities while it is on, kept forever. */
   | { k: 'event'; event: string }
   /** Sold only by the traveling merchant (merchant.ts), on her visit days. */
-  | { k: 'merchant' };
+  | { k: 'merchant' }
+  /** Reward for completing a Collection Log set (collection.ts); `set` is the set id. */
+  | { k: 'set'; set: string };
 
 export interface ClothDef {
   id: string;

@@ -35,7 +35,7 @@ with a café, a boutique, a little yard of your own, a tiny garden, shorelines t
 | --- | --- | --- |
 | **Café** | Buy ingredients, brew drinks (Pink Puff Latte, Honey Cloud Cappuccino, Spotted Mocha), serve them to villagers | Friendship, Steam Lanterns, quests, pips (selling) |
 | **Boutique & outfits** | Try on for free; mix and match 400+ pieces across hat / top / bottom / dress / shoes / bag / face slots in 29 styles; the boutique restocks 10–16 pieces daily; buy decor | Spotted Lanterns, pips sink, identity |
-| **Decorating** | Place/pick up decor in your fenced yard (a 10×4 lawn) | Hearth Lanterns, self-expression |
+| **Decorating** | Step through the Front Door into your home and arrange decor on an 8×6 grid (place, drag, turn, pick up), pick wallpaper and floors; or place/pick up decor in your fenced yard (a 10×4 lawn) | Hearth Lanterns, self-expression |
 | **Friends & gifting** | Talk once a day, give gifts, serve drinks; each villager has liked items | Hearts, new dialogue tiers, Ribbon Lanterns |
 | **Collecting** | Pick up Dewdrop Shells, Ribbon Blossoms, Steam-Moths, Starlit Buttons; fill the collection log | Sparkle Lanterns, gifts, pips |
 | **Exploring** | Wander paths, beaches, the meadow and the grove hillside; spawns depend on place, time of day and season | Everything above |
@@ -47,9 +47,9 @@ Currency is **pips** (the little star coin). Pips come from selling at the Tuppe
 
 Three equal input paths funnel into one action layer (`src/input`): interact, tool, cancel/run, bag, journal, hotbar.
 
-- **Keyboard & mouse:** WASD / arrows walk (smooth, camera-relative), Shift runs, `E`/Space interacts, `F` uses the selected item, `1–9` / `Q R` / wheel pick a hotbar slot, `B` bag, `J` journal, `L` lantern grove, `H` help, `Esc` closes windows. Click to walk or interact.
-- **Controller:** left stick walks, A interact, B run/cancel, X use item, Y bag, LB/RB hotbar, Start journal, View bag, D-pad menu focus. Hot-pluggable.
-- **Touch:** a floating joystick plus an A/B/X/Y diamond, nothing else; tap the hotbar to switch tools. Only shown while touch is in use.
+- **Keyboard & mouse:** WASD / arrows walk (smooth, camera-relative), Shift runs (also the rest of a click-to-walk), `E`/Space interacts, `F` uses the selected item, `1–9` / `Q R` / wheel pick a hotbar slot, `B` bag, `J` journal, `L` lantern grove, `H` help, `Esc` closes windows. Click to walk or interact.
+- **Controller:** left stick walks (a full tilt is still a walk), A interact, B hold-to-run (also a tap-walk) and closes windows, X use item, Y bag, LB/RB hotbar, Start journal, View bag, D-pad menu focus. Hot-pluggable.
+- **Touch:** a floating joystick plus an A/B/X/Y diamond, nothing else. B hold-to-run also covers a tap-walk. Tap the hotbar to switch tools. Only shown while touch is in use.
 
 Prompt glyphs follow the last device used. The game opens on a main menu (New Game / Continue / Settings / Credits); New Game plays a skippable arrival intro once per save.
 
@@ -147,7 +147,15 @@ v0.1 has a gentle, open-ended ladder instead of levels:
 - No backend, no external assets.
 - Player activity animations: game code calls `startAct()` (`src/actions.ts`); fishing casts and bench brewing are mirrored from their timers. `render/playerActs.ts` blends procedural poses over idle/walk, hangs cached tool props on the hands only while needed, and plays splashes, chips, drops and sparkles through the pooled celebration particles. Moving (keys, stick, joystick or tap-to-walk) cancels an act; held acts (the bake games) end with their window. Visual only, nothing saved.
 
-## 7a. The traveling merchant
+## 7a. Home decorating
+
+The **Front Door** station (south face of the house) opens decorate mode: a fade into a dollhouse-style room (`render/homeRoom.ts`, a `home` scene on the shared renderer, floating far above the island so nothing else is in shot) and a tray UI (`ui/homeUi.ts`, `ui/home.css`). Rules live in `home.ts`, data (8×6 grid, 5 wallpapers, 5 floors, patterns painted in `art/homePatterns.ts`) in `homeData.ts`. The yard keeps its own tile decorating.
+
+- Items come from the bag (any `kind: 'decor'` item); placing consumes one, picking up returns it. One standing piece per cell; flat pieces (rugs) share a cell with a standing piece. Pieces rotate in quarter turns.
+- Mouse: hover shows a ghost, click places / selects, drag moves. Touch: tap to place or select, drag to move, big Turn / Pick up buttons; the tray docks to the right on short landscape screens. Keyboard: arrows move a cursor, E/Space confirm, `R` turn, `X` pick up, `[ ]` flip through pieces, `Tab` next tab, Esc back. Gamepad: D-pad / stick cursor, A confirm, X turn, Y pick up, LB/RB flip, Start next tab, B back (deselect, then leave). Extra scene buttons arrive on the bus as `sceneAction`.
+- Save: `state.home = { wall, floor, items: [{ id, x, y, rot }] }`, normalized on load (`normalizeHome`), so older saves get an empty blush-and-checker room. Saved after every change and on leaving.
+
+## 7a-2. The traveling merchant
 
 **Tansy Packlewick**, a lilac-cream Wandering Alpaca with a stuffed travel pack, visits on **Wednesdays and Saturdays, 9 AM to 8 PM** (real calendar and clock; `?merchant=1` keeps her open all day for QA, `?date=` and `?hour=` work too). She sets up a striped stall on a cobbled pitch east of Sugarlily Square (counter tiles are solid while she is there) and sells a rotating handful of rare things for pips: two outfit pieces (`clothes/catalogMerchant.ts`, source `merchant`, never in the boutique), two decor pieces (`d_m_*`), and two seed bundles (rare Lanternberry and Moonpetal seeds, plus discounted regulars). Arrival toast, a HUD chip ("Tansy is in town") and a poof of sparkles announce her; a toast says when she packs up and when she is next back (also in Help).
 

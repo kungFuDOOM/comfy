@@ -108,6 +108,43 @@ add({ id: 'd_tw_wreath', name: 'Twinkle Wreath', kind: 'decor', event: 'twinkle'
 // recipes a best friend teaches at 10 hearts (see friendData.ts)
 add({ id: 'jam_croissant', name: 'Jammy Butter Croissant', kind: 'treat', sell: 66, desc: 'Brioche\'s own recipe: a flaky crescent with a heart of berry jam. Still steaming.' });
 add({ id: 'wiggle_cake', name: 'Wiggle Cake', kind: 'treat', sell: 84, desc: 'Tuppi\'s secret cake. It jiggles when you say its name.' });
+// Collection Log finds (see collection.ts): bonus finds from gathering and fishing, plus a few new spawns
+// fish
+add({ id: 'pebble_guppy', name: 'Pebble Guppy', kind: 'fish', sell: 22, desc: 'Speckled like a river stone. Hides behind its own bubbles.' });
+add({ id: 'tadpole', name: 'Tapioca Tadpole', kind: 'fish', sell: 26, desc: 'A round little wiggler that has not decided what to be yet.' });
+add({ id: 'peach_carp', name: 'Peachfin Carp', kind: 'fish', sell: 54, desc: 'Blushing peach from nose to tail. Very polite about being caught.' });
+add({ id: 'lace_betta', name: 'Lacefin Betta', kind: 'fish', sell: 70, desc: 'Fins like a wedding veil. Twirls when admired.' });
+add({ id: 'lavender_ray', name: 'Lavender Ray', kind: 'fish', sell: 110, desc: 'Glides through the deep like a soft purple kite.' });
+add({ id: 'sugar_seahorse', name: 'Sugar Seahorse', kind: 'fish', sell: 130, desc: 'Sweet as spun sugar and just as hard to hold onto.' });
+// bugs
+add({ id: 'puff_bee', name: 'Puff Bumble', kind: 'collectible', sell: 16, desc: 'A fluffy little bee that hums a different tune every day.' });
+add({ id: 'dot_ladybug', name: 'Polka Ladybug', kind: 'collectible', sell: 14, desc: 'Her spots are always in a different order. Nobody knows why.' });
+add({ id: 'glow_fly', name: 'Lantern Firefly', kind: 'collectible', sell: 34, desc: 'Carries a tiny light that blinks in time with your heartbeat.' });
+add({ id: 'sugar_snail', name: 'Sugar Snail', kind: 'collectible', sell: 18, desc: 'Leaves a faint trail of sparkle. Takes the scenic route.' });
+add({ id: 'bean_beetle', name: 'Cocoa Beetle', kind: 'collectible', sell: 18, desc: 'Shiny and round, and smells exactly like a roasted bean.' });
+add({ id: 'wisp_dragonfly', name: 'Wispwing Dragonfly', kind: 'collectible', sell: 44, desc: 'Four see-through wings and a very serious expression.' });
+// shells
+add({ id: 'conch', name: 'Bubblegum Conch', kind: 'collectible', sell: 20, desc: 'Hold it to your ear and hear someone humming.' });
+add({ id: 'sand_dollar', name: 'Sugar Sand Dollar', kind: 'collectible', sell: 24, desc: 'A frosted little coin with a flower pressed in the middle.' });
+add({ id: 'cowrie', name: 'Cream Cowrie', kind: 'collectible', sell: 22, desc: 'Smooth as a macaron and just as tidy.' });
+add({ id: 'swirl_whelk', name: 'Swirl Whelk', kind: 'collectible', sell: 46, desc: 'A lavender spiral that goes round and round forever.' });
+add({ id: 'starfish', name: 'Sundae Starfish', kind: 'collectible', sell: 50, desc: 'Peach on top, sprinkles all over.' });
+// forageables
+add({ id: 'lucky_clover', name: 'Lucky Clover Puff', kind: 'collectible', sell: 24, desc: 'Four fluffy leaves. Found, never looked for.' });
+add({ id: 'sweet_mushroom', name: 'Sprinkle Mushroom', kind: 'collectible', sell: 22, desc: 'A pink cap with sugar-white sprinkles. Pretend to eat it.' });
+// gems and ore
+add({ id: 'sea_glass', name: 'Frosted Sea Glass', kind: 'collectible', sell: 30, desc: 'A mint-green gem the tide has polished smooth.' });
+add({ id: 'honey_amber', name: 'Honey Amber', kind: 'collectible', sell: 48, desc: 'Sugarwood sap that turned to a warm golden stone.' });
+add({ id: 'candy_copper', name: 'Candy Copper Nugget', kind: 'collectible', sell: 40, desc: 'A rosy copper lump that clinks like a spoon on a mug.' });
+add({ id: 'rose_quartz', name: 'Rose Quartz Cluster', kind: 'collectible', sell: 62, desc: 'A little bouquet of pink crystal points.' });
+add({ id: 'moonstone', name: 'Milky Moonstone', kind: 'collectible', sell: 74, desc: 'A pale cabochon with a sleepy glow inside.' });
+add({ id: 'twinkle_geode', name: 'Twinkle Geode', kind: 'collectible', sell: 80, desc: 'Crack it open and the stars inside spill out.' });
+add({ id: 'frost_opal', name: 'Frostberry Opal', kind: 'collectible', sell: 68, desc: 'Icy blue with tiny rainbow flecks. Cold, but friendly.' });
+// decor earned from Collection Log sets (never sold)
+add({ id: 'd_fishbowl', name: 'Moonlit Fishbowl', kind: 'decor', desc: 'A round bowl with one very content moon-koi. Collection Log reward.' });
+add({ id: 'd_forage_basket', name: 'Forager\'s Basket', kind: 'decor', desc: 'A wide basket heaped with berries, petals and a mushroom. Collection Log reward.' });
+add({ id: 'd_gem_stand', name: 'Sparkle Pebble Stand', kind: 'decor', desc: 'A little stand showing off four gleaming gems. Collection Log reward.' });
+add({ id: 'd_cafe_sign', name: 'Sugarlily Cafe Sign', kind: 'decor', desc: 'A chalkboard sign with a heart-shaped latte doodle. Collection Log reward.' });
 // decor
 // café shift rewards (see shift.ts)
 add({ id: 'd_cafe_menu', name: 'Chalk-Heart Menu Board', kind: 'decor', desc: 'A tiny easel menu. Today: hugs, foam and one (1) sprinkle.' });
@@ -132,6 +169,28 @@ export const SEED_CROP: Record<string, { crop: string; need: number }> = {
   seed_cottonbloom: { crop: 'cottonbloom', need: 240 },
   seed_glowberry: { crop: 'glowberry', need: 300 }, // merchant-only seeds
   seed_moonpetal: { crop: 'moonpetal', need: 360 },
+};
+
+/** Extra things a gather or catch can turn up. Key: `${node kind}:${tier}`. At most one bonus per gather. */
+export interface NodeBonus { item: string; chance: number; when?: 'day' | 'night'; msg: string }
+export const NODE_BONUS: Record<string, NodeBonus[]> = {
+  'flower:0': [{ item: 'puff_bee', chance: 0.14, when: 'day', msg: 'A Puff Bumble buzzed out of the blossoms' }, { item: 'glow_fly', chance: 0.14, when: 'night', msg: 'A Lantern Firefly drifted out of the petals' }, { item: 'lucky_clover', chance: 0.1, msg: 'A Lucky Clover Puff was tucked under the petals' }],
+  'flower:1': [{ item: 'wisp_dragonfly', chance: 0.14, msg: 'A Wispwing Dragonfly landed on the petals' }, { item: 'glow_fly', chance: 0.12, when: 'night', msg: 'A Lantern Firefly drifted out of the petals' }, { item: 'lucky_clover', chance: 0.12, msg: 'A Lucky Clover Puff was tucked under the petals' }],
+  'berry:0': [{ item: 'dot_ladybug', chance: 0.16, msg: 'A Polka Ladybug tumbled out of the bush' }, { item: 'glow_fly', chance: 0.12, when: 'night', msg: 'A Lantern Firefly blinked out of the bush' }],
+  'berry:1': [{ item: 'dot_ladybug', chance: 0.14, msg: 'A Polka Ladybug tumbled out of the bush' }, { item: 'glow_fly', chance: 0.16, when: 'night', msg: 'A Lantern Firefly blinked out of the bush' }],
+  'wood:0': [{ item: 'sugar_snail', chance: 0.16, msg: 'A Sugar Snail was riding the stump' }, { item: 'sweet_mushroom', chance: 0.14, msg: 'A Sprinkle Mushroom was growing on the stump' }, { item: 'honey_amber', chance: 0.05, msg: 'A glint of Honey Amber was hiding in the sap' }],
+  'coffee:0': [{ item: 'bean_beetle', chance: 0.16, msg: 'A Cocoa Beetle rolled out of the shrub' }],
+  'coffee:1': [{ item: 'bean_beetle', chance: 0.16, msg: 'A Cocoa Beetle rolled out of the shrub' }, { item: 'glow_fly', chance: 0.1, when: 'night', msg: 'A Lantern Firefly flickered out of the shrub' }],
+  'shell:0': [{ item: 'conch', chance: 0.1, msg: 'A Bubblegum Conch washed up with it' }, { item: 'sand_dollar', chance: 0.09, msg: 'A Sugar Sand Dollar was buried beside it' }, { item: 'cowrie', chance: 0.09, msg: 'A Cream Cowrie was tucked in the sand' }, { item: 'sea_glass', chance: 0.08, msg: 'A piece of Frosted Sea Glass gleamed in the sand' }],
+  'shell:1': [{ item: 'swirl_whelk', chance: 0.12, msg: 'A Swirl Whelk was curled up below it' }, { item: 'starfish', chance: 0.1, msg: 'A Sundae Starfish was snoozing under it' }, { item: 'rose_quartz', chance: 0.1, msg: 'A Rose Quartz Cluster sparkled in the sand' }, { item: 'conch', chance: 0.08, msg: 'A Bubblegum Conch washed up with it' }],
+  'fish:1': [{ item: 'moonstone', chance: 0.07, msg: 'The hook snagged a Milky Moonstone too' }],
+  'fish:2': [{ item: 'moonstone', chance: 0.1, msg: 'The hook snagged a Milky Moonstone too' }],
+};
+/** What a fishing spot's tier can bring up (weights). The first entry is the tier's usual catch. */
+export const FISH_POOL: Record<number, [string, number][]> = {
+  0: [['minnow', 70], ['pebble_guppy', 20], ['tadpole', 10]],
+  1: [['perch', 68], ['peach_carp', 22], ['lace_betta', 10]],
+  2: [['koi', 66], ['lavender_ray', 22], ['sugar_seahorse', 12]],
 };
 
 export const SHOP_SEEDS = ['seed_puffberry', 'seed_cottonbloom'];
@@ -397,7 +456,7 @@ export const QUESTS: QuestDef[] = [
   { id: 'q_boutique', title: 'Window Shopping', desc: 'Try on an outfit at Spot & Bow Boutique.', stat: 'tried', goal: 1, reward: 30, loop: 'Boutique' },
   { id: 'q_gift', title: 'A Little Something', desc: 'Give a gift to a villager.', stat: 'gifted', goal: 1, reward: 30, loop: 'Friends' },
   { id: 'q_collect', title: 'Treasure Trail', desc: 'Find 3 collectibles around the island.', stat: 'collected', goal: 3, reward: 50, loop: 'Collecting' },
-  { id: 'q_decor', title: 'Nest Builder', desc: 'Place a piece of decor in your yard.', stat: 'placed', goal: 1, reward: 40, loop: 'Decorating' },
+  { id: 'q_decor', title: 'Nest Builder', desc: 'Place a piece of decor in your home or yard.', stat: 'placed', goal: 1, reward: 40, loop: 'Decorating' },
   { id: 'q_lantern', title: 'First Glow', desc: 'Release your first Afterglow Lantern.', stat: 'lanterns', goal: 1, reward: 60, rewardItem: 'd_pouf', loop: 'Afterglow' },
   { id: 'q_sprout', title: 'Tiny Sprout', desc: 'Harvest something from the garden plot.', stat: 'harvested', goal: 1, reward: 30, loop: 'Garden' },
   { id: 'q_forage', title: 'Basket Full', desc: 'Gather 5 things from bushes, patches, beds and shrubs.', stat: 'foraged', goal: 5, reward: 40, loop: 'Foraging' },

@@ -33,6 +33,8 @@ import { glyphEl } from '../input/prompts';
 import { btn, h, openPanel, type PanelApi } from './dom';
 import { renderEventsTab } from './eventsUi';
 import { clearPetTrial, renderPetBody } from './petUi';
+import { renderCollectionLog } from './collectionUi';
+import { currentTitle } from '../collection';
 import { eventItemOpen, getActiveEvents } from '../events';
 import { openShift } from './shiftUi';
 import { SHIFTS_PER_DAY, orderable, shiftsLeft } from '../shift';
@@ -390,7 +392,7 @@ export function openBoutique() {
     } else if (tab === 'pets') {
       renderPetBody(body, api, true);
     } else {
-      body.append(h('div', 'muted', 'Decor for your yard. Select it on the hotbar and face a yard tile.'));
+      body.append(h('div', 'muted', 'Decor for your home and yard. Step through the front door to arrange your rooms, or select a piece on the hotbar and face a yard tile.'));
       for (const id of SHOP_DECOR) body.append(shopRow(id, ITEMS[id].buy!, () => { if (buyDecor(id)) api.rerender(); }));
     }
   }, () => { stopDressingRoom(); endPreview(); clearPetTrial(); leavePlace(); }, true);
@@ -489,10 +491,12 @@ export function openJournal(start = 'quests') {
   let tab = start;
   openPanel('Journal', (body, api) => {
     const t = (id: string, label: string) => tabBtn(label, tab === id, () => { tab = id; api.rerender(); });
-    body.append(h('div', 'tabs', t('quests', 'Quests'), t('skills', 'Skills'), t('collection', 'Collection'), t('friends', 'Friends'), t('island', 'Island'), t('map', 'Map'), t('lanterns', 'Lanterns'), t('events', getActiveEvents().length ? `Events ${getActiveEvents()[0].icon}` : 'Events')));
+    body.append(h('div', 'tabs', t('quests', 'Quests'), t('skills', 'Skills'), t('collection', '✿ Collection'), t('friends', 'Friends'), t('island', 'Island'), t('map', 'Map'), t('lanterns', 'Lanterns'), t('events', getActiveEvents().length ? `Events ${getActiveEvents()[0].icon}` : 'Events')));
     // the card widens / goes two-column for skills on phones (scenes.css); other tabs keep their usual size
     body.parentElement?.classList.toggle('skills-open', tab === 'skills');
+    body.parentElement?.classList.toggle('collection-open', tab === 'collection');
     if (tab === 'skills') {
+      if (currentTitle()) body.append(h('div', 'cl-kicker skills-title', `✿ ${currentTitle()} ✿`));
       body.append(h('div', 'muted skills-intro', 'Everything you do around the island quietly grows a skill. No rush — there is no losing here.'));
       const list = h('div', 'skills-list');
       for (const sk of SKILLS) {
@@ -521,17 +525,7 @@ export function openJournal(start = 'quests') {
           h('span', 'tag', q.loop), h('span', 'prog', `${progress(q)}/${q.goal}`), h('span', 'price', coinIcon(14), String(q.reward))));
       }
     } else if (tab === 'collection') {
-      body.append(h('div', 'muted', 'Everything you have found around the island.'));
-      const grid = h('div', 'bag');
-      for (const id of ['shell', 'blossom', 'moth', 'button']) {
-        const n = state.found[id] ?? 0;
-        const cell = h('div', 'bagcell' + (n ? '' : ' locked'), itemIcon(id, 40), h('span', 'qty', n ? `×${n}` : ''), h('span', 'nm', n ? ITEMS[id].name : '???'));
-        cell.title = n ? ITEMS[id].desc : 'Not found yet';
-        grid.append(cell);
-      }
-      const hint = { shell: 'Beaches', blossom: 'Meadows & the grove', moth: 'Dusk & night', button: 'The grove hillside' };
-      body.append(grid, h('div', 'muted small', `Where to look — ${Object.entries(hint).map(([k, v]) => `${ITEMS[k].name}: ${v}`).join(' · ')}.`));
-      body.append(h('div', 'muted small', `Season (${getClock().season.name}): ${getClock().season.blurb}`));
+      renderCollectionLog(body, api, clothThumb);
     } else if (tab === 'friends') {
       renderFriendsTab(body, api);
     } else if (tab === 'events') {
@@ -609,24 +603,24 @@ type HelpRow = [string, string];
 /** One card per device. CSS floats the card for the device used last to the top (body.input-*). */
 export const HELP: { mode: 'keyboard' | 'gamepad' | 'touch'; title: string; rows: HelpRow[] }[] = [
   { mode: 'keyboard', title: 'Keyboard & mouse', rows: [
-    ['WASD / Arrows', 'Walk, smoothly and relative to the camera'], ['Shift', 'Hold to run'],
+    ['WASD / Arrows', 'Walk, smoothly and relative to the camera'], ['Shift', 'Hold to run, including the rest of a click-to-walk'],
     ['E / Space', 'Talk, shop, and use what you are facing'], ['F', 'Use the selected hotbar item on the tile in front'],
     ['Click', 'Walk there, or interact with what you click'], ['1–9 / Q R / Wheel', 'Choose a hotbar slot'],
-    ['B', 'Bag & wardrobe'], ['J', 'Journal'], ['K', 'Skills'], ['L', 'Lantern grove'], ['H', 'This help'], ['Esc', 'Pause menu (settings, back to title) · closes a window'],
+    ['B', 'Bag & wardrobe'], ['J', 'Journal'], ['K', 'Skills'], ['C', 'Collection Log'], ['L', 'Lantern grove'], ['H', 'This help'], ['Esc', 'Pause menu (settings, back to title) · closes a window'],
     ['[ ]  ·  - =', 'Orbit camera  ·  zoom (Backspace resets)'],
   ] },
   { mode: 'gamepad', title: 'Controller', rows: [
     ['Left stick', 'Walk — tilt sets the pace, and a full tilt is a normal walk'], ['A', 'Talk, shop, interact'],
-    ['B', 'Hold to run · cancel · close a window'], ['X', 'Use the selected hotbar item on the tile in front'],
+    ['B', 'Hold to run, including a tap-walk · close a window'], ['X', 'Use the selected hotbar item on the tile in front'],
     ['Y', 'Bag & wardrobe'], ['LB / RB', 'Previous / next hotbar slot'], ['Start', 'Pause menu (settings, back to title)'], ['View', 'Bag'],
     ['D-pad', 'Move the focus ring in windows (◀ ▶ also steps the hotbar)'],
     ['Right stick', 'Orbit and tilt the camera (click it to reset)'], ['LT / RT', 'Zoom out / zoom in'],
   ] },
   { mode: 'touch', title: 'Touch', rows: [
     ['Drag the left side', 'A joystick appears under your thumb — tilt sets the pace, and a full drag is a normal walk'],
-    ['A', 'Talk, shop, interact'], ['B', 'Hold to run · cancel'], ['X', 'Use the selected hotbar item on the tile in front'],
+    ['A', 'Talk, shop, interact'], ['B', 'Hold to run, including a tap-walk · close a window'], ['X', 'Use the selected hotbar item on the tile in front'],
     ['Y', 'Bag & wardrobe'], ['Hotbar', 'Tap a slot to switch tools'], ['Tap the island', 'Walk there, or talk to who you tap'],
-    ['Top buttons', 'Journal, skills, bag and this help'], ['Journal › Pause', 'Resume, settings, or back to the title'],
+    ['Top buttons', 'Journal, skills, collection log, bag and this help'], ['Journal › Pause', 'Resume, settings, or back to the title'],
   ] },
 ];
 
