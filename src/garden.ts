@@ -9,13 +9,16 @@ import { grantXp, skillLevel } from './skills';
 import { state, type Plot } from './state';
 import { circle, ellipse, rr } from './art/draw';
 import { AREAS, TS } from './world';
+import { isRaining } from './weather';
 
 const WET_MS = 120_000;
 const key = (x: number, y: number) => `${x},${y}`;
 
 export function tickGarden(now = Date.now()) {
+  const rain = isRaining(); // rain waters every planted crop (the garden is open to the sky)
   for (const p of Object.values(state.plots)) {
     if (!p.crop) continue;
+    if (rain && p.wetUntil < now + WET_MS / 2) p.wetUntil = now + WET_MS;
     const from = p.lastTick, to = Math.min(now, p.wetUntil);
     if (to > from && p.progress < p.need) p.progress = Math.min(p.need, p.progress + (to - from) / 1000);
     p.lastTick = now;
@@ -30,6 +33,7 @@ export function gardenHint(x: number, y: number): string {
   if (!p) return sel === 'trowel' ? 'Till the soil' : 'Garden soil (use the trowel)';
   if (!p.crop) return sel && SEED_CROP[sel] ? `Plant ${ITEMS[sel].name}` : 'Tilled — select seeds to plant';
   if (p.progress >= p.need) return 'Harvest!';
+  if (isRaining()) return 'Growing… the rain is watering it ♡';
   return sel === 'can' ? 'Water the sprout' : 'Growing… (use the watering can)';
 }
 

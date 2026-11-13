@@ -2,6 +2,7 @@
 // Three tiny THREE.Points clouds sharing one soft-dot shader; positions are recomputed on the CPU (~150 points).
 import * as THREE from 'three';
 import type { Season } from '../time';
+import type { FootSurface } from '../audio';
 import { steamVents } from './structures';
 
 const DAY = 70;        // petals + sparkles, wrapped around the camera target
@@ -57,8 +58,9 @@ export interface Particles {
   setSeason(s: Season): void;
   /** pxScale = drawing-buffer height / (2·tan(fov/2)), so point sizes are in world units. */
   /** Tiny dust puffs kicked up under the feet while running. */
-  dust(dt: number, running: boolean, at: THREE.Vector3, surface: 'sand' | 'path' | 'grass'): void;
-  update(t: number, night: number, target: THREE.Vector3, pxScale: number, groundAt: (x: number, z: number) => number): void;
+  dust(dt: number, running: boolean, at: THREE.Vector3, surface: FootSurface): void;
+  /** `calm` (0..1, rain / snow) hushes the petals, sparkles and fireflies. */
+  update(t: number, night: number, target: THREE.Vector3, pxScale: number, groundAt: (x: number, z: number) => number, calm?: number): void;
 }
 
 export function createParticles(): Particles {
@@ -73,7 +75,7 @@ export function createParticles(): Particles {
   group.add(dust.pts);
   const dAge = new Float32Array(DUST).fill(DLIFE), dVel = new Float32Array(DUST * 3);
   let dNext = 0, dTimer = 0, dAny = false;
-  const DCOL: Record<string, string> = { sand: '#f1dfb4', path: '#d9cdb8', grass: '#cfe0b0' };
+  const DCOL: Record<string, string> = { sand: '#f1dfb4', path: '#d9cdb8', grass: '#cfe0b0', wood: '#d8c3a0', snow: '#f4f9ff' };
 
   // static per-particle colors
   const FLY_HDR = 3.2; // above the bloom threshold so fireflies glow softly at night
@@ -121,9 +123,10 @@ export function createParticles(): Particles {
       for (const n of ['position', 'aAlpha', 'aSize']) dust.pts.geometry.attributes[n].needsUpdate = true;
       dAny = live;
     },
-    update(t, night, target, pxScale, groundAt) {
+    update(t, night, target, pxScale, groundAt, calm = 0) {
       for (const k of [day, flies, steam, dust]) k.mat.uniforms.uScale.value = pxScale;
-      const dayK = 1 - night, nightK = Math.max(0, (night - 0.35) / 0.65);
+      const hush = 1 - Math.min(1, calm) * 0.85;
+      const dayK = (1 - night) * hush, nightK = Math.max(0, (night - 0.35) / 0.65) * hush;
       day.pts.visible = dayK > 0.01; flies.pts.visible = nightK > 0.01;
       day.mat.uniforms.uOpacity.value = dayK; flies.mat.uniforms.uOpacity.value = nightK;
 
