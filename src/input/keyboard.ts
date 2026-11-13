@@ -32,6 +32,9 @@ const CONFIRM = new Set(['e', ' ', 'enter']);
 export function initKeyboard(canvas: HTMLCanvasElement) {
   window.addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    // typing in a text field (the pet name): letters / space / Enter are the field's, not hotkeys. Esc still backs out.
+    const tgt = e.target;
+    if ((tgt instanceof HTMLInputElement && tgt.type === 'text' || tgt instanceof HTMLTextAreaElement) && e.key !== 'Escape') return;
     const k = e.key.toLowerCase();
     markInput('keyboard');
     const fresh = !down.has(k);

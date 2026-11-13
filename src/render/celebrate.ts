@@ -182,3 +182,9 @@ export function twinkleAt(at: THREE.Vector3) {
   celebrate.burst(at, { count: 36, colors: ['#ffe27a', '#ffb3cf', '#a8f0d0', '#ffffff'], shapes: [Shape.Star], spread: 1.8, speed: 1.8, up: 3.6, gravity: 1.0, size: [0.16, 0.28], life: [1.4, 2.0], stagger: 0.6 });
   celebrate.burst(at, { count: 20, colors: ['#ff8fb6', '#ffd9e8'], shapes: [Shape.Heart], spread: 1.4, speed: 1.5, up: 3.4, gravity: 1.0, size: [0.2, 0.3], life: [1.4, 2.0], stagger: 0.5 });
 }
+
+/** Petting the pet companion: a small bubble of hearts and a twinkle or two. */
+export function petHeartsAt(at: THREE.Vector3) {
+  celebrate.burst(at, { count: 9, colors: ['#ff8fb6', '#ffb3cf', '#ff6fa3', '#ffd9e8'], shapes: [Shape.Heart], spread: 0.25, speed: 0.5, up: 1.9, gravity: -0.2, size: [0.2, 0.3], life: [1.0, 1.5], stagger: 0.35 });
+  celebrate.burst(at, { count: 6, colors: ['#fff3a8', '#ffffff'], shapes: [Shape.Star], spread: 0.35, speed: 0.7, up: 1.6, gravity: 0.4, size: [0.12, 0.2], life: [0.7, 1.0], stagger: 0.2 });
+}
