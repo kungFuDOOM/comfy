@@ -1,6 +1,6 @@
 // Game orchestration: loop, interaction, and hooking simulation up to the Three.js renderer.
 import { cheetahDataUrl } from './art/cheetah';
-import { setMood, sfx, updateDirector } from './audio';
+import { setMood, setRainLevel, sfx, updateDirector } from './audio';
 import { currentAccessory } from './boutique';
 import { currentLook } from './wardrobe';
 import { brewing, recipeById, updateBrew } from './cafe';
@@ -28,6 +28,7 @@ import { activeEventSpots, eventSpotAtTile, tickEvents, type EventSpot } from '.
 import './events/index';
 import { state } from './state';
 import { getClock } from './time';
+import { stepWeather, tickWeather, view as weatherView } from './weather';
 import { isPanelOpen } from './ui/dom';
 import { buildHud, setHint, tickHud } from './ui/hud';
 import { openMap } from './ui/mapPanel';
@@ -267,7 +268,9 @@ function update(dt: number) {
   updateLanterns(dt);
   tickGarden();
   eventTimer -= dt;
-  if (eventTimer <= 0) { eventTimer = 0.5; tickEvents(); tickFriends(); }
+  if (eventTimer <= 0) { eventTimer = 0.5; tickEvents(); tickFriends(); tickWeather(); }
+  stepWeather(dt);
+  setRainLevel(weatherView.rain);
   updateCollect(dt, player.x, player.y);
   tickAwards(dt, panel);
   // hint
@@ -311,7 +314,7 @@ function render(t: number, dt: number) {
   const dress = dressing.active;
   world3d.render({
     t, dt, hour: dress ? 12.5 : clock.hour, season: clock.season,
-    player: dress ? { x: player.x, y: player.y, facing: 'down', moving: false, running: false, surface: 'grass' } : { ...player, running: player.running, surface: surfaceUnder() }, look: currentLook(), accessory: currentAccessory(), act: dress ? null : currentAct(), pet: dress ? null : getPetPose(), npcs: presentNpcs(), talkedToday,
+    player: dress ? { x: player.x, y: player.y, facing: 'down', moving: false, running: false, surface: 'grass' } : { ...player, running: player.running, surface: surfaceUnder() }, look: currentLook(), accessory: currentAccessory(), act: dress ? null : currentAct(), pet: dress ? null : getPetPose(), npcs: presentNpcs(), talkedToday, weather: !dress,
   });
 }
 

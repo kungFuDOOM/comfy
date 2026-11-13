@@ -48,6 +48,8 @@ add({ id: 'spot_mocha', name: 'Spotted Mocha', kind: 'drink', sell: 40, desc: 'V
 add({ id: 'shell', name: 'Dewdrop Shell', kind: 'collectible', sell: 14, desc: 'A shell that keeps a morning dewdrop inside.' });
 add({ id: 'blossom', name: 'Ribbon Blossom', kind: 'collectible', sell: 12, desc: 'A flower shaped like a tied ribbon.' });
 add({ id: 'moth', name: 'Steam-Moth', kind: 'collectible', sell: 30, desc: 'Drifts out of café steam at dusk. Smells like cinnamon.' });
+add({ id: 'frog', name: 'Bellyflop Frog', kind: 'collectible', sell: 36, desc: 'Hops out near the ponds when it rains. Says "blup" at puddles.' });
+add({ id: 'snail', name: 'Dewdrop Snail', kind: 'collectible', sell: 28, desc: 'A sleepy snail with a swirly shell. Rainy days only.' });
 add({ id: 'button', name: 'Starlit Button', kind: 'collectible', sell: 40, desc: 'Found on the hillside. Twinkles when nobody is looking.' });
 // gathered goods
 add({ id: 'glowberry', name: 'Lanternberry', kind: 'crop', sell: 46, desc: 'A berry that glows faintly pink after dusk.' });
@@ -58,6 +60,8 @@ add({ id: 'twig', name: 'Sugarwood Twig', kind: 'ingredient', sell: 3, desc: 'A 
 add({ id: 'plank', name: 'Sugarwood Plank', kind: 'ingredient', sell: 12, desc: 'A smooth pink-grained plank. Good for mending things.' });
 add({ id: 'minnow', name: 'Puddle Minnow', kind: 'fish', sell: 18, desc: 'Small, round, and always a little surprised.' });
 add({ id: 'perch', name: 'Ribbon Perch', kind: 'fish', sell: 42, desc: 'Stripes like a gift ribbon. Wiggles when it is happy.' });
+add({ id: 'drizzle', name: 'Drizzle Darter', kind: 'fish', sell: 64, desc: 'A speedy blue-grey fish that only bites while it is raining.' });
+add({ id: 'cloudcarp', name: 'Cloudcap Carp', kind: 'fish', sell: 110, desc: 'Fluffy as a raincloud. Rises to the surface in soft showers.' });
 add({ id: 'koi', name: 'Mooncream Koi', kind: 'fish', sell: 90, desc: 'Creamy white with a moon-shaped blush on its cheek.' });
 // baked treats
 add({ id: 'berry_tart', name: 'Puffberry Tart', kind: 'treat', sell: 44, desc: 'A buttery little tart piled with puffberries.' });

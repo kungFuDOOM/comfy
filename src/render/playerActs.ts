@@ -194,7 +194,7 @@ function buildStar() {
   h.mesh.position.y = 0.08;
   return h;
 }
-const FISH_COLORS: Record<string, [string, string]> = { minnow: ['#ffd0de', '#ff9ec0'], perch: ['#ffe08a', '#ff8fb6'], koi: ['#fff6ea', '#ffb3c8'] };
+const FISH_COLORS: Record<string, [string, string]> = { minnow: ['#ffd0de', '#ff9ec0'], perch: ['#ffe08a', '#ff8fb6'], koi: ['#fff6ea', '#ffb3c8'], drizzle: ['#b9c8f0', '#7f94d8'], cloudcarp: ['#f1ecff', '#c8b6f2'] };
 function buildFish(item: string) {
   const [body, accent] = FISH_COLORS[item] ?? ['#c9e9ff', '#ff9ec0'];
   const b = new Batch()
