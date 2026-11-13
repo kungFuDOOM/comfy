@@ -232,7 +232,64 @@ function buildBobber() {
     .build(vertexToon(), false);
 }
 
-type Mount = 'R' | 'L' | 'RU' | 'LU';
+// ---------- photo-mode props (built once on first use, like the rest) ----------
+/** A little flat heart (point down) facing +z, centred on (x, y, z). */
+function heartInto(b: Batch, x: number, y: number, z: number, s: number, color: string) {
+  return b
+    .add(G.ball(s * 0.55, 10), color, { x: x - s * 0.42, y: y + s * 0.18, z, s: [1, 1, 0.55] })
+    .add(G.ball(s * 0.55, 10), color, { x: x + s * 0.42, y: y + s * 0.18, z, s: [1, 1, 0.55] })
+    .add(G.cone(s * 0.84, s * 1.05, 12), color, { x, y: y - s * 0.42, z, dir: [0, -1, 0], s: [1, 1, 0.55] });
+}
+/** Cozy sip: a chubby pink mug with a sleepy face, a heart, cocoa and two marshmallows. Its face is on -z, so it
+ *  looks out at the camera once it's turned round (rotation.y = PI) to bring the handle to her right hand. */
+function buildCuteMug() {
+  const R = 0.078, H = 0.14, cy = 0.04, top = cy + H / 2;
+  const b = new Batch()
+    .add(G.cyl(R, R * 0.9, H, 18), '#ffb3cf', { y: cy })
+    .add(G.cyl(R * 0.92, R * 0.86, 0.014, 18), '#ff8fb6', { y: cy - H / 2 + 0.007 }) // foot
+    .add(G.cyl(R * 1.04, R * 1.04, 0.024, 18), '#fff4f8', { y: top - 0.012 }) // creamy rim
+    .add(G.cyl(R * 0.9, R * 0.9, 0.01, 18), '#c98a6b', { y: top - 0.004 }) // cocoa
+    .add(G.box(0.032, 0.03, 0.032), '#ffffff', { x: 0.022, y: top + 0.01, z: 0.012, ry: 0.5 }) // marshmallows
+    .add(G.box(0.028, 0.026, 0.028), '#ffe3ee', { x: -0.024, y: top + 0.008, z: -0.014, ry: 1.1 })
+    .add(G.torus(0.042, 0.015, 12), '#ff8fb6', { x: R + 0.026, y: cy }); // handle
+  const fz = -R * 0.97;
+  b.add(G.ball(0.0085, 6), '#4f2b40', { x: -0.026, y: cy + 0.03, z: fz, s: [1, 0.55, 0.6] }) // happy closed eyes
+    .add(G.ball(0.0085, 6), '#4f2b40', { x: 0.026, y: cy + 0.03, z: fz, s: [1, 0.55, 0.6] })
+    .add(G.ball(0.012, 6), '#ff6f9c', { x: -0.044, y: cy + 0.012, z: fz * 0.98, s: [1.2, 0.7, 0.4] }) // blush
+    .add(G.ball(0.012, 6), '#ff6f9c', { x: 0.044, y: cy + 0.012, z: fz * 0.98, s: [1.2, 0.7, 0.4] });
+  heartInto(b, 0, cy - 0.022, fz - 0.004, 0.026, '#ff5f95');
+  return holder(b.build(), [0, top + 0.01, 0]);
+}
+/** Hooray: a fluffy two-tone pom-pom. */
+function buildPom(a: string, c: string) {
+  const b = new Batch().add(G.cyl(0.014, 0.014, 0.07, 6), '#fff4e6', { y: -0.01 });
+  for (let i = 0; i < 16; i++) { // golden-spiral puffs round a ball
+    const y = 1 - (i + 0.5) / 8, r = Math.sqrt(Math.max(0, 1 - y * y)), ang = i * 2.4;
+    b.add(G.ball(0.04, 8), i % 3 ? a : c, { x: Math.cos(ang) * r * 0.06, y: 0.09 + y * 0.06, z: Math.sin(ang) * r * 0.06 });
+  }
+  return holder(b.build());
+}
+/** Shy: a single pink tulip held at her chest. */
+function buildTulip() {
+  const b = new Batch()
+    .add(G.cyl(0.008, 0.009, 0.22, 6), '#7fcf8e', { y: 0.05 })
+    .add(G.ball(0.035, 8), '#8fe0a0', { x: 0.025, y: 0.02, rz: -0.7, s: [0.5, 1.4, 0.3] });
+  for (let i = 0; i < 3; i++) { const a = (i / 3) * Math.PI * 2; b.add(G.ball(0.04, 10), i ? '#ff9ec0' : '#ffb3cf', { x: Math.cos(a) * 0.022, y: 0.19, z: Math.sin(a) * 0.022, s: [0.8, 1.35, 0.8] }); }
+  b.add(G.ball(0.024, 8), '#ffd6e6', { y: 0.215 });
+  return holder(b.build());
+}
+/** Daydream: a puffy thought cloud with a heart in it, trailing two little puffs toward her head (centred on the cloud). */
+function buildThought() {
+  const b = new Batch()
+    .add(G.ball(0.035, 8), '#ffffff', { x: -0.3, y: -0.42 })
+    .add(G.ball(0.055, 10), '#ffffff', { x: -0.19, y: -0.26 });
+  for (const [dx, dy, r] of [[0, 0, 0.16], [-0.15, -0.03, 0.115], [0.15, -0.03, 0.115], [-0.08, 0.09, 0.12], [0.09, 0.1, 0.12]] as const)
+    b.add(G.ball(r, 12), '#ffffff', { x: dx, y: dy, s: [1, 1, 0.7] });
+  heartInto(b, 0, 0.01, 0.118, 0.07, '#ff8fb6');
+  return holder(b.build());
+}
+
+type Mount = 'R' | 'L' | 'RU' | 'LU' | 'M';
 type Prop = ReturnType<typeof holder>;
 
 // ---------- effects ----------
@@ -272,7 +329,7 @@ export function createPlayerActs(rig: PlayerRig): PlayerActs {
     a.pivot.add(hand);
     return { hand, up };
   });
-  const mountOf = (m: Mount) => (m === 'R' ? hands[0].hand : m === 'L' ? hands[1].hand : m === 'RU' ? hands[0].up : hands[1].up);
+  const mountOf = (m: Mount) => (m === 'M' ? rig.model : m === 'R' ? hands[0].hand : m === 'L' ? hands[1].hand : m === 'RU' ? hands[0].up : hands[1].up);
 
   // lazily built, cached forever
   const cache = new Map<string, Prop>();
@@ -280,7 +337,22 @@ export function createPlayerActs(rig: PlayerRig): PlayerActs {
   const PROPS: Record<string, () => Prop> = {
     rod: buildRod, axe: buildAxe, pick: buildPick, trowel: buildTrowel, hammer: buildHammer, spoon: buildSpoon, whisk: buildWhisk,
     can: buildCan, basket: buildBasket, pouch: buildPouch, mug: buildMug, bowl: buildBowl, gift: buildGift, star: buildStar,
+    pomR: () => buildPom('#ff8fb6', '#ffffff'), pomL: () => buildPom('#ffb3cf', '#fff3a8'), tulip: buildTulip, thought: buildThought,
   };
+  // the photo mug carries three steam wisps on its level holder (so they rise straight up even while she tips it)
+  const wisps: { m: THREE.Mesh; mat: THREE.MeshBasicMaterial }[] = [];
+  const cuteMug = () => get('cuteMug', () => {
+    const p = buildCuteMug();
+    const geo = new THREE.SphereGeometry(0.028, 8, 6);
+    for (let i = 0; i < 3; i++) {
+      const mat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0, depthWrite: false });
+      const m = new THREE.Mesh(geo, mat);
+      m.renderOrder = 6;
+      p.obj.add(m);
+      wisps.push({ m, mat });
+    }
+    return p;
+  });
   const prop = (k: string) => get(k, PROPS[k]);
   const fish = (item: string) => get('fish:' + item, () => buildFish(item));
   const crop = (item: string) => get('crop:' + item, () => buildCrop(item));
@@ -348,9 +420,126 @@ export function createPlayerActs(rig: PlayerRig): PlayerActs {
   }
   const overHead = (out = v, y = 1.9) => out.set(rig.root.position.x, rig.root.position.y + y, rig.root.position.z);
 
+  // ---------- photo-mode poses: endless loops with their own props, so a held pose keeps performing ----------
+  const SIP = 3.6, WAVE = 2.4, CHEER = Math.PI / 2.6, DANCE = Math.PI / 1.7;
+  let sipDrink = 0; // 0..1 how far into the actual sip she is (read by the steam)
+  function photoPose(a: Act): boolean {
+    const t = a.t, c = sm(seg(t, 0, 0.35));
+    switch (a.kind) {
+      case 'sip': {
+        const m = cuteMug();
+        show(m, 'RU');
+        const p = (t % SIP) / SIP;
+        const up = sm(seg(p, 0.16, 0.36)) * (1 - sm(seg(p, 0.7, 0.88))); // lift to her lips and back down
+        const drink = sm(seg(p, 0.34, 0.44)) * (1 - sm(seg(p, 0.62, 0.72))); // the sip itself
+        sipDrink = drink;
+        P.ax[0] = mix(-1.3, -1.98, up) * c; P.az[0] = mix(REST_Z, mix(-0.3, -0.62, up), c);
+        P.ax[1] = mix(-1.0, -1.25, up) * c; P.az[1] = mix(REST_Z, -0.3, c); // the other hand cups underneath
+        P.hx = (0.1 * (1 - up) - 0.16 * drink) * c; // gazes fondly at the mug, tips back to sip
+        P.hz = (0.13 + 0.07 * hump(p, 0.74, 1) * Math.sin(t * 13)) * c; // a content little head wiggle after
+        P.lean = -0.05 * drink * c; P.sq = 0.035 * pulse(p, 0.8, 0.05) * c; P.drop = Math.sin(t * 1.8) * 0.008 * c;
+        m.mesh.position.set(0.075, 0, 0.06);
+        m.mesh.rotation.set(-0.6 * drink, Math.PI, 0); // tip the rim toward her
+        if (drink > 0.4 || (p > 0.74 && p < 0.95)) rig.setExpression('happy'); // eyes shut: mmm
+        return true;
+      }
+      case 'wave': {
+        const p = (t % WAVE) / WAVE, on = sm(seg(p, 0, 0.1)) * (1 - sm(seg(p, 0.72, 0.9)));
+        P.ax[0] = -0.3 * c; P.az[0] = mix(REST_Z, 2.45 + Math.sin(t * 14) * 0.34 * on, c);
+        P.ax[1] = 0.28 * c; P.az[1] = mix(REST_Z, 0.95, c); // other hand back on her hip
+        P.hz = (0.1 + 0.08 * Math.sin(t * 7) * on) * c; P.hx = -0.07 * c; P.twist = -0.12 * c;
+        P.drop = 0.035 * Math.abs(Math.sin(t * 7)) * on * c;
+        return true;
+      }
+      case 'cheer': {
+        const pr = prop('pomR'), pl = prop('pomL');
+        show(pr, 'RU'); show(pl, 'LU');
+        const b = (t * Math.PI * 2) / CHEER, kR = 0.5 + 0.5 * Math.sin(b), kL = 0.5 + 0.5 * Math.sin(b + Math.PI), hop = Math.abs(Math.sin(t * 5.2));
+        P.az[0] = mix(REST_Z, 1.7 + 0.5 * kR, c); P.az[1] = mix(REST_Z, 1.7 + 0.5 * kL, c);
+        P.ax[0] = (-0.35 - 0.3 * kR) * c; P.ax[1] = (-0.35 - 0.3 * kL) * c;
+        P.drop = hop * 0.09 * c; P.sq = (hop - 0.5) * 0.08 * c;
+        P.lx[0] = P.lx[1] = -0.12 * (1 - hop) * c;
+        P.hx = -0.12 * c; P.hz = Math.sin(t * 2.6) * 0.09 * c;
+        pr.mesh.rotation.z = Math.sin(t * 16) * 0.3; pl.mesh.rotation.z = -Math.sin(t * 16 + 1) * 0.3;
+        return true;
+      }
+      case 'sway': {
+        const beat = t * 3.4, sw = Math.sin(beat), bob = Math.abs(Math.cos(beat));
+        P.az[0] = mix(REST_Z, 1.35 + sw * 0.55, c); P.az[1] = mix(REST_Z, 1.35 - sw * 0.55, c);
+        P.ax[0] = (-0.4 - 0.35 * Math.max(0, sw)) * c; P.ax[1] = (-0.4 - 0.35 * Math.max(0, -sw)) * c;
+        P.twist = sw * 0.3 * c; P.hz = sw * 0.16 * c; P.hy = -sw * 0.12 * c; P.hx = -0.05 * c;
+        P.drop = bob * 0.05 * c; P.sq = (bob - 0.5) * 0.06 * c;
+        P.lx[0] = sw * 0.22 * c; P.lx[1] = -sw * 0.22 * c;
+        return true;
+      }
+      case 'ponder': {
+        const th = prop('thought');
+        show(th, 'M');
+        const s = Math.sin(t * 1.3);
+        P.ax[0] = -2.0 * c; P.az[0] = mix(REST_Z, -0.75, c); // a finger to her chin
+        P.ax[1] = -0.9 * c; P.az[1] = mix(REST_Z, -0.55, c);
+        P.hz = (0.18 + s * 0.06) * c; P.hx = -0.14 * c; P.hy = 0.14 * s * c; P.twist = s * 0.06 * c;
+        P.lx[1] = 0.22 * Math.max(0, Math.sin(t * 2.6)) * c; // a dreamy little heel kick
+        P.drop = Math.sin(t * 2.6) * 0.01 * c;
+        const pop = sm(seg(t, 0.25, 0.6));
+        th.mesh.position.set(0.5, 1.92 + Math.sin(t * 1.6) * 0.03, 0);
+        th.mesh.scale.setScalar(Math.max(0.001, pop * (1 + 0.04 * Math.sin(t * 3))));
+        return true;
+      }
+      case 'shy': {
+        const tu = prop('tulip');
+        show(tu, 'RU');
+        const s = Math.sin(t * 1.7);
+        P.ax[0] = -1.05 * c; P.az[0] = mix(REST_Z, -0.5, c); P.ax[1] = -0.95 * c; P.az[1] = mix(REST_Z, -0.48, c); // flower held to her chest
+        P.hx = 0.2 * c; P.hz = (0.2 + s * 0.05) * c; P.hy = (0.14 + Math.sin(t * 0.8) * 0.06) * c; // peeks, then looks away
+        P.twist = s * 0.1 * c; P.lean = 0.03 * c; P.drop = s * 0.008 * c;
+        P.lx[0] = (0.08 + 0.12 * Math.max(0, Math.sin(t * 3.4))) * c; // scuffs a toe
+        tu.mesh.position.set(0.07, 0.02, 0.08); tu.mesh.rotation.z = s * 0.12;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function photoEffects(a: Act): boolean {
+    const t = a.t;
+    switch (a.kind) {
+      case 'sip': {
+        const m = cache.get('cuteMug');
+        if (m) {
+          for (let i = 0; i < wisps.length; i++) {
+            const q = (t * 0.5 + i / wisps.length) % 1, w8 = wisps[i];
+            w8.m.position.set(m.mesh.position.x + Math.sin(t * 2.2 + i * 2.1) * 0.022 * (0.4 + q), 0.15 + q * 0.24, m.mesh.position.z);
+            w8.m.scale.setScalar(0.6 + q * 1.1);
+            w8.mat.opacity = Math.sin(Math.PI * q) * 0.6 * (1 - 0.6 * sipDrink) * sm(seg(t, 0.2, 0.6));
+          }
+          if (every(SIP * 0.8, SIP)) { tipPos(m); v.y += 0.12; hearts(v, 2); }
+        }
+        return true;
+      }
+      case 'wave': if (every(0.5, WAVE)) { handPos(0); v.y += 0.1; hearts(v, 1); sparkle(v, 3, PASTEL, 0.08); } return true;
+      case 'cheer':
+        if (every(0.2, CHEER)) { overHead(v, 1.95); sparkle(v, 5, ['#ffe27a', '#ffb3cf', '#ffffff'], 0.15); }
+        if (every(0.4, CHEER * 2)) { handPos(0, a3); handPos(1, b3); v.addVectors(a3, b3).multiplyScalar(0.5); v.y += 0.25; bits(v, PASTEL, 8, 1.6); }
+        return true;
+      case 'sway':
+        if (every(0.3, DANCE)) { overHead(v, 1.8); sparkle(v, 2, ['#d9c9ff', '#ffb3cf', '#c9f2e3'], 0.35); }
+        if (every(0.9, DANCE * 3)) { overHead(v, 1.7); hearts(v, 1); }
+        return true;
+      case 'ponder': {
+        const th = cache.get('thought');
+        if (th && every(1.0, 1.8)) { th.mesh.getWorldPosition(v); sparkle(v, 3, ['#fff3a8', '#ffffff', '#ffb3cf'], 0.15); }
+        return true;
+      }
+      case 'shy': if (every(0.8, 2.2)) { overHead(v, 1.6); hearts(v, 1); } return true;
+    }
+    return false;
+  }
+
   // ---------- the poses ----------
   function pose(a: Act) {
     const t = a.t, D = a.dur;
+    if (a.photo && photoPose(a)) return;
     switch (a.kind) {
       case 'fish': {
         show(prop('rod'), 'R');
@@ -534,6 +723,7 @@ export function createPlayerActs(rig: PlayerRig): PlayerActs {
   // ---------- effects, once the pose is applied and the hands are in place ----------
   function effects(a: Act, dt: number) {
     const t = a.t, D = a.dur;
+    if (a.photo && photoEffects(a)) return;
     switch (a.kind) {
       case 'fish': fishing(a, dt); break;
       case 'catch':
@@ -684,7 +874,8 @@ export function createPlayerActs(rig: PlayerRig): PlayerActs {
     const sq = p.sq * e;
     m.scale.set(m.scale.x * (1 - sq * 0.5), m.scale.y * (1 + sq), m.scale.z * (1 - sq * 0.5));
     rig.head.rotation.x = HEAD_X + p.hx * e;
-    rig.head.rotation.z += p.hz * e;
+    // photo poses own the head tilt; gameplay acts layer theirs over the idle sway
+    rig.head.rotation.z = curAct?.photo ? mix(rig.head.rotation.z, p.hz, e) : rig.head.rotation.z + p.hz * e;
     rig.head.rotation.y = p.hy * e;
     rig.body.rotation.y = p.twist * e;
   }
