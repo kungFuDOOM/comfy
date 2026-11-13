@@ -635,6 +635,14 @@ export function createPlayerActs(rig: PlayerRig): PlayerActs {
   };
 
   function apply(p: Pose, e: number) {
+    // No act this frame: the walk / run cycle keeps the joints (an empty blend was pinning them).
+    if (e <= 0) {
+      for (let i = 0; i < 2; i++) {
+        const arm = rig.arms[i];
+        hands[i].up.rotation.set(-arm.pivot.rotation.x, -arm.pivot.rotation.y, -arm.pivot.rotation.z);
+      }
+      return;
+    }
     for (let i = 0; i < 2; i++) {
       const arm = rig.arms[i];
       arm.pivot.rotation.x = mix(arm.pivot.rotation.x, p.ax[i], e);
