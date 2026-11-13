@@ -71,6 +71,8 @@ export type Source =
   | { k: 'shift'; n: number }
   /** Exclusive to a seasonal event (events.ts): handed out by its activities while it is on, kept forever. */
   | { k: 'event'; event: string }
+  /** Styling contest prize: earn at least this ribbon tier (0-3) in a theme's contest (contest.ts). */
+  | { k: 'ribbon'; theme: string; tier: number }
   /** Sold only by the traveling merchant (merchant.ts), on her visit days. */
   | { k: 'merchant' }
   /** Reward for completing a Collection Log set (collection.ts); `set` is the set id. */
@@ -93,6 +95,8 @@ export interface ClothDef {
   trimPattern?: PatternId;
   /** Small shape-specific extras: 'bell', 'sparkle', 'collar', 'ruffle', 'bib', 'hood'… */
   deco?: string[];
+  /** Extra styling-contest tags on top of the ones derived from style, print, shape, deco and colour (clothes/tags.ts). */
+  tags?: string[];
   /** Colour-variant family: items sharing a group and slot show as colour dots on one tile. */
   group: string;
   /** Short colour label for the dot tooltip. */

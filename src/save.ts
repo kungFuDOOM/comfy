@@ -1,4 +1,4 @@
-import { defaultBonds, defaultMerchant, defaultState, emptyCollection, state, type SaveData } from './state';
+import { defaultBonds, defaultMerchant, defaultState, defaultStyle, emptyCollection, state, type SaveData } from './state';
 import { normalizeHome } from './home';
 import { TOWN_OFFSET, MAP_VERSION } from './world';
 import { migrateWardrobe } from './clothes/migrate';
@@ -36,6 +36,7 @@ export function loadGame(): boolean {
     state.merchant = sanitizeMerchant(data.merchant, defaultMerchant()); // saves from before the merchant: nobody has visited yet
     if (!state.regionSeen || typeof state.regionSeen !== 'object' || Array.isArray(state.regionSeen)) state.regionSeen = {};
     if (!Array.isArray(state.partyHats)) state.partyHats = [];
+    state.style = sanitizeStyle(data.style);
     state.home = normalizeHome(data.home); // saves from before home decorating: an empty, default-styled room
     state.pet = sanitizePet(data.pet); // saves from before pets: no pet yet; anything malformed is dropped
     state.collection = sanitizeCollection(data.collection);
@@ -45,6 +46,21 @@ export function loadGame(): boolean {
   } catch {
     return false;
   }
+}
+
+/** Styling contests came later: a missing or damaged record becomes an empty one; only valid tiers and day keys are kept. */
+function sanitizeStyle(raw: unknown): SaveData['style'] {
+  const out = defaultStyle();
+  if (!raw || typeof raw !== 'object') return out;
+  const r = raw as Partial<SaveData['style']>;
+  if (r.ribbons && typeof r.ribbons === 'object' && !Array.isArray(r.ribbons)) {
+    for (const [k, v] of Object.entries(r.ribbons)) if (typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 3) out.ribbons[k] = v;
+  }
+  if (r.hosted && typeof r.hosted === 'object' && !Array.isArray(r.hosted)) {
+    for (const [k, v] of Object.entries(r.hosted)) if (typeof v === 'string') out.hosted[k] = v;
+  }
+  if (typeof r.entries === 'number' && Number.isFinite(r.entries) && r.entries > 0) out.entries = Math.floor(r.entries);
+  return out;
 }
 
 /** Friendship came later: saves without `bonds` (or with a damaged one) get a fresh one; points are clamped to what a heart scale allows. */
