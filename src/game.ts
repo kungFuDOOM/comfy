@@ -1,6 +1,6 @@
 // Game orchestration: loop, interaction, and hooking simulation up to the Three.js renderer.
 import { cheetahDataUrl } from './art/cheetah';
-import { setMood, sfx, updateDirector } from './audio';
+import { setMood, sfx, updateDirector, type FootSurface } from './audio';
 import { currentAccessory } from './boutique';
 import { currentLook } from './wardrobe';
 import { brewing, recipeById, updateBrew } from './cafe';
@@ -21,10 +21,11 @@ import { getPetPose, hasPet, petName, petNear, petThePet, petWorldPos, resetPet,
 import { initPetUi, openAdopt, openPetPanel } from './ui/petUi';
 import { tickAwards, checkRegions } from './regions';
 import { refreshEarned } from './wardrobe';
+import { syncCollection } from './collection';
 import { sceneActive } from './render/stage';
 import { sharedWorld3D, type World3D } from './render/world3d';
 import { saveGame } from './save';
-import { activeEventSpots, eventSpotAtTile, tickEvents, type EventSpot } from './events';
+import { activeEventSpots, eventSpotAtTile, tickEvents, visualSeason, type EventSpot } from './events';
 import './events/index';
 import { state } from './state';
 import { getClock } from './time';
@@ -127,6 +128,15 @@ function currentTarget(): Target {
 function interact() {
   if (isPanelOpen()) return;
   currentTarget()?.run();
+}
+
+/**
+ * World handler for B / the on-screen run button. Menus and cutscenes never get here
+ * (dispatch closes them first). While a tap-walk is active that same hold is run, so it must not drop the path.
+ */
+function cancelAction() {
+  if (player.path.length) return;
+  cancelPath();
 }
 
 function handleClick(sx: number, sy: number) {
@@ -291,13 +301,15 @@ function footsteps(run: boolean) {
   // One step, in px, in step with the walk/run stride on the character (actors.ts). Run steps are longer.
   if (stepDist < (run ? 18 : 12)) return;
   stepDist = 0; stepAlt = !stepAlt;
-  const t = tileOf(), ter = terrainAt(t.x, t.y);
-  sfx.step(ter === T.Sand ? 'sand' : ter === T.Path || ter === T.Plaza || ter === T.Bridge ? 'path' : 'grass', stepAlt, run);
+  sfx.step(surfaceUnder(), stepAlt, run);
 }
 
-function surfaceUnder(): 'sand' | 'path' | 'grass' {
+function surfaceUnder(): FootSurface {
   const t = tileOf(), ter = terrainAt(t.x, t.y);
-  return ter === T.Sand ? 'sand' : ter === T.Path || ter === T.Plaza || ter === T.Bridge ? 'path' : 'grass';
+  if (ter === T.Sand) return 'sand';
+  if (ter === T.Bridge) return 'wood';
+  if (ter === T.Path || ter === T.Plaza) return 'path';
+  return visualSeason(getClock().season).id === 'snowfluff' ? 'snow' : 'grass';
 }
 
 /** Write the player's position and the save now. */
@@ -332,6 +344,7 @@ export function startGame() {
   if (!state.spawns.length) for (let i = 0; i < 10; i++) spawnOne(player.x, player.y);
   lastX = player.x; lastY = player.y; stepDist = 0;
   setMood('town');
+  syncCollection(false); // Collection Log: backfill from what the player already owns (old saves), quietly
   refreshEarned(false); // pieces earned before this update, and any party hat already deserved (queued for the ceremony)
   checkRegions();
   syncFriendship(); // letters for hearts earned before the mailbox existed
@@ -355,7 +368,7 @@ export function startGame() {
   window.addEventListener('resize', () => world3d.resize());
   buildHud({ mail: () => !isPanelOpen() && openMailbox(), skills: () => !isPanelOpen() && openJournal('skills'), journal: (tab) => !isPanelOpen() && openJournal(tab), bag: () => !isPanelOpen() && openBag(), help: () => !isPanelOpen() && openHelp(), map: () => !isPanelOpen() && openMap() });
   initInput(canvas, {
-    interact, tool: useTool, cancel: cancelPath, pause: openPause,
+    interact, tool: useTool, cancel: cancelAction, pause: openPause,
     bag: openBag, journal: openJournal, help: openHelp, map: openMap,
     hotbarStep: (d) => selectSlot(state.sel + d), hotbarSet: selectSlot,
     click: handleClick, camReset: () => world3d.resetCamera(),

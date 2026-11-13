@@ -33,7 +33,7 @@ export function buildHud(actions: { mail(): void; skills(): void; journal(tab: s
     (() => { const b = h('button', 'chip lantern', lanternCanvas, lanternEl); b.title = 'Afterglow Lanterns (L)'; b.onclick = () => actions.journal('lanterns'); return b; })(),
   );
   const quick = h('div', 'hud-quick',
-    ...([['✿ Journal', () => actions.journal('quests'), 'journal'], ['✧ Skills', actions.skills, 'skills'], ['❖ Bag', actions.bag, 'bag'], ['🗺 Map', actions.map, 'map'], ['? Help', actions.help, 'help']] as [string, () => void, PromptKey][])
+    ...([['✿ Journal', () => actions.journal('quests'), 'journal'], ['✧ Skills', actions.skills, 'skills'], ['❀ Log', () => actions.journal('collection'), 'collection'], ['❖ Bag', actions.bag, 'bag'], ['🗺 Map', actions.map, 'map'], ['? Help', actions.help, 'help']] as [string, () => void, PromptKey][])
       .map(([t, f, k]) => { const b = h('button', 'btn small', t, glyphEl(k)); b.onclick = f; return b; }),
   );
   hotbarEl = h('div', 'hotbar');

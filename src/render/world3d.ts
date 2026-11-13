@@ -7,6 +7,7 @@ import { bus } from '../bus';
 import { VILLAGERS } from '../data';
 import { npcs, type Npc } from '../npc';
 import type { Season } from '../time';
+import type { FootSurface } from '../audio';
 import { MAP_H, MAP_W, TS } from '../world';
 import { createPlayerMesh, createVillagerMesh, type ActorMesh } from './actors';
 import { createPetMesh } from './petMesh';
@@ -17,7 +18,7 @@ import { createEventLayer } from './eventLayer';
 import { createLightRig } from './lighting';
 import { PALETTE } from './materials';
 import { createBeach } from './beach';
-import { celebrate, confettiAt, heartsPopAt, petHeartsAt, poofAt, Shape, welcomeAt, welcomeTrickle } from './celebrate';
+import { celebrate, confettiAt, heartsPopAt, petHeartsAt, poofAt, Shape, twinkleAt, welcomeAt, welcomeTrickle } from './celebrate';
 import { birthdayFriends, unreadLetters } from '../friends';
 import { createNature } from './nature';
 import { createParticles } from './particles';
@@ -31,7 +32,7 @@ export interface FrameInput {
   dt: number;
   hour: number;
   season: Season;
-  player: { x: number; y: number; facing: Facing; moving: boolean; running?: boolean; surface?: 'sand' | 'path' | 'grass' };
+  player: { x: number; y: number; facing: Facing; moving: boolean; running?: boolean; surface?: FootSurface };
   /** What the player is wearing (or trying on). */
   look: Look;
   /** Worn accessory item id (see boutique.currentAccessory). Omitted = none. */
@@ -146,6 +147,12 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   bus.on('partyHat', () => {
     const p = player.root.position;
     confettiAt(new THREE.Vector3(p.x, p.y + 0.8, p.z));
+  });
+
+  // A Collection Log set was completed: confetti and twinkles over the player.
+  bus.on('setComplete', () => {
+    const p = player.root.position, at = new THREE.Vector3(p.x, p.y + 0.8, p.z);
+    confettiAt(at); twinkleAt(at);
   });
 
   const player = createPlayerMesh();
