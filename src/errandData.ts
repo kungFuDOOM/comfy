@@ -69,7 +69,8 @@ export const DELIVER_KINDS: DeliverKind[] = [
 export const WEEKLY_GIFTS = ['cottonbloom', 'glowberry', 'button'];
 
 /** Turn whatever was in a save into a valid ErrandsSave. Never throws. */
-export function sanitizeErrands(raw: unknown, validItem: (id: string) => boolean): ErrandsSave {
+export function sanitizeErrands(raw: unknown, valid: { item: (id: string) => boolean; skill: (id: string) => boolean; giver: (id: string) => boolean }): ErrandsSave {
+  const validItem = valid.item;
   const base = defaultErrands();
   if (!raw || typeof raw !== 'object') return base;
   const r = raw as Record<string, unknown>;
@@ -82,10 +83,10 @@ export function sanitizeErrands(raw: unknown, validItem: (id: string) => boolean
       const scope = e.scope === 'weekly' ? 'weekly' : e.scope === 'daily' ? 'daily' : null;
       const id = str(e.id), giver = str(e.giver);
       const stat = str(e.stat) || undefined, item = str(e.item) || undefined;
-      if (!scope || !id || !giver || (!stat && !item) || (item && !validItem(item)) || !num(e.n)) continue;
+      if (!scope || !id || !giver || !valid.giver(giver) || (!stat && !item) || (item && !validItem(item)) || !num(e.n)) continue;
       const gift = str(e.gift);
       list.push({
-        id, scope, giver, skill: str(e.skill) || 'foraging', stat: item ? undefined : stat, item, n: Math.max(1, num(e.n, 999)), base: num(e.base, 1e9),
+        id, scope, giver, skill: valid.skill(str(e.skill)) ? str(e.skill) : 'foraging', stat: item ? undefined : stat, item, n: Math.max(1, num(e.n, 999)), base: num(e.base, 1e9),
         text: str(e.text).slice(0, 160), pips: num(e.pips, 5000), hearts: num(e.hearts, 200), xp: num(e.xp, 5000),
         gift: gift && validItem(gift) ? gift : undefined, done: !!e.done, notified: !!e.notified,
       });
