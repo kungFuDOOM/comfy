@@ -18,12 +18,14 @@ let graph: AudioGraph | null = null;
 let master: GainNode | null = null;
 let musicBus: GainNode | null = null;
 let sfxBus: GainNode | null = null;
+let musicWarm: BiquadFilterNode | null = null;
+let warmth = 0;
 let hiddenMute = false;
 const readyFns: ((g: AudioGraph) => void)[] = [];
 
 /** Music sits under the SFX in the mix; these are the 100% slider levels. */
 const MUSIC_MAX = 0.3;
-const SFX_MAX = 0.9;
+const SFX_MAX = 0.8;
 
 export const getGraph = () => graph;
 export const audioReady = () => graph !== null && graph.ctx.state === 'running';
@@ -58,11 +60,16 @@ function build(): AudioGraph | null {
   musicBus = ctx.createGain();
   sfxBus = ctx.createGain();
   musicBus.connect(master);
-  sfxBus.connect(master);
+  // a gentle low-pass keeps every blip and chime soft, never shrill
+  const sfxSoft = ctx.createBiquadFilter();
+  sfxSoft.type = 'lowpass'; sfxSoft.frequency.value = 7500; sfxSoft.Q.value = 0.5;
+  sfxBus.connect(sfxSoft).connect(master);
   applyVolumes(true);
 
   // a small cozy room for the music, with a gentle shelf so the band sits behind brighter SFX
   const musicIn = ctx.createGain();
+  musicWarm = ctx.createBiquadFilter();
+  musicWarm.type = 'lowpass'; musicWarm.frequency.value = 18000; musicWarm.Q.value = 0.4;
   const warm = ctx.createBiquadFilter();
   warm.type = 'highshelf';
   warm.frequency.value = 2800;
@@ -71,16 +78,31 @@ function build(): AudioGraph | null {
   wet.gain.value = 0.14;
   const verb = ctx.createConvolver();
   verb.buffer = makeImpulse(ctx, 1.3, 3.6);
-  musicIn.connect(warm).connect(musicBus);
+  musicIn.connect(musicWarm).connect(warm).connect(musicBus);
   musicIn.connect(verb).connect(wet).connect(musicBus);
 
   const noise = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
   const nd = noise.getChannelData(0);
   for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
 
+  musicWarm.frequency.value = 18000 * Math.pow(2800 / 18000, warmth);
   graph = { ctx, musicIn, sfxIn: sfxBus, noise };
   readyFns.splice(0).forEach((f) => f(graph!));
   return graph;
+}
+
+/**
+ * Evening/night colour for the music: 0 = bright day, 1 = deep night. Closes a low-pass so the same band sounds
+ * rounder and sleepier. Safe to call before audio exists (applied when the graph is built).
+ */
+export function setMusicWarmth(w: number) {
+  const next = Math.max(0, Math.min(1, w));
+  const changed = Math.abs(next - warmth) > 0.005;
+  warmth = next;
+  if (!musicWarm || !changed) return;
+  const t = musicWarm.context.currentTime;
+  musicWarm.frequency.cancelScheduledValues(t);
+  musicWarm.frequency.setTargetAtTime(18000 * Math.pow(2800 / 18000, warmth), t, 2.5);
 }
 
 function applyVolumes(instant = false) {

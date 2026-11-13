@@ -31,6 +31,12 @@ function pickKind(): string | null {
     // rainy-day finds: they only come out in the rain (and while the rainbow is up)
     ['frog', isRainyTime() ? 3 : 0],
     ['snail', isRainyTime() ? 3 : 0],
+    // gems and ore: glints on the shore and the hillside
+    ['sea_glass', 0.8],
+    ['candy_copper', 0.9],
+    ['rose_quartz', 0.35],
+    ['twinkle_geode', night ? 0.7 : 0],
+    ['frost_opal', 0.3 * (s === 'snowfluff' ? 4 : 1)],
   ];
   // seasonal finds join the pool while their event is on
   for (const e of getActiveEvents()) for (const id of EVENT_COLLECTIBLES[e.id] ?? []) if (eventItemOpen(id)) w.push([id, ITEMS[id].findWeight ?? 3]);
@@ -50,6 +56,8 @@ function tileFits(kind: string, x: number, y: number): boolean {
     case 'button': return t === T.Hill;
     case 'frog': return t === T.Grass || t === T.Lawn || t === T.Sand;
     case 'snail': return t === T.Grass || t === T.Hill || t === T.Lawn;
+    case 'button': case 'candy_copper': case 'rose_quartz': case 'twinkle_geode': case 'frost_opal': return t === T.Hill;
+    case 'sea_glass': return t === T.Sand;
     case 'pumpkin': case 'apple': return t === T.Grass || (kind === 'pumpkin' && t === T.Lawn);
     // dry, walkable ground only: never water, the bridge, soil beds or anything solid (checked above)
     case 'ornament': return t === T.Grass || t === T.Lawn || t === T.Path || t === T.Plaza || t === T.Hill || t === T.Sand;
@@ -99,7 +107,7 @@ export function updateCollect(dt: number, px: number, py: number) {
     // night moths fade away in daylight
     const c = getClock();
     if (c.phase !== 'evening' && c.phase !== 'night') {
-      const i = state.spawns.findIndex((s) => s.item === 'moth');
+      const i = state.spawns.findIndex((s) => s.item === 'moth' || s.item === 'twinkle_geode');
       if (i >= 0) state.spawns.splice(i, 1);
     }
     // frogs and snails hop / slide away once the weather clears
@@ -115,7 +123,7 @@ export function updateCollect(dt: number, px: number, py: number) {
       addItem(s.item);
       state.found[s.item] = (state.found[s.item] ?? 0) + 1;
       const first = state.found[s.item] === 1;
-      toast(first ? `New find! ${ITEMS[s.item].name} added to your collection ✿` : `Found a ${ITEMS[s.item].name}`);
+      toast(first ? `New find! ${ITEMS[s.item].name} ✿` : `Found a ${ITEMS[s.item].name}`);
       sfx.pickup();
       playFx('pickup', s.x, s.y);
       bump('collected');

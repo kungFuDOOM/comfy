@@ -12,12 +12,13 @@ import { h } from './dom';
 import { drawWeatherIcon } from '../art/weatherIcon';
 import { getWeather, view, weatherBlurb, weatherLabel } from '../weather';
 import { buildEventBanner, refreshEventBanner } from './eventsUi';
+import { buildMerchantChip, refreshMerchantChip } from './merchantUi';
 
 let mailEl: HTMLButtonElement, mailCount: HTMLElement;
 let weatherCanvas: HTMLCanvasElement, rainbowEl: HTMLElement, weatherKey = '';
 let clockEl: HTMLElement, seasonEl: HTMLElement, coinEl: HTMLElement, lanternEl: HTMLElement, hotbarEl: HTMLElement, hintEl: HTMLElement, lanternCanvas: HTMLCanvasElement;
 
-export function buildHud(actions: { mail(): void; skills(): void; journal(tab: string): void; bag(): void; help(): void; map(): void }) {
+export function buildHud(actions: { mail(): void; skills(): void; journal(tab: string): void; bag(): void; help(): void; map(): void; photo(): void }) {
   const ui = document.getElementById('ui')!;
   clockEl = h('div', 'clock');
   seasonEl = h('div', 'season');
@@ -38,8 +39,9 @@ export function buildHud(actions: { mail(): void; skills(): void; journal(tab: s
     mailEl,
     (() => { const b = h('button', 'chip lantern', lanternCanvas, lanternEl); b.title = 'Afterglow Lanterns (L)'; b.onclick = () => actions.journal('lanterns'); return b; })(),
   );
+  buildMerchantChip(top);
   const quick = h('div', 'hud-quick',
-    ...([['✿ Journal', () => actions.journal('quests'), 'journal'], ['✧ Skills', actions.skills, 'skills'], ['❖ Bag', actions.bag, 'bag'], ['🗺 Map', actions.map, 'map'], ['? Help', actions.help, 'help']] as [string, () => void, PromptKey][])
+    ...([['✿ Journal', () => actions.journal('quests'), 'journal'], ['✧ Skills', actions.skills, 'skills'], ['❀ Log', () => actions.journal('collection'), 'collection'], ['❖ Bag', actions.bag, 'bag'], ['🗺 Map', actions.map, 'map'], ['📷 Photo', actions.photo, 'photo'], ['? Help', actions.help, 'help']] as [string, () => void, PromptKey][])
       .map(([t, f, k]) => { const b = h('button', 'btn small', t, glyphEl(k)); b.onclick = f; return b; }),
   );
   hotbarEl = h('div', 'hotbar');
@@ -71,6 +73,7 @@ export function tickHud() {
   }
   rainbowEl.style.opacity = (view.rainbow * 0.6).toFixed(2);
   refreshEventBanner();
+  refreshMerchantChip();
   const g = lanternCanvas.getContext('2d')!;
   g.clearRect(0, 0, 56, 56);
   g.save(); g.scale(1.6, 1.6); drawLantern(g, 'gift', 17.5, 17.5, 0.9, performance.now() / 1000, 0.7); g.restore();
