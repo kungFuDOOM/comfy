@@ -611,7 +611,7 @@ export const HELP: { mode: 'keyboard' | 'gamepad' | 'touch'; title: string; rows
     ['WASD / Arrows', 'Walk, smoothly and relative to the camera'], ['Shift', 'Hold to run'],
     ['E / Space', 'Talk, shop, and use what you are facing'], ['F', 'Use the selected hotbar item on the tile in front'],
     ['Click', 'Walk there, or interact with what you click'], ['1–9 / Q R / Wheel', 'Choose a hotbar slot'],
-    ['B', 'Bag & wardrobe'], ['J', 'Journal'], ['K', 'Skills'], ['L', 'Lantern grove'], ['H', 'This help'], ['Esc', 'Pause menu (settings, back to title) · closes a window'],
+    ['B', 'Bag & wardrobe'], ['J', 'Journal'], ['K', 'Skills'], ['L', 'Lantern grove'], ['P', 'Photo mode'], ['H', 'This help'], ['Esc', 'Pause menu (settings, back to title) · closes a window'],
     ['[ ]  ·  - =', 'Orbit camera  ·  zoom (Backspace resets)'],
   ] },
   { mode: 'gamepad', title: 'Controller', rows: [
@@ -625,7 +625,7 @@ export const HELP: { mode: 'keyboard' | 'gamepad' | 'touch'; title: string; rows
     ['Drag the left side', 'A joystick appears under your thumb — tilt sets the pace, and a full drag is a normal walk'],
     ['A', 'Talk, shop, interact'], ['B', 'Hold to run · cancel'], ['X', 'Use the selected hotbar item on the tile in front'],
     ['Y', 'Bag & wardrobe'], ['Hotbar', 'Tap a slot to switch tools'], ['Tap the island', 'Walk there, or talk to who you tap'],
-    ['Top buttons', 'Journal, skills, bag and this help'], ['Journal › Pause', 'Resume, settings, or back to the title'],
+    ['Top buttons', 'Journal, skills, bag, map, photo and this help'], ['Journal › Pause', 'Resume, settings, or back to the title'],
   ] },
 ];
 

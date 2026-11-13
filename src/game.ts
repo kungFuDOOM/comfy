@@ -31,6 +31,8 @@ import { getClock } from './time';
 import { isPanelOpen } from './ui/dom';
 import { buildHud, setHint, tickHud } from './ui/hud';
 import { openMap } from './ui/mapPanel';
+import { photoAct, photo, tickPhoto } from './photo';
+import { openPhotoMode } from './ui/photoUi';
 import { openMailbox } from './ui/friendsUi';
 import { syncFriendship, tickFriends } from './friends';
 import { openBag, openBoutique, openCafe, openChest, openCrafting, openDialogue, openHelp, openJournal, openMarket } from './ui/panels';
@@ -211,6 +213,7 @@ function nearStation(id: string, reach = 72) {
 
 /** What the player is busy doing, for the renderer: a started act, else a running cast or a brew at the bench. */
 function currentAct(): Act | null {
+  if (photo.active) return photoAct(); // photo mode poses her itself
   const a = activeAct();
   if (a) { endDerived(); return a; }
   if (casting.id) {
@@ -257,6 +260,7 @@ function update(dt: number) {
   if (intent) { cancelAct(); if (casting.id) cancelCast('You reeled your line back in.'); }
   if (activeAct()?.hold && !panel) cancelAct(); // a held act (the bake games) ends with its window
   tickAct(dt);
+  tickPhoto(dt);
   if (markerOn && !player.path.length) { world3d.marker(null); markerOn = false; }
   footsteps(player.running);
   updateDirector(dt);
@@ -309,10 +313,21 @@ function render(t: number, dt: number) {
   const clock = getClock();
   // the fitting room keeps a soft, bright midday light so outfits read true at any hour
   const dress = dressing.active;
+  const shot = photo.active; // photo mode: she stands still and the villagers' "!" markers stay out of the picture
   world3d.render({
     t, dt, hour: dress ? 12.5 : clock.hour, season: clock.season,
-    player: dress ? { x: player.x, y: player.y, facing: 'down', moving: false, running: false, surface: 'grass' } : { ...player, running: player.running, surface: surfaceUnder() }, look: currentLook(), accessory: currentAccessory(), act: dress ? null : currentAct(), pet: dress ? null : getPetPose(), npcs: presentNpcs(), talkedToday,
+    player: dress ? { x: player.x, y: player.y, facing: 'down', moving: false, running: false, surface: 'grass' } : { ...player, moving: shot ? false : player.moving, running: shot ? false : player.running, surface: surfaceUnder() }, look: currentLook(), accessory: currentAccessory(), act: dress ? null : currentAct(), pet: dress ? null : getPetPose(), npcs: presentNpcs(), talkedToday: shot ? () => true : talkedToday,
+    photo: shot ? { expression: photo.expr, turn: photo.turn } : undefined,
   });
+}
+
+/** Photo mode (P / the HUD camera button): hide the HUD, free the camera, pose her and take pictures. */
+function openPhoto() {
+  if (isPanelOpen() || photo.active || dressing.active || sceneActive()) return;
+  cancelPath(); cancelAct();
+  if (casting.id) cancelCast('You reeled your line back in.');
+  if (markerOn) { world3d.marker(null); markerOn = false; }
+  openPhotoMode(world3d, canvas, () => { persist(); });
 }
 
 let booted = false;
@@ -351,12 +366,12 @@ export function startGame() {
   world3d = sharedWorld3D(canvas);
   world3d.resize();
   window.addEventListener('resize', () => world3d.resize());
-  buildHud({ mail: () => !isPanelOpen() && openMailbox(), skills: () => !isPanelOpen() && openJournal('skills'), journal: (tab) => !isPanelOpen() && openJournal(tab), bag: () => !isPanelOpen() && openBag(), help: () => !isPanelOpen() && openHelp(), map: () => !isPanelOpen() && openMap() });
+  buildHud({ mail: () => !isPanelOpen() && openMailbox(), skills: () => !isPanelOpen() && openJournal('skills'), journal: (tab) => !isPanelOpen() && openJournal(tab), bag: () => !isPanelOpen() && openBag(), help: () => !isPanelOpen() && openHelp(), map: () => !isPanelOpen() && openMap(), photo: openPhoto });
   initInput(canvas, {
     interact, tool: useTool, cancel: cancelPath, pause: openPause,
     bag: openBag, journal: openJournal, help: openHelp, map: openMap,
     hotbarStep: (d) => selectSlot(state.sel + d), hotbarSet: selectSlot,
-    click: handleClick, camReset: () => world3d.resetCamera(),
+    click: handleClick, camReset: () => world3d.resetCamera(), photo: openPhoto,
   });
   window.addEventListener('beforeunload', persist);
   document.addEventListener('visibilitychange', () => { if (document.hidden) persist(); });
