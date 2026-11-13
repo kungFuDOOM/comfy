@@ -56,13 +56,15 @@ export function drawItem(ctx: CanvasRenderingContext2D, id: string) {
       ellipse(ctx, 16, 19, 5, 3.4, 'rgba(255,255,255,0.55)');
       break;
     }
-    case 'pink_latte': case 'honey_cap': case 'spot_mocha': {
-      const top = id === 'pink_latte' ? '#ffb3cf' : id === 'honey_cap' ? '#ffd78a' : '#9a6a52';
+    case 'pink_latte': case 'honey_cap': case 'spot_mocha': case 'cozy_cocoa': case 'cloud_foam': case 'ribbon_special': {
+      const top = id === 'pink_latte' ? '#ffb3cf' : id === 'honey_cap' ? '#ffd78a' : id === 'cozy_cocoa' ? '#c98a8a' : id === 'cloud_foam' ? '#fffaf4' : id === 'ribbon_special' ? '#ffe3ec' : '#9a6a52';
       ctx.strokeStyle = '#ffb3cf'; ctx.lineWidth = 2.6; ctx.beginPath(); ctx.arc(25, 18, 4, -1.4, 1.6); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(6, 12); ctx.lineTo(25, 12); ctx.quadraticCurveTo(24, 27, 15.5, 27); ctx.quadraticCurveTo(7, 27, 6, 12); ctx.fillStyle = '#fff'; ctx.fill();
       ctx.strokeStyle = '#ffb3cf'; ctx.lineWidth = 1.4; ctx.stroke();
       ellipse(ctx, 15.5, 12, 9.5, 3, top);
       if (id === 'pink_latte') heart(ctx, 15.5, 12, 1.8, '#fff');
+      if (id === 'ribbon_special') heart(ctx, 15.5, 12, 2.2, '#ff8fb6');
+      if (id === 'cozy_cocoa') circle(ctx, 15.5, 11, 2, '#fff');
       if (id === 'spot_mocha') { ctx.save(); rr(ctx, 7, 16, 17, 6, 2); ctx.clip(); ctx.fillStyle = cheetahPattern(ctx, 'classic', 0.3); ctx.fillRect(7, 16, 17, 6); ctx.restore(); }
       ctx.strokeStyle = 'rgba(200,150,170,0.7)'; ctx.lineWidth = 1.4;
       for (const dx of [-3, 3]) { ctx.beginPath(); ctx.moveTo(15.5 + dx, 8); ctx.bezierCurveTo(13 + dx, 6, 18 + dx, 4, 15.5 + dx, 2); ctx.stroke(); }
@@ -284,6 +286,24 @@ export function drawItem(ctx: CanvasRenderingContext2D, id: string) {
       ctx.lineWidth = 5; ctx.strokeStyle = '#ff8fb6'; ctx.setLineDash([3, 4.6]); ctx.beginPath(); ctx.moveTo(16, 26); ctx.lineTo(16, 13); ctx.quadraticCurveTo(16, 8.4, 20.4, 8.4); ctx.quadraticCurveTo(24, 8.4, 24, 12); ctx.stroke(); ctx.setLineDash([]);
       heart(ctx, 16, 24, 2.6, '#ff6f94');
       break;
+    case 'jam_croissant': {
+      // a flaky crescent with a heart of berry jam
+      ctx.fillStyle = '#f3c07a'; ctx.strokeStyle = '#d9954f'; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(4, 22); ctx.quadraticCurveTo(5, 8, 16, 7); ctx.quadraticCurveTo(27, 8, 28, 22); ctx.quadraticCurveTo(24, 18, 22, 22); ctx.quadraticCurveTo(19, 16, 16, 22); ctx.quadraticCurveTo(13, 16, 10, 22); ctx.quadraticCurveTo(8, 18, 4, 22); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = '#e0a45c'; ctx.lineWidth = 1.1;
+      for (const x of [10, 16, 22]) { ctx.beginPath(); ctx.moveTo(x, 10); ctx.lineTo(x, 19); ctx.stroke(); }
+      heart(ctx, 16, 15, 3.2, '#ff6f9c');
+      break;
+    }
+    case 'wiggle_cake': {
+      // a two-tier wobbly cake with pink frosting, sprinkles and a cherry
+      rr(ctx, 6, 18, 20, 9, 3); ctx.fillStyle = '#fff1dc'; ctx.fill(); ctx.strokeStyle = '#e9c9a0'; ctx.lineWidth = 1.2; ctx.stroke();
+      rr(ctx, 9, 11, 14, 8, 3); ctx.fillStyle = '#ffd0e2'; ctx.fill(); ctx.strokeStyle = '#ff9ec0'; ctx.stroke();
+      ctx.fillStyle = '#ff9ec0'; ctx.beginPath(); ctx.moveTo(6, 19); for (let x = 6; x <= 26; x += 5) ctx.quadraticCurveTo(x + 2.5, 25, x + 5, 19); ctx.lineTo(26, 18); ctx.lineTo(6, 18); ctx.fill();
+      for (const [x, y, c] of [[12, 14, '#ffffff'], [16, 13, '#a8f0d0'], [19.5, 15, '#fff3a8']] as [number, number, string][]) circle(ctx, x, y, 1, c);
+      circle(ctx, 16, 8.4, 2.6, '#ff5c8a'); ctx.strokeStyle = '#6fbf7e'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(16, 6); ctx.quadraticCurveTo(18, 3, 20, 4); ctx.stroke();
+      break;
+    }
     default:
       if (ITEMS[id]?.kind === 'decor') { drawDecor(ctx, id, 16, 30, 0.95); break; }
       circle(ctx, 16, 16, 8, '#ffb3cf');

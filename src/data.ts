@@ -65,6 +65,9 @@ add({ id: 'blossom_scone', name: 'Blossom Scone', kind: 'treat', sell: 48, desc:
 add({ id: 'cloud_cake', name: 'Cloud Cake', kind: 'treat', sell: 78, desc: 'So fluffy it nearly floats off the plate.' });
 // more drinks
 add({ id: 'lantern_latte', name: 'Lanternberry Latte', kind: 'drink', sell: 62, desc: 'A rosy latte that glows a touch at dusk.' });
+add({ id: 'cozy_cocoa', name: 'Pillow Cocoa', kind: 'drink', sell: 44, desc: 'Thick pink-dusted cocoa with a pillow of cream.' });
+add({ id: 'cloud_foam', name: 'Cloud-Foam Latte', kind: 'drink', sell: 52, desc: 'So much foam it hums when you hold it.' });
+add({ id: 'ribbon_special', name: 'Ribbon Art Special', kind: 'drink', sell: 74, desc: 'A latte with a tiny foam bow on top. The café signature.' });
 add({ id: 'star_brew', name: 'Starfreckle Brew', kind: 'drink', sell: 88, desc: 'Dark, sweet, and speckled like a night sky.' });
 // handmade accessories
 add({ id: 'bow_pin', name: 'Ribbon Bow Clip', kind: 'accessory', sell: 40, desc: 'A hand-tied bow on a tiny clip.' });
@@ -102,7 +105,13 @@ add({ id: 'd_tw_cocoa', name: 'Cocoa Mug Stand', kind: 'decor', event: 'twinkle'
 add({ id: 'd_tw_gifts', name: 'Ribbon Gift Stack', kind: 'decor', event: 'twinkle', desc: 'Three wrapped boxes, pink, cream and mint, with enormous bows.' });
 add({ id: 'd_tw_star', name: 'Eve Wishing Star', kind: 'decor', event: 'twinkle', desc: 'A soft golden star on a stand. It listens when you whisper.' });
 add({ id: 'd_tw_wreath', name: 'Twinkle Wreath', kind: 'decor', event: 'twinkle', desc: 'A snowy wreath with berries, bows and little lights.' });
+// recipes a best friend teaches at 10 hearts (see friendData.ts)
+add({ id: 'jam_croissant', name: 'Jammy Butter Croissant', kind: 'treat', sell: 66, desc: 'Brioche\'s own recipe: a flaky crescent with a heart of berry jam. Still steaming.' });
+add({ id: 'wiggle_cake', name: 'Wiggle Cake', kind: 'treat', sell: 84, desc: 'Tuppi\'s secret cake. It jiggles when you say its name.' });
 // decor
+// café shift rewards (see shift.ts)
+add({ id: 'd_cafe_menu', name: 'Chalk-Heart Menu Board', kind: 'decor', desc: 'A tiny easel menu. Today: hugs, foam and one (1) sprinkle.' });
+add({ id: 'd_cafe_succulent', name: 'Latte-Pot Succulent', kind: 'decor', desc: 'A plump little succulent in a pink coffee cup.' });
 add({ id: 'd_pouf', name: 'Pink Pouf', kind: 'decor', buy: 60, desc: 'A squashy seat in bubblegum pink.' });
 add({ id: 'd_rug', name: 'Cheetah Rug', kind: 'decor', buy: 120, desc: 'A flat, cheetah-print rug. Very plush.' });
 add({ id: 'd_lamp', name: 'Latte Lamp', kind: 'decor', buy: 90, desc: 'A lamp shaped like a coffee cup.' });
@@ -131,7 +140,7 @@ export const SKILLS: SkillDef[] = [
   { id: 'fishing', name: 'Fishing', icon: '🐟', blurb: 'Sitting by the shore and waiting for something cute to nibble.' },
   { id: 'gardening', name: 'Gardening', icon: '🌱', blurb: 'Tilling, watering and harvesting your little plot.' },
   { id: 'baking', name: 'Baking', icon: '🧁', blurb: 'Turning berries, flowers and honey into sweet treats.' },
-  { id: 'brewing', name: 'Brewing', icon: '☕', blurb: 'Pulling lovely drinks at the café counter.' },
+  { id: 'brewing', name: 'Barista', icon: '☕', blurb: 'Pulling lovely drinks at the café counter, and running cozy shifts.' },
   { id: 'crafting', name: 'Crafting', icon: '🎀', blurb: 'Making bows, charms and pins by hand.' },
 ];
 
@@ -151,11 +160,16 @@ export interface Recipe {
   event?: string;
   /** ...and once this chapter of it has started. */
   chapter?: string;
+  /** Only learned once you reach 10 hearts with this villager (id). */
+  friend?: string;
 }
 export const RECIPES: Recipe[] = [
   { id: 'pink_latte', needs: { beans: 1, milk: 1, syrup: 1 }, seconds: 3, bench: 'brew', skill: 'brewing', level: 1, xp: 12, stat: 'brewed' },
   { id: 'honey_cap', needs: { beans: 1, milk: 1, honey: 1 }, seconds: 3, bench: 'brew', skill: 'brewing', level: 1, xp: 12, stat: 'brewed' },
   { id: 'spot_mocha', needs: { beans: 1, milk: 1, cocoa: 1 }, seconds: 4, bench: 'brew', skill: 'brewing', level: 1, xp: 14, stat: 'brewed' },
+  { id: 'cozy_cocoa', needs: { cocoa: 1, milk: 1, honey: 1 }, seconds: 4, bench: 'brew', skill: 'brewing', level: 2, xp: 20, stat: 'brewed' },
+  { id: 'cloud_foam', needs: { beans: 1, milk: 2, syrup: 1 }, seconds: 5, bench: 'brew', skill: 'brewing', level: 4, xp: 28, stat: 'brewed' },
+  { id: 'ribbon_special', needs: { beans: 1, milk: 1, syrup: 1, cocoa: 1 }, seconds: 6, bench: 'brew', skill: 'brewing', level: 7, xp: 48, stat: 'brewed' },
   { id: 'lantern_latte', needs: { beans: 1, milk: 1, glowberry: 1 }, seconds: 5, bench: 'brew', skill: 'brewing', level: 5, xp: 34, stat: 'brewed' },
   { id: 'star_brew', needs: { rare_beans: 1, milk: 1, honey: 1, cocoa: 1 }, seconds: 6, bench: 'brew', skill: 'brewing', level: 10, xp: 70, stat: 'brewed' },
   { id: 'berry_tart', needs: { puffberry: 2, milk: 1, honey: 1 }, seconds: 5, bench: 'bake', skill: 'baking', level: 1, xp: 16, stat: 'baked' },
@@ -167,6 +181,8 @@ export const RECIPES: Recipe[] = [
   // Twinkle cookies: baked with the little timing game in events/cookieBake.ts (week 2 on)
   { id: 'gingerbread', needs: { ginger: 1, honey: 1, milk: 1 }, seconds: 0, bench: 'bake', skill: 'baking', level: 1, xp: 30, stat: 'baked', event: 'twinkle', chapter: 'wk2' },
   { id: 'peppermint_cookie', needs: { peppermint: 1, syrup: 1, milk: 1 }, seconds: 0, bench: 'bake', skill: 'baking', level: 1, xp: 30, stat: 'baked', event: 'twinkle', chapter: 'wk2' },
+  { id: 'jam_croissant', needs: { puffberry: 2, milk: 1, honey: 1, syrup: 1 }, seconds: 6, bench: 'bake', skill: 'baking', level: 1, xp: 40, stat: 'baked', friend: 'brioche' },
+  { id: 'wiggle_cake', needs: { syrup: 2, milk: 2, honey: 1, cottonbloom: 1 }, seconds: 8, bench: 'bake', skill: 'baking', level: 1, xp: 55, stat: 'baked', friend: 'tuppi' },
   { id: 'bow_pin', needs: { blossom: 2 }, seconds: 4, bench: 'craft', skill: 'crafting', level: 1, xp: 16, stat: 'crafted' },
   { id: 'shell_charm', needs: { shell: 2, blossom: 1 }, seconds: 5, bench: 'craft', skill: 'crafting', level: 4, xp: 32, stat: 'crafted' },
   { id: 'plank', needs: { twig: 2 }, seconds: 3, bench: 'craft', skill: 'crafting', level: 1, xp: 10, stat: 'crafted' },

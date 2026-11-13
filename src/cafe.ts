@@ -5,13 +5,14 @@ import { changed, toast } from './bus';
 import { chapterOpen } from './events';
 import { addItem, count, removeItem } from './inventory';
 import { bump } from './quests';
+import { metFriend, recipeFriendOk, villagerById } from './friends';
 import { grantXp, skillLevel } from './skills';
 
 export const recipeById = (id: string) => RECIPES.find((x) => x.id === id)!;
 /** Seasonal recipes only show up while their event is on. */
-export const recipeAvailable = (r: Recipe) => !r.event || chapterOpen(r.event, r.chapter);
+export const recipeAvailable = (r: Recipe) => (!r.event || chapterOpen(r.event, r.chapter)) && (!r.friend || !!(villagerById(r.friend) && metFriend(villagerById(r.friend)!)));
 export const recipesFor = (bench: Recipe['bench']) => RECIPES.filter((r) => r.bench === bench && recipeAvailable(r));
-export const isUnlocked = (r: Recipe) => skillLevel(r.skill) >= r.level && recipeAvailable(r);
+export const isUnlocked = (r: Recipe) => skillLevel(r.skill) >= r.level && recipeAvailable(r) && recipeFriendOk(r.friend);
 
 export const canBrew = (id: string) => {
   const r = recipeById(id);
