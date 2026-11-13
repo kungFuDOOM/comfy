@@ -58,7 +58,7 @@ export const isPlotTile = (x: number, y: number) => inRect(AREAS.garden, x, y);
 /** Open meadow ground: Ribbon Meadow by town, or anywhere in Sprinkle Meadow. */
 export const inMeadow = (x: number, y: number) => (inRect(AREAS.meadow, x, y) || (inMap(x, y) && region[idx(x, y)] === 3)) && terrainAt(x, y) === T.Grass;
 
-export type StationId = 'cafe' | 'boutique' | 'market' | 'grove' | 'chest' | 'wardrobe' | 'crafting' | 'mailbox' | 'petbed';
+export type StationId = 'cafe' | 'boutique' | 'market' | 'grove' | 'chest' | 'wardrobe' | 'crafting' | 'mailbox' | 'petbed' | 'board';
 export interface Station { id: StationId; x: number; y: number; w: number; label: string; prompt: string }
 export const stations: Station[] = [
   { id: 'cafe', x: 41, y: 35, w: 1, label: 'Puddle & Pip Café', prompt: 'Brew & shop the pantry' },
@@ -69,6 +69,7 @@ export const stations: Station[] = [
   { id: 'wardrobe', x: 31, y: 49, w: 1, label: 'Home Wardrobe', prompt: 'Change into something cute' },
   { id: 'petbed', x: 26, y: 49, w: 1, label: 'Pet Nook', prompt: 'A cozy basket for a little friend' },
   { id: 'chest', x: 34, y: 49, w: 1, label: 'Softkeep Chest', prompt: 'Keep your things safe' },
+  { id: 'board', x: 50, y: 36, w: 1, label: 'Bulletin Board', prompt: 'Daily & weekly errands from friends' },
   { id: 'mailbox', x: 36, y: 48, w: 1, label: 'Mailbox', prompt: 'Read your letters' },
 ];
 const nodeIdx = (n: NodeDef) => idx(n.x, n.y);

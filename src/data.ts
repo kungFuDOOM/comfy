@@ -133,7 +133,7 @@ export const EVENT_COLLECTIBLES: Record<string, string[]> = { harvest: ['pumpkin
 export const SHOP_DECOR = ['d_pouf', 'd_rug', 'd_lamp', 'd_shelf', 'd_teacup', 'd_chair'];
 
 // --- Skills ---
-export type SkillId = 'foraging' | 'fishing' | 'gardening' | 'baking' | 'brewing' | 'crafting';
+export type SkillId = 'foraging' | 'fishing' | 'gardening' | 'baking' | 'brewing' | 'crafting' | 'petcare';
 export interface SkillDef { id: SkillId; name: string; icon: string; blurb: string }
 export const SKILLS: SkillDef[] = [
   { id: 'foraging', name: 'Foraging', icon: '🍓', blurb: 'Picking berries, petals, shells and coffee beans around the island.' },
@@ -142,6 +142,7 @@ export const SKILLS: SkillDef[] = [
   { id: 'baking', name: 'Baking', icon: '🧁', blurb: 'Turning berries, flowers and honey into sweet treats.' },
   { id: 'brewing', name: 'Barista', icon: '☕', blurb: 'Pulling lovely drinks at the café counter, and running cozy shifts.' },
   { id: 'crafting', name: 'Crafting', icon: '🎀', blurb: 'Making bows, charms and pins by hand.' },
+  { id: 'petcare', name: 'Pet Care', icon: '🐾', blurb: 'Pats, playtime and snacks for your little companion. Grows a very close bond.' },
 ];
 
 // --- Recipes (café counter, café oven, Crafting Table) ---
