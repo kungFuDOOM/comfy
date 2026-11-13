@@ -1,6 +1,6 @@
 // Game orchestration: loop, interaction, and hooking simulation up to the Three.js renderer.
 import { cheetahDataUrl } from './art/cheetah';
-import { setMood, sfx, updateDirector } from './audio';
+import { setMood, sfx, updateDirector, type FootSurface } from './audio';
 import { currentAccessory } from './boutique';
 import { currentLook } from './wardrobe';
 import { brewing, recipeById, updateBrew } from './cafe';
@@ -24,7 +24,7 @@ import { refreshEarned } from './wardrobe';
 import { sceneActive } from './render/stage';
 import { sharedWorld3D, type World3D } from './render/world3d';
 import { saveGame } from './save';
-import { activeEventSpots, eventSpotAtTile, tickEvents, type EventSpot } from './events';
+import { activeEventSpots, eventSpotAtTile, tickEvents, visualSeason, type EventSpot } from './events';
 import './events/index';
 import { state } from './state';
 import { getClock } from './time';
@@ -289,13 +289,15 @@ function footsteps(run: boolean) {
   // One step, in px, in step with the walk/run stride on the character (actors.ts). Run steps are longer.
   if (stepDist < (run ? 18 : 12)) return;
   stepDist = 0; stepAlt = !stepAlt;
-  const t = tileOf(), ter = terrainAt(t.x, t.y);
-  sfx.step(ter === T.Sand ? 'sand' : ter === T.Path || ter === T.Plaza || ter === T.Bridge ? 'path' : 'grass', stepAlt, run);
+  sfx.step(surfaceUnder(), stepAlt, run);
 }
 
-function surfaceUnder(): 'sand' | 'path' | 'grass' {
+function surfaceUnder(): FootSurface {
   const t = tileOf(), ter = terrainAt(t.x, t.y);
-  return ter === T.Sand ? 'sand' : ter === T.Path || ter === T.Plaza || ter === T.Bridge ? 'path' : 'grass';
+  if (ter === T.Sand) return 'sand';
+  if (ter === T.Bridge) return 'wood';
+  if (ter === T.Path || ter === T.Plaza) return 'path';
+  return visualSeason(getClock().season).id === 'snowfluff' ? 'snow' : 'grass';
 }
 
 /** Write the player's position and the save now. */

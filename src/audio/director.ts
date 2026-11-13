@@ -3,7 +3,7 @@
 //   place = a panel we are standing "inside" ('cafe' | 'boutique'), which overrides the town music
 // In 'town' mood the track follows the real-time clock (src/time.ts phases).
 import { getClock, type Phase } from '../time';
-import { whenAudioReady, getGraph, type AudioGraph } from './engine';
+import { whenAudioReady, getGraph, setMusicWarmth, type AudioGraph } from './engine';
 import { compileTrack, TrackPlayer, type CompiledTrack } from './sequencer';
 import { TRACKS } from './tracks';
 
@@ -120,10 +120,19 @@ export function leavePlace() {
   apply(FADE.place);
 }
 
+/** How "sleepy" the music should sound at an hour: 0 by day, easing up through dusk to 1 late at night. */
+function warmthFor(h: number): number {
+  const ramp = (x: number) => { const c = Math.max(0, Math.min(1, x)); return c * c * (3 - 2 * c); };
+  if (h >= 5 && h < 17) return h < 7 ? 0.25 * (1 - ramp((h - 5) / 2)) : 0;
+  if (h < 5) return 1;
+  return h < 22 ? ramp((h - 17) / 5) : 1;
+}
+
 /** Cheap per-frame hook: re-checks the clock about once a second so day -> evening -> night crossfade on their own. */
 export function updateDirector(dt: number) {
   clockT += dt;
   if (clockT < 1) return;
   clockT = 0;
+  setMusicWarmth(warmthFor(hourNow()));
   if (mood === 'town' && !place) apply(FADE.town);
 }
