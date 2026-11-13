@@ -1,6 +1,7 @@
 // The single mutable game state. Everything in here is persisted.
 import { START_WORN, startClothes } from './clothes/start';
 import type { Slot } from './clothes/types';
+import type { PetSave } from './petData';
 export type LanternKind = 'serve' | 'gift' | 'decor' | 'collect' | 'outfit' | 'garden';
 
 export interface PlacedDecor { id: string; x: number; y: number }
@@ -13,7 +14,13 @@ export interface Daily {
   gifted: string[];
   served: string[];
   lanternKinds: Record<string, number>;
+  /** Café shifts worked today (see shift.ts). */
+  shifts: number;
 }
+
+/** Lifetime café shift progress. */
+export interface CafeProgress { shifts: number; tips: number; customers: number; perfectCups: number }
+export const defaultCafe = (): CafeProgress => ({ shifts: 0, tips: 0, customers: 0, perfectCups: 0 });
 
 /** Per-event progress (see events.ts). Created on demand, so saves from before events existed need no migration. */
 export interface EventProgress {
@@ -100,8 +107,12 @@ export interface SaveData {
   unlocked: Record<string, boolean>;
   /** Seasonal event progress by event id. */
   events: Record<string, EventProgress>;
+  /** The adopted pet companion (kind, name, coat, owned/worn pet accessories). null = not adopted yet. */
+  pet: PetSave | null;
   /** Map layout version the saved positions belong to (1 = the original small island). */
   mapV: number;
+  /** Café shift totals; older saves get zeros. */
+  cafe: CafeProgress;
 }
 
 export function defaultState(): SaveData {
@@ -123,7 +134,7 @@ export function defaultState(): SaveData {
     plots: {},
     friend: {},
     bonds: defaultBonds(),
-    daily: { date: '', talked: [], gifted: [], served: [], lanternKinds: {} },
+    daily: { date: '', talked: [], gifted: [], served: [], lanternKinds: {}, shifts: 0 },
     lanterns: [],
     lanternSeq: 1,
     setsDone: [],
@@ -139,7 +150,9 @@ export function defaultState(): SaveData {
     questLog: {},
     unlocked: {},
     events: {},
+    pet: null,
     mapV: 2,
+    cafe: defaultCafe(),
   };
 }
 
@@ -152,6 +165,6 @@ import { getClock } from './time';
 /** Rolls the per-day counters over when the (real) date changes. */
 export function ensureDaily(): Daily {
   const day = getClock().dayKey;
-  if (state.daily.date !== day) state.daily = { date: day, talked: [], gifted: [], served: [], lanternKinds: {} };
+  if (state.daily.date !== day) state.daily = { date: day, talked: [], gifted: [], served: [], lanternKinds: {}, shifts: 0 };
   return state.daily;
 }

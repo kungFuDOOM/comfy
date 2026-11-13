@@ -31,7 +31,10 @@ import { getClock } from '../time';
 import { glyphEl } from '../input/prompts';
 import { btn, h, openPanel, type PanelApi } from './dom';
 import { renderEventsTab } from './eventsUi';
+import { clearPetTrial, renderPetBody } from './petUi';
 import { eventItemOpen, getActiveEvents } from '../events';
+import { openShift } from './shiftUi';
+import { SHIFTS_PER_DAY, orderable, shiftsLeft } from '../shift';
 import { openCookieBake } from '../events/cookieBake';
 import { canBakePie, openPieBake } from '../events/pieBake';
 import { openPause } from './menuPanels';
@@ -163,13 +166,14 @@ function recipeList(body: HTMLElement, api: PanelApi, bench: Bench) {
   }
 }
 
-export function openCafe() {
-  let tab: 'brew' | 'bake' | 'pantry' = 'brew';
+export function openCafe(start: 'brew' | 'bake' | 'shifts' | 'pantry' = 'brew') {
+  let tab = start;
   enterPlace('cafe');
   openPanel('Puddle & Pip Café', (body, api) => {
     const t = (id: typeof tab, label: string) => tabBtn(label, tab === id, () => { tab = id; api.rerender(); });
-    body.append(h('div', 'tabs', t('brew', 'Brew'), t('bake', 'Bake'), t('pantry', 'Pantry')));
+    body.append(h('div', 'tabs', t('brew', 'Brew'), t('bake', 'Bake'), t('shifts', 'Shifts'), t('pantry', 'Pantry')));
     if (tab === 'brew' || tab === 'bake') recipeList(body, api, tab);
+    else if (tab === 'shifts') shiftsTab(body);
     else {
       body.append(h('div', 'muted', 'Fresh ingredients for the counter.'));
       for (const id of SHOP_INGREDIENTS) body.append(shopRow(id, ITEMS[id].buy!, () => buyItem(id, api)));
@@ -179,6 +183,18 @@ export function openCafe() {
       }
     }
   }, () => leavePlace());
+}
+
+/** Shifts tab: how a shift works, today's shifts left, and the big Start button. */
+function shiftsTab(body: HTMLElement) {
+  const left = shiftsLeft(), menu = orderable();
+  body.append(
+    h('div', 'muted', 'Tie on an apron and run the counter! A few friends drop in, one at a time. Make each order with a little timing game: a prettier cup means bigger tips, more hearts and more Barista XP.'),
+    h('div', 'card', h('b', '', `Shifts today: ${left} of ${SHIFTS_PER_DAY} left`),
+      h('div', 'muted', `The pantry stocks everything for shifts, so your bag stays untouched. Shifts worked so far: ${state.cafe.shifts}.`),
+      h('div', 'muted small', `On the menu: ${menu.map((r) => ITEMS[r.id].name).join(', ') || 'nothing yet'}. More drinks unlock as your Barista level grows.`)),
+    btn(left <= 0 ? 'All done for today ☾' : menu.length ? 'Start a shift ☕' : 'Unlock a drink first ☕', () => openShift(() => openCafe('shifts')), 'shift-go', left <= 0 || !menu.length),
+  );
 }
 
 function buyItem(id: string, api: PanelApi) {
@@ -357,21 +373,24 @@ export function openCrafting() {
 
 // ---------- Boutique ----------
 export function openBoutique() {
-  let tab: 'outfits' | 'decor' = 'outfits';
+  let tab: 'outfits' | 'decor' | 'pets' = 'outfits';
   const ui = newDressUi();
+  clearPetTrial();
   enterPlace('boutique');
   openPanel('Spot & Bow Boutique', (body, api) => {
     body.style.setProperty('--cheetah', `url(${cheetahDataUrl('classic')})`);
     body.append(h('div', 'cheetah-band'),
-      h('div', 'tabs', tabBtn('Outfits', tab === 'outfits', () => { tab = 'outfits'; api.rerender(); }), tabBtn('Decor', tab === 'decor', () => { tab = 'decor'; api.rerender(); })));
+      h('div', 'tabs', tabBtn('Outfits', tab === 'outfits', () => { tab = 'outfits'; api.rerender(); }), tabBtn('Decor', tab === 'decor', () => { tab = 'decor'; api.rerender(); }), tabBtn('Pets', tab === 'pets', () => { tab = 'pets'; api.rerender(); })));
     setDressing(body, api, tab === 'outfits');
     if (tab === 'outfits') {
       dressingView(body, api, 'shop', ui);
+    } else if (tab === 'pets') {
+      renderPetBody(body, api, true);
     } else {
       body.append(h('div', 'muted', 'Decor for your yard. Select it on the hotbar and face a yard tile.'));
       for (const id of SHOP_DECOR) body.append(shopRow(id, ITEMS[id].buy!, () => { if (buyDecor(id)) api.rerender(); }));
     }
-  }, () => { stopDressingRoom(); endPreview(); leavePlace(); }, true);
+  }, () => { stopDressingRoom(); endPreview(); clearPetTrial(); leavePlace(); }, true);
 }
 
 // ---------- Market ----------
@@ -401,14 +420,17 @@ function tidyOnOpen() {
   if (n > 0) toast(`${n} ${n === 1 ? 'stack' : 'stacks'} moved to the Softkeep Chest to make room.`);
 }
 
-export function openBag(start: 'items' | 'wardrobe' = 'items') {
-  let tab: 'items' | 'wardrobe' = start;
+export function openBag(start: 'items' | 'wardrobe' | 'pet' = 'items') {
+  let tab: 'items' | 'wardrobe' | 'pet' = start;
   const ui = newDressUi();
   tidyOnOpen();
   openPanel('Bag', (body, api) => {
-    body.append(h('div', 'tabs', tabBtn('Items', tab === 'items', () => { tab = 'items'; api.rerender(); }), tabBtn('Wardrobe', tab === 'wardrobe', () => { tab = 'wardrobe'; api.rerender(); })));
+    body.append(h('div', 'tabs', tabBtn('Items', tab === 'items', () => { tab = 'items'; api.rerender(); }), tabBtn('Wardrobe', tab === 'wardrobe', () => { tab = 'wardrobe'; api.rerender(); }),
+      state.pet ? tabBtn(state.pet.name, tab === 'pet', () => { tab = 'pet'; api.rerender(); }) : null));
     setDressing(body, api, tab === 'wardrobe');
-    if (tab === 'items') {
+    if (tab === 'pet') {
+      renderPetBody(body, api, false);
+    } else if (tab === 'items') {
       const ids = Object.keys(state.inv);
       body.append(h('div', 'muted', `Tap an item to put it in your selected hotbar slot. ${ids.length}/${BAG_SLOTS} slots used.`));
       const grid = h('div', 'bag');

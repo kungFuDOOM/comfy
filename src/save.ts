@@ -1,6 +1,7 @@
 import { defaultBonds, defaultState, state, type SaveData } from './state';
 import { TOWN_OFFSET, MAP_VERSION } from './world';
 import { migrateWardrobe } from './clothes/migrate';
+import { sanitizePet } from './petData';
 
 const KEY = 'comfy.save.v1';
 
@@ -25,8 +26,14 @@ export function loadGame(): boolean {
     Object.assign(state, migrateWardrobe(data as Parameters<typeof migrateWardrobe>[0]));
     delete (state as unknown as Record<string, unknown>).outfit;
     delete (state as unknown as Record<string, unknown>).ownedOutfits;
+    // café shifts: older saves have no cafe / daily.shifts. Keep only finite numbers; a mid-day load keeps today's count.
+    const cafe = (data.cafe && typeof data.cafe === 'object' ? data.cafe : {}) as Partial<Record<keyof typeof base.cafe, unknown>>;
+    state.cafe = base.cafe;
+    for (const k of Object.keys(base.cafe) as (keyof typeof base.cafe)[]) { const v = cafe[k]; if (typeof v === 'number' && Number.isFinite(v)) state.cafe[k] = v; }
+    if (typeof state.daily.shifts !== 'number' || !Number.isFinite(state.daily.shifts)) state.daily.shifts = 0;
     if (!state.regionSeen || typeof state.regionSeen !== 'object' || Array.isArray(state.regionSeen)) state.regionSeen = {};
     if (!Array.isArray(state.partyHats)) state.partyHats = [];
+    state.pet = sanitizePet(data.pet); // saves from before pets: no pet yet; anything malformed is dropped
     if ((data.mapV ?? 1) < MAP_VERSION) migrateMap();
     state.mapV = MAP_VERSION;
     return true;

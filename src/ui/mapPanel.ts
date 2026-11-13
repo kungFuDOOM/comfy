@@ -16,12 +16,13 @@ const INK = '#6e3350', PINK = '#ff9ec0', PINK_D = '#e0709a';
 interface Label { x: number; y: number; icon: string; name: string; sub?: string; area: AreaId; prio: number; locked?: boolean }
 
 const STATION_LABEL: Record<StationId, { icon: string; name: string; sub: string }> = {
-  cafe: { icon: '☕', name: 'Café', sub: 'Brewing / Baking' },
+  cafe: { icon: '☕', name: 'Café', sub: 'Barista / Baking / Shifts' },
   boutique: { icon: '🎀', name: 'Boutique', sub: 'Spot & Bow Boutique' },
   crafting: { icon: '🔨', name: 'Crafting Table', sub: 'Bows, charms & planks' },
   market: { icon: '🛒', name: 'Market', sub: 'Tuppence Cart' },
   grove: { icon: '🏮', name: 'Afterglow Grove', sub: 'Lantern grove' },
   wardrobe: { icon: '👗', name: 'Home Wardrobe', sub: 'Change outfits' },
+  petbed: { icon: '🐾', name: 'Pet Nook', sub: 'Adopt & dress a pet' },
   chest: { icon: '📦', name: 'Softkeep Chest', sub: 'Keep your things safe' },
   mailbox: { icon: '✉️', name: 'Mailbox', sub: 'Letters from friends' },
 };
