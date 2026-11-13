@@ -30,6 +30,8 @@ export interface Act {
   item?: string;
   /** Changes whenever a new act starts, so the renderer can reset its per-act state. */
   seq: number;
+  /** A photo-mode pose (photo.ts): played as an endless, looping performance with its own props, not a one-shot. */
+  photo?: boolean;
 }
 
 let seq = 0;
