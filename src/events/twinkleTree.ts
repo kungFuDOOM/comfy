@@ -1,6 +1,7 @@
 // The town tree (week 1 on): three cozy decorating steps, each with three picks. The picks are saved in the event
 // counters (tree1..tree3 = 1..3) and the tree in the square wears them (twinkleWorld.ts rebuilds when they change).
 // No timers here, so closing the window leaves nothing running.
+import { startAct } from '../actions';
 import { sfx } from '../audio';
 import { changed } from '../bus';
 import { bumpEvent, eventProgress } from '../events';
@@ -26,6 +27,7 @@ export function openTreePanel(onGather?: { label: string; run: () => void }) {
           const first = !(c[st.key] ?? 0);
           c[st.key] = k + 1;
           sfx.tick();
+          startAct('reach', 1.05);
           if (first) bumpEvent('twinkle', 'treeSteps', 1); else changed();
           api.rerender();
         }, picked === k + 1 ? 'small on' : 'small', !ready));

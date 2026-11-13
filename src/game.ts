@@ -3,7 +3,9 @@ import { cheetahDataUrl } from './art/cheetah';
 import { setMood, sfx, updateDirector } from './audio';
 import { currentAccessory } from './boutique';
 import { currentLook } from './wardrobe';
-import { updateBrew } from './cafe';
+import { brewing, recipeById, updateBrew } from './cafe';
+import { activeAct, cancelAct, derivedAct, endDerived, tickAct, type Act } from './actions';
+import { NODES } from './data';
 import { spawnOne, updateCollect } from './collect';
 import { decorHint, useYard } from './decorate';
 import { gardenHint, tickGarden, useGarden } from './garden';
@@ -13,7 +15,7 @@ import { updateLanterns } from './lanterns';
 import { initNpcs, npcs, presentNpcs, talkedToday, updateNpcs, type Npc } from './npc';
 import { faceToward, frontTile, placePlayer, player, tileOf, updatePlayer, walkTo, cancelPath } from './player';
 import { count, selectedItem, selectSlot } from './inventory';
-import { nodeAtTile, nodeCenter, nodeHint, nodeNear, updateNodes, useNode } from './nodes';
+import { cancelCast, casting, nodeAtTile, nodeCenter, nodeHint, nodeNear, updateNodes, useNode } from './nodes';
 import { bus, changed, toast } from './bus';
 import { getPetPose, hasPet, petName, petNear, petThePet, petWorldPos, resetPet, updatePet } from './pet';
 import { initPetUi, openAdopt, openPetPanel } from './ui/petUi';
@@ -76,6 +78,7 @@ function spotNear(): { s: EventSpot; d: number } | null {
 }
 
 function openStation(s: Station) {
+  faceToward((s.x + s.w / 2) * TS, s.y * TS + TS / 2); // turn to the bench, so a brew / craft animates facing it
   if (s.id === 'cafe') openCafe();
   else if (s.id === 'boutique') openBoutique();
   else if (s.id === 'crafting') openCrafting();
@@ -198,6 +201,34 @@ function handleClick(sx: number, sy: number) {
   tapMarker(walkTo(goals));
 }
 
+let intent = false;
+
+/** Stand within reach of a bench (world px). */
+function nearStation(id: string, reach = 72) {
+  const s = stations.find((v) => v.id === id);
+  return !!s && Math.hypot((s.x + s.w / 2) * TS - player.x, s.y * TS + TS / 2 - (player.y - 8)) < reach + (s.w - 1) * 16;
+}
+
+/** What the player is busy doing, for the renderer: a started act, else a running cast or a brew at the bench. */
+function currentAct(): Act | null {
+  const a = activeAct();
+  if (a) { endDerived(); return a; }
+  if (casting.id) {
+    const n = NODES.find((v) => v.id === casting.id);
+    if (n) { const c = nodeCenter(n); return derivedAct('fish:' + n.id, 'fish', casting.total - casting.left, casting.total, { tx: c.x, ty: c.y }); }
+  }
+  if (brewing.id && !intent) {
+    const bench = recipeById(brewing.id).bench;
+    const st = bench === 'craft' ? 'crafting' : 'cafe';
+    if (nearStation(st)) {
+      const s = stations.find((v) => v.id === st)!;
+      return derivedAct('brew:' + brewing.id, bench, brewing.total - brewing.left, brewing.total, { tx: (s.x + s.w / 2) * TS, ty: s.y * TS + TS / 2 });
+    }
+  }
+  endDerived();
+  return null;
+}
+
 /** X / "use tool": act on the tile in front of the player with the selected hotbar item. */
 function useTool() {
   const f = frontTile();
@@ -221,6 +252,11 @@ function update(dt: number) {
   // camera-relative movement: input forward (-y) is away from the camera
   const mv = readMove(), yaw = world3d.yaw(), c = Math.cos(yaw), sn = Math.sin(yaw);
   updatePlayer(dt, c * mv.x + sn * mv.y, -sn * mv.x + c * mv.y, mv.run, mv.analog);
+  // walking (stick, keys, touch joystick or a tap-to-walk path) interrupts whatever the player was doing
+  intent = Math.hypot(mv.x, mv.y) > 0.001 || player.path.length > 0;
+  if (intent) { cancelAct(); if (casting.id) cancelCast('You reeled your line back in.'); }
+  if (activeAct()?.hold && !panel) cancelAct(); // a held act (the bake games) ends with its window
+  tickAct(dt);
   if (markerOn && !player.path.length) { world3d.marker(null); markerOn = false; }
   footsteps(player.running);
   updateDirector(dt);
@@ -275,7 +311,7 @@ function render(t: number, dt: number) {
   const dress = dressing.active;
   world3d.render({
     t, dt, hour: dress ? 12.5 : clock.hour, season: clock.season,
-    player: dress ? { x: player.x, y: player.y, facing: 'down', moving: false, running: false, surface: 'grass' } : { ...player, running: player.running, surface: surfaceUnder() }, look: currentLook(), accessory: currentAccessory(), pet: dress ? null : getPetPose(), npcs: presentNpcs(), talkedToday,
+    player: dress ? { x: player.x, y: player.y, facing: 'down', moving: false, running: false, surface: 'grass' } : { ...player, running: player.running, surface: surfaceUnder() }, look: currentLook(), accessory: currentAccessory(), act: dress ? null : currentAct(), pet: dress ? null : getPetPose(), npcs: presentNpcs(), talkedToday,
   });
 }
 
@@ -298,6 +334,7 @@ export function startGame() {
   checkRegions();
   syncFriendship(); // letters for hearts earned before the mailbox existed
   tickEvents(); // seasonal events: greet, build the table's collision (the 3D decorations follow on the first frame)
+  cancelAct();
   if (booted) {
     cancelPath();
     world3d.snapCamera(player.x, player.y);

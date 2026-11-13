@@ -145,6 +145,7 @@ v0.1 has a gentle, open-ended ladder instead of levels:
 - `src/` modules: `world` (map, tiles, buildings), `player` (movement, BFS click-to-move), `npc`, `cafe`, `boutique`, `decorate`, `garden`, `collect`, `lanterns`, `inventory`, `quests`, `questlog`, `skills`, `nodes`, `time`, `save`, `state`, `ui/*`, and `art/*` (characters, icons, decor, lanterns, cheetah print).
 - Save/load: one JSON blob in localStorage (`comfy.save.v1`), autosaved every 5 s and on tab hide/close. It holds position, inventory, hotbar, pips, friendships, plots, decor, worn clothes and owned wardrobe, lanterns, quests, stats and collectible spawns. Plants keep growing while the tab is closed (progress uses timestamps).
 - No backend, no external assets.
+- Player activity animations: game code calls `startAct()` (`src/actions.ts`); fishing casts and bench brewing are mirrored from their timers. `render/playerActs.ts` blends procedural poses over idle/walk, hangs cached tool props on the hands only while needed, and plays splashes, chips, drops and sparkles through the pooled celebration particles. Moving (keys, stick, joystick or tap-to-walk) cancels an act; held acts (the bake games) end with their window. Visual only, nothing saved.
 
 ## 7b. Soft Skills
 

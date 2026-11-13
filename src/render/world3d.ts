@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import type { Facing } from '../art/characters';
 import type { Look } from '../clothes/types';
+import type { Act } from '../actions';
 import { bus } from '../bus';
 import { VILLAGERS } from '../data';
 import { npcs, type Npc } from '../npc';
@@ -20,6 +21,7 @@ import { celebrate, confettiAt, heartsPopAt, petHeartsAt, poofAt, Shape, welcome
 import { birthdayFriends, unreadLetters } from '../friends';
 import { createNature } from './nature';
 import { createParticles } from './particles';
+import { createPlayerActs } from './playerActs';
 import { createPost } from './post';
 import { createStructures } from './structures';
 import { createTerrain, heightAtUnits } from './terrain';
@@ -34,6 +36,8 @@ export interface FrameInput {
   look: Look;
   /** Worn accessory item id (see boutique.currentAccessory). Omitted = none. */
   accessory?: string | null;
+  /** What the player is busy doing (fishing, watering...); omitted = nothing, so menus and cutscenes ease back to idle. */
+  act?: Act | null;
   /** The pet companion this frame (omitted / null = not adopted, or a scene that should not show her). */
   pet?: PetPose | null;
   npcs: Npc[];
@@ -146,6 +150,8 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
 
   const player = createPlayerMesh();
   scene.add(player.root);
+  const acts = createPlayerActs(player); // activity poses, held props, fishing line and splashes
+  scene.add(acts.group);
   const petMesh = createPetMesh(); // hidden until a frame carries a pet pose
   scene.add(petMesh.root);
   const petUnits = (x: number, y: number) => new THREE.Vector3(x / TS, heightAtUnits(x / TS, y / TS) + 0.35, y / TS);
@@ -244,6 +250,7 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       place(player, f.player.x, f.player.y);
       player.setFacing(f.player.facing, f.dt);
       player.animate(f.t, f.player.moving, !!f.player.running);
+      acts.update(f.t, f.dt, f.act);
       particles.dust(f.dt, !!f.player.running, player.root.position, f.player.surface ?? 'grass');
       if (f.pet) {
         petMesh.root.visible = true;

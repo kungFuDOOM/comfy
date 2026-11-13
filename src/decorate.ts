@@ -1,4 +1,5 @@
 // Yard decorating: place decor on the tile you're facing, or pick it back up.
+import { startAct } from './actions';
 import { changed, toast } from './bus';
 import { ITEMS } from './data';
 import { addItem, removeItem, selectedItem } from './inventory';
@@ -24,9 +25,11 @@ export function useYard(x: number, y: number) {
     state.decor.splice(state.decor.indexOf(existing), 1);
     addItem(existing.id);
     toast(`Picked up ${ITEMS[existing.id].name}`);
+    startAct('place', 0.95, { tx: x * TS + TS / 2, ty: y * TS + TS / 2 });
   } else if (sel && ITEMS[sel]?.kind === 'decor' && removeItem(sel)) {
     state.decor.push({ id: sel, x, y });
     toast(`Placed ${ITEMS[sel].name}`);
+    startAct('place', 0.95, { tx: x * TS + TS / 2, ty: y * TS + TS / 2 });
     bump('placed');
     moment('decor', x * TS + TS / 2, y * TS + TS / 2);
   } else toast('Buy decor at the boutique, then select it on your hotbar.');
