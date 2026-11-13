@@ -47,7 +47,7 @@ Play with a keyboard and mouse, a controller, or touch. On-screen button hints f
 | Input | Action |
 | --- | --- |
 | WASD / Arrow keys | Walk (smooth, camera-relative) |
-| Shift | Hold to run |
+| Shift | Hold to run, including the rest of a click-to-walk |
 | E / Space | Talk, shop, interact with what you are facing |
 | F | Use the selected hotbar item on the tile in front |
 | Click | Walk there, or interact with a villager, shop, garden tile or yard tile |
@@ -65,7 +65,7 @@ Play with a keyboard and mouse, a controller, or touch. On-screen button hints f
 | --- | --- |
 | Left stick | Walk; tilt sets the pace, and a full tilt is a normal walk (radial deadzone) |
 | A | Talk, shop, interact |
-| B | Hold to run · cancel · close a window |
+| B | Hold to run, including a tap-walk · close a window |
 | X | Use the selected hotbar item on the tile in front |
 | Y | Bag and wardrobe |
 | LB / RB | Previous / next hotbar slot (switch tabs inside a window) |
@@ -84,7 +84,7 @@ The touch overlay appears only when touch is in use, and is just two things:
 | --- | --- |
 | Drag on the left half | Floating joystick, appears under your thumb; tilt sets the pace, and a full drag is a normal walk |
 | **A** (bottom, green) | Talk, shop, interact |
-| **B** (right, red) | Hold to run · cancel |
+| **B** (right, red) | Hold to run, including a tap-walk · close a window |
 | **X** (left, blue) | Use the selected hotbar item |
 | **Y** (top, yellow) | Bag and wardrobe |
 | Tap a hotbar slot | Switch tools |

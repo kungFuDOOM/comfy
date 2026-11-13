@@ -14,11 +14,12 @@ export const player = {
   faceTile: null as null | { x: number; y: number },
 };
 
-// Walk and run, in px/s. A walk crosses one 32px tile in about 0.55s (32 / 58).
-// Run stays the old 3× stroll and only happens while Shift, the gamepad run button, or the on-screen run button is held.
-const WALK = 58;
+// Walk and run, in px/s. Walk is 73, 25% quicker than the old 58 (about one 32px tile every 0.44s).
+// Run stays 132 — about 1.8× a walk — and only happens while Shift, gamepad B, or the on-screen run button is held.
+// A full stick still tops out at a walk. Tap-to-walk uses these same two paces.
+const WALK = 73;
 const RUN = 132;
-const SPEED = WALK; // tap-to-walk uses the same pace as the keyboard
+const SPEED = WALK; // tap-to-walk strolls at the keyboard pace, and runs while a run button is held
 const ACCEL = 12; // 1/s smoothing toward a walk
 const RUN_ACCEL = 20; // 1/s while she breaks into a run
 const DECEL = 18;
@@ -212,15 +213,18 @@ export function updatePlayer(dt: number, axisX: number, axisY: number, run = fal
       if (!player.path.length) { arrive(); player.moving = false; vx = vy = 0; player.running = false; return; }
     } else {
       mx = dx / d; my = dy / d;
-      // click-to-move is direct (no easing, so it can't overshoot waypoints)
-      vx = mx * SPEED; vy = my * SPEED;
-      player.moving = true; player.running = false;
+      // Direct pace (no easing). The step is capped at the remaining distance so a run frame can't sail past the point.
+      // Run is the same hold as on foot: Shift, gamepad B, or the on-screen run button. Releasing it drops back to a walk.
+      const pace = run ? RUN : SPEED;
+      const step = Math.min(d, pace * dt);
+      vx = mx * pace; vy = my * pace;
+      player.moving = true; player.running = run;
       faceMove(mx, my);
       const bx = player.x, by = player.y;
-      tryMove(vx * dt, vy * dt);
+      tryMove(mx * step, my * step);
       // wedged against something for a moment: give up cleanly instead of walking in place
-      stuck = Math.hypot(player.x - bx, player.y - by) < SPEED * dt * 0.25 ? stuck + dt : 0;
-      if (stuck > 0.5) { cancelPath(); player.moving = false; vx = vy = 0; stuck = 0; }
+      stuck = Math.hypot(player.x - bx, player.y - by) < step * 0.25 ? stuck + dt : 0;
+      if (stuck > 0.5) { cancelPath(); player.moving = false; player.running = false; vx = vy = 0; stuck = 0; }
       return;
     }
   }
