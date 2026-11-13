@@ -77,6 +77,32 @@ export interface CollectionSave {
 }
 export const emptyCollection = (): CollectionSave => ({ got: {}, done: [], fresh: [], titles: [], title: null });
 
+/** One thing on the traveling merchant's table. */
+export interface MerchantStock {
+  /** 'item' = a bag item (data.ts), 'cloth' = a wardrobe piece (clothes/). */
+  kind: 'item' | 'cloth';
+  ref: string;
+  /** How many you get per purchase (seed bundles). */
+  qty: number;
+  price: number;
+  /** Purchases still available on this visit. */
+  left: number;
+}
+/** The traveling merchant (merchant.ts). The stock is rolled once per visit day and kept, so reloading never re-rolls it. */
+export interface MerchantSave {
+  /** Day key of the visit the stock belongs to ('' = she has never come). */
+  visit: string;
+  stock: MerchantStock[];
+  /** Visits you have said hello on, and pips spent at her stall (lifetime). */
+  met: number;
+  spent: number;
+  /** Day key of the last arrival notice shown, so it greets once per visit. */
+  seen: string;
+  /** Day key of the last visit you stopped to chat on (counts toward `met`). */
+  talked: string;
+}
+export const defaultMerchant = (): MerchantSave => ({ visit: '', stock: [], met: 0, spent: 0, seen: '', talked: '' });
+
 export interface SaveData {
   v: number;
   px: number;
@@ -135,6 +161,8 @@ export interface SaveData {
   mapV: number;
   /** Café shift totals; older saves get zeros. */
   cafe: CafeProgress;
+  /** Traveling merchant visit + stock; older saves get a fresh one. */
+  merchant: MerchantSave;
 }
 
 export function defaultState(): SaveData {
@@ -177,6 +205,7 @@ export function defaultState(): SaveData {
     collection: emptyCollection(),
     mapV: 2,
     cafe: defaultCafe(),
+    merchant: defaultMerchant(),
   };
 }
 

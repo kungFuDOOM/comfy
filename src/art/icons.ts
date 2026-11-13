@@ -21,8 +21,8 @@ export function drawItem(ctx: CanvasRenderingContext2D, id: string) {
       ctx.beginPath(); ctx.arc(11, 11, 5, Math.PI, 0); ctx.lineWidth = 2; ctx.stroke();
       circle(ctx, 29, 14, 1.4, '#a8d8ee'); circle(ctx, 27, 18, 1.2, '#a8d8ee');
       break;
-    case 'seed_puffberry': case 'seed_cottonbloom': {
-      const c = id === 'seed_puffberry' ? '#ff9ec0' : '#ffffff';
+    case 'seed_puffberry': case 'seed_cottonbloom': case 'seed_glowberry': case 'seed_moonpetal': {
+      const c = ({ seed_puffberry: '#ff9ec0', seed_cottonbloom: '#ffffff', seed_glowberry: '#ffc65e', seed_moonpetal: '#c9a8ff' } as Record<string, string>)[id];
       rr(ctx, 8, 5, 16, 22, 3); ctx.fillStyle = '#fff6ea'; ctx.fill(); ctx.strokeStyle = '#e8c9a8'; ctx.lineWidth = 1.2; ctx.stroke();
       circle(ctx, 16, 14, 4.2, c); if (id !== 'seed_puffberry') { ctx.strokeStyle = '#e0c6d6'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(16, 14, 4.2, 0, 7); ctx.stroke(); }
       ctx.strokeStyle = '#7fcf8e'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(16, 24); ctx.lineTo(16, 19); ctx.stroke();

@@ -146,6 +146,40 @@ export function drawDecor(ctx: CanvasRenderingContext2D, id: string, x: number, 
       for (const sx of [-1, 1]) { ellipse(ctx, sx * 3.6, -28, 3.6, 2.2, '#ffb3cf'); }
       circle(ctx, 0, -28, 1.8, '#ff8fb6');
       break;
+    case 'd_m_musicbox':
+      ellipse(ctx, 0, -1, 11, 3, 'rgba(120,70,100,0.18)');
+      rr(ctx, -9, -11, 18, 10, 3); ctx.fillStyle = '#ffb3cf'; ctx.fill(); rr(ctx, -10, -14, 20, 4, 2); ctx.fillStyle = '#fff6ea'; ctx.fill();
+      ctx.fillStyle = '#ffd36e'; ctx.fillRect(10, -9, 4, 1.6); circle(ctx, 15, -8.2, 1.6, '#ffd36e');
+      ctx.fillStyle = '#fff'; ctx.fillRect(-0.8, -24, 1.6, 10); circle(ctx, 0, -26, 2.6, '#ffe3ee'); ctx.fillStyle = '#ff9ec0'; ctx.beginPath(); ctx.moveTo(-6, -17); ctx.lineTo(6, -17); ctx.lineTo(0, -22); ctx.fill();
+      break;
+    case 'd_m_cloudlamp':
+      ellipse(ctx, 0, -1, 11, 3, 'rgba(120,70,100,0.18)');
+      circle(ctx, 0, -20, 15, 'rgba(255,240,248,0.45)');
+      rr(ctx, -8, -5, 16, 4, 2); ctx.fillStyle = '#ffe3ee'; ctx.fill();
+      for (const [x, y, r] of [[0, -14, 9], [-8, -11, 6], [8, -12, 7], [2, -22, 6], [-4, -19, 5]] as number[][]) circle(ctx, x, y, r, '#ffffff');
+      circle(ctx, -3, -16, 1.2, '#ffd0e0'); circle(ctx, 4, -15, 1.2, '#ffd0e0');
+      break;
+    case 'd_m_teapot':
+      ellipse(ctx, 0, -1, 13, 3, 'rgba(120,70,100,0.18)');
+      ellipse(ctx, 0, -13, 13, 11, '#ffd0e0'); ctx.fillStyle = '#fff6ea'; ctx.fillRect(-9, -8, 18, 2.4);
+      ellipse(ctx, 0, -25, 7, 3.4, '#fff6ea'); circle(ctx, 0, -29, 2.4, '#ff8fb6');
+      ctx.strokeStyle = '#ffd0e0'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(11, -11); ctx.quadraticCurveTo(19, -14, 17, -22); ctx.stroke();
+      ctx.beginPath(); ctx.arc(-13, -14, 5, -1.2, 1.6); ctx.stroke();
+      rr(ctx, -3.5, -12, 7, 9, 3.5); ctx.fillStyle = '#c98f5f'; ctx.fill(); circle(ctx, 1.4, -8, 0.9, '#ffd36e');
+      break;
+    case 'd_m_globe':
+      ellipse(ctx, 0, -1, 10, 2.6, 'rgba(120,70,100,0.18)');
+      rr(ctx, -6, -4, 12, 3, 1.5); ctx.fillStyle = '#ffd36e'; ctx.fill(); ctx.fillRect(-1, -14, 2, 10);
+      circle(ctx, 0, -20, 10, '#bfe8f5'); circle(ctx, 3, -23, 3.4, '#ffd0e0'); circle(ctx, -4, -17, 2.8, '#c8f0dc'); circle(ctx, 5, -15, 2, '#fff0a8');
+      ctx.strokeStyle = '#ffd36e'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(0, -20, 12, 4, -0.6, 0, 7); ctx.stroke();
+      break;
+    case 'd_m_moonswing':
+      ellipse(ctx, 0, -1, 14, 3, 'rgba(120,70,100,0.18)');
+      ctx.fillStyle = '#b98763'; ctx.fillRect(-12, -30, 2.4, 29); ctx.fillRect(10, -30, 2.4, 29); ctx.fillRect(-12, -31, 25, 2.4);
+      ctx.strokeStyle = '#fff6ea'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-6, -29); ctx.lineTo(-6, -13); ctx.moveTo(6, -29); ctx.lineTo(6, -13); ctx.stroke();
+      ctx.strokeStyle = '#fff0a8'; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(0, -17, 9, 0.35, Math.PI - 0.35); ctx.stroke();
+      star(ctx, 0, -9, 2.4, '#ffd36e');
+      break;
     case 'd_fishbowl':
       ellipse(ctx, 0, -1, 11, 3, 'rgba(120,70,100,0.18)');
       rr(ctx, -6, -5, 12, 4, 2); ctx.fillStyle = '#e8b98a'; ctx.fill();

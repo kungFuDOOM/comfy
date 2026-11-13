@@ -10,6 +10,7 @@ import { unclaimedGifts, unreadLetters } from '../friends';
 import { glyphEl, type PromptKey } from '../input/prompts';
 import { h } from './dom';
 import { buildEventBanner, refreshEventBanner } from './eventsUi';
+import { buildMerchantChip, refreshMerchantChip } from './merchantUi';
 
 let mailEl: HTMLButtonElement, mailCount: HTMLElement;
 let clockEl: HTMLElement, seasonEl: HTMLElement, coinEl: HTMLElement, lanternEl: HTMLElement, hotbarEl: HTMLElement, hintEl: HTMLElement, lanternCanvas: HTMLCanvasElement;
@@ -32,6 +33,7 @@ export function buildHud(actions: { mail(): void; skills(): void; journal(tab: s
     mailEl,
     (() => { const b = h('button', 'chip lantern', lanternCanvas, lanternEl); b.title = 'Afterglow Lanterns (L)'; b.onclick = () => actions.journal('lanterns'); return b; })(),
   );
+  buildMerchantChip(top);
   const quick = h('div', 'hud-quick',
     ...([['✿ Journal', () => actions.journal('quests'), 'journal'], ['✧ Skills', actions.skills, 'skills'], ['❀ Log', () => actions.journal('collection'), 'collection'], ['❖ Bag', actions.bag, 'bag'], ['🗺 Map', actions.map, 'map'], ['? Help', actions.help, 'help']] as [string, () => void, PromptKey][])
       .map(([t, f, k]) => { const b = h('button', 'btn small', t, glyphEl(k)); b.onclick = f; return b; }),
@@ -55,6 +57,7 @@ export function tickHud() {
   seasonEl.textContent = `${c.weekday}, ${c.dayOfMonth}/${c.month} · ${c.season.name}`;
   seasonEl.title = c.season.blurb;
   refreshEventBanner();
+  refreshMerchantChip();
   const g = lanternCanvas.getContext('2d')!;
   g.clearRect(0, 0, 56, 56);
   g.save(); g.scale(1.6, 1.6); drawLantern(g, 'gift', 17.5, 17.5, 0.9, performance.now() / 1000, 0.7); g.restore();
