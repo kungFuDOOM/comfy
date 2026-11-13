@@ -17,7 +17,7 @@ import { createEventLayer } from './eventLayer';
 import { createLightRig } from './lighting';
 import { PALETTE } from './materials';
 import { createBeach } from './beach';
-import { celebrate, confettiAt, heartsPopAt, petHeartsAt, poofAt, Shape, welcomeAt, welcomeTrickle } from './celebrate';
+import { celebrate, confettiAt, heartsPopAt, petHeartsAt, poofAt, Shape, twinkleAt, welcomeAt, welcomeTrickle } from './celebrate';
 import { birthdayFriends, unreadLetters } from '../friends';
 import { createNature } from './nature';
 import { createParticles } from './particles';
@@ -146,6 +146,12 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   bus.on('partyHat', () => {
     const p = player.root.position;
     confettiAt(new THREE.Vector3(p.x, p.y + 0.8, p.z));
+  });
+
+  // A Collection Log set was completed: confetti and twinkles over the player.
+  bus.on('setComplete', () => {
+    const p = player.root.position, at = new THREE.Vector3(p.x, p.y + 0.8, p.z);
+    confettiAt(at); twinkleAt(at);
   });
 
   const player = createPlayerMesh();
