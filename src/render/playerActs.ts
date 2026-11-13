@@ -498,6 +498,30 @@ export function createPlayerActs(rig: PlayerRig): PlayerActs {
         P.hx = -0.18 * hump(t, 0.35, 1.0); P.hz = 0.06 * hump(t, 0.9, 1.4);
         break;
       }
+      case 'cheer': {
+        // both arms up in a happy V, with a little bounce
+        const c = env(t, D, 0.25);
+        P.az[0] = P.az[1] = mix(REST_Z, 2.05, c); P.ax[0] = P.ax[1] = -0.35 * c;
+        P.drop = Math.abs(Math.sin(t * 5)) * 0.07 * c; P.sq = Math.sin(t * 10) * 0.04 * c;
+        P.hx = -0.1 * c; P.hz = Math.sin(t * 2.5) * 0.06 * c;
+        break;
+      }
+      case 'sway': {
+        // arms out wide, hips and head swaying side to side
+        const c = env(t, D, 0.3), sw = Math.sin(t * 2.6);
+        P.az[0] = mix(REST_Z, 1.55 + sw * 0.35, c); P.az[1] = mix(REST_Z, 1.55 - sw * 0.35, c);
+        P.twist = sw * 0.25 * c; P.hz = sw * 0.12 * c; P.drop = Math.abs(sw) * 0.03 * c;
+        P.lx[0] = sw * 0.15 * c; P.lx[1] = -sw * 0.15 * c;
+        break;
+      }
+      case 'shy': {
+        // hands tucked behind her back, head tipped and turned, a tiny rocking shuffle
+        const c = env(t, D, 0.3);
+        P.ax[0] = P.ax[1] = 0.9 * c; P.az[0] = P.az[1] = mix(REST_Z, 0.3, c);
+        P.hz = (0.17 + Math.sin(t * 1.6) * 0.03) * c; P.hx = 0.17 * c; P.lean = -0.04 * c; P.hy = 0.12 * c;
+        P.drop = Math.sin(t * 1.6) * 0.008 * c;
+        break;
+      }
       case 'ponder': {
         const c = env(t, D);
         P.ax[0] = -2.0 * c; P.az[0] = mix(REST_Z, -0.75, c); P.ax[1] = -0.9 * c; P.az[1] = mix(REST_Z, -0.55, c);
@@ -580,6 +604,8 @@ export function createPlayerActs(rig: PlayerRig): PlayerActs {
         if (hit(0.2) || hit(0.6)) { const m = cache.get('mug'); if (m) { tipPos(m); puff(v, ['#ffffff'], 1, [0.12, 0.18]); } }
         if (hit(1.05)) { overHead(v, 1.7); hearts(v, 2); }
         break;
+      case 'cheer': if (every(0.4, 1.3)) { overHead(v, 1.9); sparkle(v, 5, ['#ffe27a', '#ffb3cf', '#ffffff'], 0.1); } break;
+      case 'sway': if (every(0.8, 1.6)) { overHead(v, 1.7); hearts(v, 1); } break;
       case 'ponder': if (hit(0.3)) { overHead(v, 1.85); sparkle(v, 2, ['#fff3a8', '#ffffff'], 0.1); } break;
     }
   }

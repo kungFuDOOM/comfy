@@ -1,0 +1,38 @@
+/* Styling contest window (ui/contestUi.ts). Reuses the dressing tiles, chips and .shift-pay look. */
+.ct-theme { display: flex; gap: 10px; align-items: center; }
+.ct-icon { font-size: 38px; flex: none; }
+.ct-theme .grow { min-width: 0; overflow-wrap: anywhere; }
+.ct-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.ct-tag { background: var(--pink-l); border: 2px solid #ffc3da; border-radius: 12px; padding: 1px 8px; font-size: 12px; font-weight: 700; color: var(--pink-ink); }
+.ct-tag.accent { background: #fff3dc; border-color: #f0cf9a; color: #8a5a2a; }
+.ct-judges { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 6px 0; }
+.ct-judge { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.ct-judge canvas, .ct-score canvas { border-radius: 14px; flex: none; }
+.ct-jname { font-weight: 700; font-size: 13px; color: var(--pink-ink); }
+.ct-best { text-align: center; }
+.ct-stage { display: flex; gap: 12px; align-items: center; margin: 6px 0; }
+.ct-stage .grow { min-width: 0; }
+.ct-preview { border-radius: 16px; border: 3px solid #ffd6e6; flex: none; }
+.ct-meter { margin: 4px 0; }
+.ct-list { max-height: 240px; overflow-y: auto; }
+.ct-tile { cursor: pointer; flex-direction: row; align-items: center; gap: 8px; padding: 4px 8px 4px 4px; min-height: 54px; font: inherit; }
+.ct-actions { margin-top: 8px; justify-content: center; }
+.btn.ct-go { font-size: 17px; padding: 12px 28px; min-height: 48px; touch-action: manipulation; }
+.btn.ct-done { display: flex; margin: 10px auto 0; animation: ct-pop 0.4s both; }
+.ct-scores { display: flex; flex-direction: column; gap: 8px; }
+.ct-score { display: flex; gap: 10px; align-items: center; background: #fff; border: 3px solid #ffd6e6; border-radius: 16px; padding: 8px 10px; opacity: 0; animation: ct-pop 0.45s both; }
+.ct-score .grow { min-width: 0; overflow-wrap: anywhere; }
+.ct-stars { color: #ffb21f; font-size: 20px; letter-spacing: 2px; }
+.ct-say { font-size: 13px; color: var(--ink); }
+.ct-ribbon { margin-top: 10px; text-align: center; border: 3px dashed var(--rib, #ffb3cf); background: #fff; border-radius: 18px; padding: 10px; opacity: 0; animation: ct-pop 0.5s both; }
+.ct-rib-icon { font-size: 44px; line-height: 1.1; filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.08)); }
+.ct-ribbon b { color: var(--pink-ink); font-size: 18px; }
+@keyframes ct-pop { 0% { opacity: 0; transform: translateY(8px) scale(0.92); } 70% { opacity: 1; transform: translateY(0) scale(1.03); } 100% { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ct-score, .ct-ribbon, .btn.ct-done { animation-duration: 0.01s; animation-delay: 0s !important; } }
+@media (max-width: 420px) { .ct-stage { flex-direction: column; } .btn.ct-go { padding: 12px 20px; } }
+
+.ribbon-shelf { flex-direction: column; align-items: stretch; gap: 6px; margin-top: 8px; width: 100%; max-width: 520px; margin-left: auto; margin-right: auto; }
+.ribbon-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.ribbon-chip { display: inline-flex; align-items: center; gap: 4px; background: #fff; border: 2px solid #ffc3da; border-radius: 12px; padding: 2px 10px 2px 6px; font-size: 12px; font-weight: 700; color: var(--pink-ink); }
+.ribbon-chip.none { border-style: dashed; color: var(--ink-l); background: #faf4f7; }
+.ribbon-chip .rc-icon { font-size: 18px; }
