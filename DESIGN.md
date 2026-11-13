@@ -47,9 +47,9 @@ Currency is **pips** (the little star coin). Pips come from selling at the Tuppe
 
 Three equal input paths funnel into one action layer (`src/input`): interact, tool, cancel/run, bag, journal, hotbar.
 
-- **Keyboard & mouse:** WASD / arrows walk (smooth, camera-relative), Shift runs, `E`/Space interacts, `F` uses the selected item, `1–9` / `Q R` / wheel pick a hotbar slot, `B` bag, `J` journal, `L` lantern grove, `H` help, `Esc` closes windows. Click to walk or interact.
-- **Controller:** left stick walks, A interact, B run/cancel, X use item, Y bag, LB/RB hotbar, Start journal, View bag, D-pad menu focus. Hot-pluggable.
-- **Touch:** a floating joystick plus an A/B/X/Y diamond, nothing else; tap the hotbar to switch tools. Only shown while touch is in use.
+- **Keyboard & mouse:** WASD / arrows walk (smooth, camera-relative), Shift runs (also the rest of a click-to-walk), `E`/Space interacts, `F` uses the selected item, `1–9` / `Q R` / wheel pick a hotbar slot, `B` bag, `J` journal, `L` lantern grove, `H` help, `Esc` closes windows. Click to walk or interact.
+- **Controller:** left stick walks (a full tilt is still a walk), A interact, B hold-to-run (also a tap-walk) and closes windows, X use item, Y bag, LB/RB hotbar, Start journal, View bag, D-pad menu focus. Hot-pluggable.
+- **Touch:** a floating joystick plus an A/B/X/Y diamond, nothing else. B hold-to-run also covers a tap-walk. Tap the hotbar to switch tools. Only shown while touch is in use.
 
 Prompt glyphs follow the last device used. The game opens on a main menu (New Game / Continue / Settings / Credits); New Game plays a skippable arrival intro once per save.
 

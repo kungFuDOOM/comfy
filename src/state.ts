@@ -63,6 +63,19 @@ export interface Bonds {
   attended: string[];
 }
 export const defaultBonds = (): Bonds => ({ known: {}, letters: [], sent: [], wished: [], attended: [] });
+/** Collection Log progress (see collection.ts). Optional in old saves: loadGame() fills in safe defaults. */
+export interface CollectionSave {
+  /** Entry id -> time (ms) it was first obtained. Stays even if the item is later sold, gifted or used. */
+  got: Record<string, number>;
+  /** Set ids already completed (and rewarded, so a reward can never be paid twice). */
+  done: string[];
+  /** Entries found since the player last looked at their page (they get a NEW sticker). */
+  fresh: string[];
+  /** Titles earned from sets, and the one being shown (or null). */
+  titles: string[];
+  title: string | null;
+}
+export const emptyCollection = (): CollectionSave => ({ got: {}, done: [], fresh: [], titles: [], title: null });
 
 export interface SaveData {
   v: number;
@@ -116,6 +129,8 @@ export interface SaveData {
   events: Record<string, EventProgress>;
   /** The adopted pet companion (kind, name, coat, owned/worn pet accessories). null = not adopted yet. */
   pet: PetSave | null;
+  /** Collection Log: everything ever obtained, completed sets and titles. */
+  collection: CollectionSave;
   /** Map layout version the saved positions belong to (1 = the original small island). */
   mapV: number;
   /** Café shift totals; older saves get zeros. */
@@ -159,6 +174,7 @@ export function defaultState(): SaveData {
     unlocked: {},
     events: {},
     pet: null,
+    collection: emptyCollection(),
     mapV: 2,
     cafe: defaultCafe(),
   };
