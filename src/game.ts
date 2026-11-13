@@ -32,6 +32,7 @@ import { isPanelOpen } from './ui/dom';
 import { buildHud, setHint, tickHud } from './ui/hud';
 import { openMap } from './ui/mapPanel';
 import { openMailbox } from './ui/friendsUi';
+import { enterHome } from './ui/homeUi';
 import { syncFriendship, tickFriends } from './friends';
 import { openBag, openBoutique, openCafe, openChest, openCrafting, openDialogue, openHelp, openJournal, openMarket } from './ui/panels';
 import { openPause } from './ui/menuPanels';
@@ -84,6 +85,7 @@ function openStation(s: Station) {
   else if (s.id === 'crafting') openCrafting();
   else if (s.id === 'market') openMarket();
   else if (s.id === 'chest') openChest();
+  else if (s.id === 'home') void enterHome();
   else if (s.id === 'wardrobe') openBag('wardrobe');
   else if (s.id === 'mailbox') openMailbox();
   else if (s.id === 'petbed') { if (state.pet) openPetPanel(); else openAdopt(); }
