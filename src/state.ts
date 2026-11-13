@@ -5,6 +5,11 @@ import type { PetSave } from './petData';
 export type LanternKind = 'serve' | 'gift' | 'decor' | 'collect' | 'outfit' | 'garden';
 
 export interface PlacedDecor { id: string; x: number; y: number }
+/** A piece placed inside the home. `rot` is quarter turns (0..3), `x`/`y` a cell of the room grid (see homeData.ts). */
+export interface HomeItem { id: string; x: number; y: number; rot: number }
+/** The home interior: wallpaper + floor ids (homeData.ts) and the furniture on its grid. */
+export interface HomeSave { wall: string; floor: string; items: HomeItem[] }
+export const defaultHome = (): HomeSave => ({ wall: 'blush', floor: 'checker', items: [] });
 export interface Plot { crop: string; progress: number; wetUntil: number; lastTick: number; need: number }
 export interface Lantern { id: number; kind: LanternKind; at: number }
 export interface Spawn { item: string; x: number; y: number }
@@ -92,6 +97,8 @@ export interface SaveData {
   /** Handmade accessory worn on the model (an item id of kind 'accessory'), or null. Hidden if no longer owned. */
   accessory: string | null;
   decor: PlacedDecor[];
+  /** Home interior decorating. Older saves get an empty, default-styled room. */
+  home: HomeSave;
   plots: Record<string, Plot>;
   /** Friendship points per villager id: 20 per heart, up to 10 hearts (200). Old saves topped out at 100 (5 hearts). */
   friend: Record<string, number>;
@@ -146,6 +153,7 @@ export function defaultState(): SaveData {
     partyHats: [],
     accessory: null,
     decor: [],
+    home: defaultHome(),
     plots: {},
     friend: {},
     bonds: defaultBonds(),

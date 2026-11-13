@@ -1,4 +1,5 @@
 import { defaultBonds, defaultState, emptyCollection, state, type SaveData } from './state';
+import { normalizeHome } from './home';
 import { TOWN_OFFSET, MAP_VERSION } from './world';
 import { migrateWardrobe } from './clothes/migrate';
 import { sanitizePet } from './petData';
@@ -33,6 +34,7 @@ export function loadGame(): boolean {
     if (typeof state.daily.shifts !== 'number' || !Number.isFinite(state.daily.shifts)) state.daily.shifts = 0;
     if (!state.regionSeen || typeof state.regionSeen !== 'object' || Array.isArray(state.regionSeen)) state.regionSeen = {};
     if (!Array.isArray(state.partyHats)) state.partyHats = [];
+    state.home = normalizeHome(data.home); // saves from before home decorating: an empty, default-styled room
     state.pet = sanitizePet(data.pet); // saves from before pets: no pet yet; anything malformed is dropped
     state.collection = sanitizeCollection(data.collection);
     if ((data.mapV ?? 1) < MAP_VERSION) migrateMap();

@@ -58,7 +58,7 @@ export const isPlotTile = (x: number, y: number) => inRect(AREAS.garden, x, y);
 /** Open meadow ground: Ribbon Meadow by town, or anywhere in Sprinkle Meadow. */
 export const inMeadow = (x: number, y: number) => (inRect(AREAS.meadow, x, y) || (inMap(x, y) && region[idx(x, y)] === 3)) && terrainAt(x, y) === T.Grass;
 
-export type StationId = 'cafe' | 'boutique' | 'market' | 'grove' | 'chest' | 'wardrobe' | 'crafting' | 'mailbox' | 'petbed';
+export type StationId = 'cafe' | 'boutique' | 'market' | 'grove' | 'chest' | 'wardrobe' | 'crafting' | 'mailbox' | 'petbed' | 'home';
 export interface Station { id: StationId; x: number; y: number; w: number; label: string; prompt: string }
 export const stations: Station[] = [
   { id: 'cafe', x: 41, y: 35, w: 1, label: 'Puddle & Pip Café', prompt: 'Brew & shop the pantry' },
@@ -66,7 +66,8 @@ export const stations: Station[] = [
   { id: 'crafting', x: 59, y: 36, w: 1, label: 'Crafting Table', prompt: 'Make bows, charms & planks' },
   { id: 'market', x: 47, y: 36, w: 2, label: 'Tuppence Cart', prompt: 'Buy seeds, sell goods' },
   { id: 'grove', x: 63, y: 31, w: 1, label: 'Afterglow Grove', prompt: 'View the lantern grove' },
-  { id: 'wardrobe', x: 31, y: 49, w: 1, label: 'Home Wardrobe', prompt: 'Change into something cute' },
+  { id: 'home', x: 29, y: 49, w: 1, label: 'Front Door', prompt: 'Step inside & decorate your home' },
+  { id: 'wardrobe', x: 26, y: 47, w: 1, label: 'Home Wardrobe', prompt: 'Change into something cute' },
   { id: 'petbed', x: 26, y: 49, w: 1, label: 'Pet Nook', prompt: 'A cozy basket for a little friend' },
   { id: 'chest', x: 34, y: 49, w: 1, label: 'Softkeep Chest', prompt: 'Keep your things safe' },
   { id: 'mailbox', x: 36, y: 48, w: 1, label: 'Mailbox', prompt: 'Read your letters' },
@@ -195,7 +196,7 @@ export function buildWorld() {
   for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) block(48 + dx, 42 + dy); // basin is ~2.2 tiles wide
   for (const p of [[44, 37], [51, 37], [45, 45], [51, 45], [61, 39], [34, 46]]) { props.push({ type: 'lamp', x: p[0], y: p[1] }); block(p[0], p[1]); }
   const signs: [number, number, string][] = [
-    [31, 49, 'Your Yard'], [34, 42, 'Garden'], [60, 37, 'To the Grove'], [26, 35, 'Ribbon Meadow'],
+    [35, 49, 'Your Yard'], [34, 42, 'Garden'], [60, 37, 'To the Grove'], [26, 35, 'Ribbon Meadow'],
     [47, 60, 'Dewdrop Shore'], [52, 46, 'Sugarlily Square'],
   ];
   for (const a of AREA_LIST) {

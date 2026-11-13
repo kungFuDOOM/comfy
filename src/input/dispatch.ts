@@ -1,5 +1,6 @@
 // Device-independent actions. Keyboard, touch and gamepad all funnel through trigger(), which routes to
 // the open panel (focus navigation), then to a full-screen scene (main menu / cutscene), then to the game.
+import { bus } from '../bus';
 import { closePanel, isPanelOpen } from '../ui/dom';
 import { dismissLevelUp } from '../ui/levelUp';
 import { confirmFocus, cycleTab, moveFocus, type Dir } from '../ui/focus';
@@ -50,6 +51,7 @@ export function trigger(a: Action) {
   if (scene) {
     if (a === 'interact') scene('confirm');
     else if (a === 'cancel') scene('back');
+    else bus.emit('sceneAction', a); // extra buttons for scenes that want them (home decorating); menus and cutscenes ignore them
     return;
   }
   if (!H) return;

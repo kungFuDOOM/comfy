@@ -1,0 +1,57 @@
+/* Home decorating (ui/homeUi.ts): a top bar and a tray over the 3D room. Pastel, chunky, thumb-sized buttons. */
+.hm-root { position: absolute; inset: 0; pointer-events: none !important; z-index: 5; font-family: var(--font); }
+.hm-root > * { pointer-events: auto; }
+.hm-top { position: absolute; top: max(10px, env(safe-area-inset-top)); left: max(10px, env(safe-area-inset-left)); right: max(10px, env(safe-area-inset-right));
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 16px; background: rgba(255, 248, 243, 0.94); border: 2.5px solid #ffc3da; border-radius: 22px;
+  box-shadow: 0 4px 0 rgba(224, 112, 154, 0.25); animation: hm-drop 0.35s ease-out both; }
+.hm-title { font-weight: 700; font-size: 17px; color: var(--ink); white-space: nowrap; }
+.hm-hint { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--ink-l); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hm-keys { font-size: 11px; font-weight: 600; color: #b58aa0; white-space: nowrap; }
+body.input-touch .hm-keys { display: none; }
+@keyframes hm-drop { from { transform: translateY(-24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes hm-rise { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.hm-btn { font-family: var(--font); font-weight: 700; font-size: 14px; min-height: 40px; padding: 6px 16px; border-radius: 16px; border: 2.5px solid #ffb3cf; background: #fff; color: #a8456f; cursor: pointer;
+  box-shadow: 0 3px 0 rgba(224, 112, 154, 0.3); touch-action: manipulation; white-space: nowrap; }
+.hm-btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 rgba(224, 112, 154, 0.3); }
+.hm-btn:disabled { opacity: 0.45; cursor: default; }
+.hm-btn.primary { background: linear-gradient(#ff9ec0, #ff7fb0); border-color: #fff; color: #fff; text-shadow: 0 1px 0 rgba(160, 50, 100, 0.35); }
+.hm-btn.ghost { background: transparent; box-shadow: none; border-style: dashed; }
+
+.hm-tray { position: absolute; left: 0; right: 0; margin-inline: auto; bottom: max(8px, env(safe-area-inset-bottom)); width: min(780px, calc(100% - 16px));
+  display: flex; flex-direction: column; gap: 6px; padding: 8px 10px 10px; background: rgba(255, 248, 243, 0.95); border: 2.5px solid #ffc3da; border-radius: 24px;
+  box-shadow: 0 5px 0 rgba(224, 112, 154, 0.28), 0 14px 30px rgba(122, 59, 88, 0.18); animation: hm-rise 0.4s ease-out both; }
+.hm-tabs { display: flex; gap: 6px; }
+.hm-tab { flex: 1; font-family: var(--font); font-weight: 700; font-size: 13px; min-height: 36px; border-radius: 14px; border: 2px solid #ffd0e2; background: #fff3f8; color: var(--ink-l); cursor: pointer; touch-action: manipulation; }
+.hm-tab.on { background: #ffb3cf; border-color: #fff; color: #fff; text-shadow: 0 1px 0 rgba(160, 50, 100, 0.3); box-shadow: 0 2px 0 #e0709a; }
+.hm-body { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 6px; min-height: 88px; scrollbar-width: thin; scrollbar-color: #ffc3da transparent; touch-action: pan-x; overscroll-behavior: contain; }
+.hm-card { flex: 0 0 auto; width: 84px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; border-radius: 16px; border: 2.5px solid #ffd0e2; background: #fff; cursor: pointer; font-family: var(--font); color: var(--ink); position: relative; touch-action: manipulation; }
+.hm-card.on { border-color: #ff7fb0; background: #fff0f6; box-shadow: 0 0 0 3px rgba(255, 127, 176, 0.3); }
+.hm-card .hm-name { font-size: 11px; font-weight: 600; line-height: 1.1; text-align: center; max-height: 2.3em; overflow: hidden; }
+.hm-card .hm-qty { position: absolute; top: 3px; right: 6px; font-size: 11px; font-weight: 700; color: #e0709a; }
+.hm-swatch-img { width: 52px; height: 52px; border-radius: 12px; border: 2px solid #ffd0e2; image-rendering: auto; }
+.hm-card.swatch { width: 92px; }
+.hm-card.swatch.on::after { content: "✓"; position: absolute; top: 2px; right: 6px; color: #ff5f9a; font-weight: 700; }
+.hm-empty { align-self: center; font-size: 13px; font-weight: 600; color: var(--ink-l); padding: 0 8px; }
+.hm-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hm-actions:not(.on) .hm-sel { visibility: hidden; }
+.hm-sel { flex: 1; min-width: 80px; font-weight: 700; font-size: 13px; color: #a8456f; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hm-actions .hm-btn { min-height: 42px; }
+
+/* short landscape screens (phones on their side): the tray docks to the right so the room keeps the height */
+@media (max-height: 560px) and (orientation: landscape) {
+  .hm-top { right: auto; width: auto; max-width: calc(100% - 300px); padding: 5px 8px 5px 12px; }
+  .hm-hint, .hm-keys { display: none; }
+  .hm-tray { left: auto; margin-inline: 0; right: max(8px, env(safe-area-inset-right)); top: max(8px, env(safe-area-inset-top)); bottom: max(8px, env(safe-area-inset-bottom)); width: 270px; animation: none; }
+  body.scene.scene-home .toasts { top: 58px; }
+  .hm-body { flex-wrap: wrap; overflow-x: hidden; overflow-y: auto; flex: 1; align-content: flex-start; touch-action: pan-y; }
+  .hm-card { width: 76px; }
+}
+@media (max-width: 520px) {
+  .hm-title { font-size: 15px; }
+  .hm-hint { font-size: 12px; }
+  .hm-btn { padding: 6px 12px; }
+}
+
+/* toasts sit just under the top bar while decorating */
+body.scene.scene-home .toasts { top: calc(max(10px, env(safe-area-inset-top)) + 64px); }
