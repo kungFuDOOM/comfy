@@ -209,20 +209,34 @@ body.input-touch .hint { bottom: calc(96px + var(--tb, 58px) * 3 + env(safe-area
 .panel-backdrop { padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); }
 .panel { max-height: calc(100vh - 20px); max-height: calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
 @media (pointer: coarse) { .slot { width: min(42px, calc((100vw - 48px) / 9)); height: min(42px, calc((100vw - 48px) / 9)); } }
+/* HUD stacking: chips + banner under the menu, menu under panels (z 10) and toasts (z 20) */
+.hud-top { z-index: 5; }
+.hud-quick { z-index: 6; }
+.menu-toggle { display: none; }
+.menu-drawer { display: contents; }
+/* Wide desktop: keep the seven-button row and reserve its width so chips wrap inside their own column, never under it. */
+.hud-top { max-width: calc(100% - 20px - 480px - env(safe-area-inset-left) - env(safe-area-inset-right)); }
+/* The event banner is a flex item of .hud-top (own wrapped row under the chips), so it can't overlap them. */
+.hud-top .event-banner { font-size: 13px; }
+/* Drawer layout: phones in portrait, phones in landscape (short + coarse pointer), small tablets. */
+@media (max-width: 1100px), ((max-height: 500px) and (pointer: coarse)) {
+  .hud-quick { left: auto; right: max(8px, env(safe-area-inset-right)); top: max(8px, env(safe-area-inset-top)); display: block; }
+  .menu-toggle { display: inline-flex; justify-content: center; min-height: 40px; min-width: 88px; padding: 6px 14px; font-size: 14px; margin-left: auto; }
+  .hud-quick.open .menu-toggle { background: #ffe3ee; }
+  .menu-drawer { display: none; position: absolute; top: calc(100% + 8px); right: 0; width: min(280px, calc(100vw - 16px - env(safe-area-inset-left) - env(safe-area-inset-right))); max-height: calc(100dvh - 64px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); overflow-y: auto; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px; background: rgba(255, 248, 243, 0.97); border: 2px solid #ffc3da; border-radius: 20px; box-shadow: 0 6px 0 rgba(224, 112, 154, 0.25), 0 10px 24px rgba(122, 59, 88, 0.22); animation: pop 0.2s ease-out; }
+  .hud-quick.open .menu-drawer { display: grid; }
+  .menu-drawer .btn { min-height: 44px; justify-content: center; font-size: 15px; padding: 8px 10px; }
+  .menu-drawer .btn kbd, .menu-drawer .btn .glyph { display: none; }
+  /* Portrait / narrow: chips on a row below the Menu button. */
+  .hud-top { top: calc(48px + max(8px, env(safe-area-inset-top))); left: max(8px, env(safe-area-inset-left)); gap: 6px; max-width: calc(100% - 16px - env(safe-area-inset-left) - env(safe-area-inset-right)); }
+  .hud-top .event-banner { font-size: 12px; }
+}
+/* Short landscape: chips share the top row, with room reserved for the Menu button on the right (they wrap inside that column). */
+@media (max-height: 500px) and (min-width: 560px) {
+  .hud-top { top: max(8px, env(safe-area-inset-top)); max-width: calc(100% - 16px - 96px - env(safe-area-inset-left) - env(safe-area-inset-right)); }
+  .toasts { top: calc(56px + env(safe-area-inset-top)); }
+}
 @media (max-width: 640px) {
-  /* One row of actions, then a full-width chip row, so nothing collides on a phone. */
-  .hud-quick {
-    left: max(8px, env(safe-area-inset-left));
-    right: max(8px, env(safe-area-inset-right));
-    justify-content: flex-end;
-    gap: 6px;
-  }
-  .hud-top {
-    top: calc(46px + max(8px, env(safe-area-inset-top)));
-    left: max(8px, env(safe-area-inset-left));
-    gap: 6px;
-    max-width: calc(100% - 16px - env(safe-area-inset-left) - env(safe-area-inset-right));
-  }
   .toasts { top: calc(108px + env(safe-area-inset-top)); }
   .clock { font-size: 14px; }
   .hint { font-size: 12px; padding: 6px 12px; }
@@ -245,7 +259,6 @@ body.input-touch .help-menu-row { display: none; }
 .skill-card { display: flex; align-items: center; gap: 12px; }
 .skill-icon { font-size: 28px; width: 44px; height: 44px; display: grid; place-items: center; background: #fff0f6; border-radius: 14px; flex: none; }
 .quest-offer { margin: 8px 0; border-color: #ff9ec0; }
-@media (max-width: 640px) { .hud-quick { flex-wrap: wrap; justify-content: flex-end; max-width: 62vw; } .hud-quick .btn kbd, .hud-quick .btn .glyph { display: none; } }
 
 /* island map */
 .map-wrap { display: flex; justify-content: center; }

@@ -19,7 +19,8 @@ export function buildEventBanner(open: () => void) {
   banner.type = 'button';
   banner.hidden = true;
   banner.addEventListener('click', open);
-  document.getElementById('ui')!.append(banner);
+  // Lives inside .hud-top (its own wrapped row below the chips) so it can never overlap them, whatever the chip height.
+  (document.querySelector('.hud-top') ?? document.getElementById('ui')!).append(banner);
 }
 
 /** One banner line per active event, each in its own words (peak copy and chapter copy come from the event). */
