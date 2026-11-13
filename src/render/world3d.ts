@@ -1,7 +1,7 @@
 // Three.js world: renderer, camera rig, lights, picking, and per-frame sync with game state.
 import * as THREE from 'three';
 import type { Facing } from '../art/characters';
-import type { OutfitDef } from '../data';
+import type { Look } from '../clothes/types';
 import { bus } from '../bus';
 import { VILLAGERS } from '../data';
 import { npcs, type Npc } from '../npc';
@@ -9,10 +9,12 @@ import type { Season } from '../time';
 import { MAP_H, MAP_W, TS } from '../world';
 import { createPlayerMesh, createVillagerMesh, type ActorMesh } from './actors';
 import { createDynamic } from './dynamic';
+import { visualSeason } from '../events';
+import { createEventLayer } from './eventLayer';
 import { createLightRig } from './lighting';
 import { PALETTE } from './materials';
 import { createBeach } from './beach';
-import { celebrate, welcomeAt, welcomeTrickle } from './celebrate';
+import { celebrate, confettiAt, welcomeAt, welcomeTrickle } from './celebrate';
 import { createNature } from './nature';
 import { createParticles } from './particles';
 import { createPost } from './post';
@@ -25,7 +27,8 @@ export interface FrameInput {
   hour: number;
   season: Season;
   player: { x: number; y: number; facing: Facing; moving: boolean; running?: boolean; surface?: 'sand' | 'path' | 'grass' };
-  outfit: OutfitDef;
+  /** What the player is wearing (or trying on). */
+  look: Look;
   /** Worn accessory item id (see boutique.currentAccessory). Omitted = none. */
   accessory?: string | null;
   npcs: Npc[];
@@ -94,7 +97,8 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   const structures = createStructures();
   const dynamic = createDynamic();
   const particles = createParticles(); // after structures: reads the café steam vents
-  scene.add(terrain.group, nature.group, beach, structures, dynamic.group, particles.group, celebrate.group);
+  const eventLayer = createEventLayer(); // seasonal event decorations (events.ts)
+  scene.add(terrain.group, nature.group, beach, structures, dynamic.group, eventLayer.group, particles.group, celebrate.group);
 
   // A friend moving in (bus 'friendArrived', only from a live unlock, never a save restore): a burst of hearts at
   // their spot, then a gentle trickle for a few seconds so the welcome is still there if the camera is elsewhere.
@@ -107,6 +111,12 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
     const at = new THREE.Vector3(ux, heightAtUnits(ux, uz) + 0.6, uz);
     welcomeAt(at);
     trickle.at.copy(at); trickle.left = 6; trickle.acc = 0;
+  });
+
+  // A region party hat was earned: confetti over the player.
+  bus.on('partyHat', () => {
+    const p = player.root.position;
+    confettiAt(new THREE.Vector3(p.x, p.y + 0.8, p.z));
   });
 
   const player = createPlayerMesh();
@@ -194,9 +204,11 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       if (!d) { player.root.visible = true; camera.clearViewOffset(); target.y = 0; }
     },
     render(f) {
-      if (f.season.id !== seasonId) { seasonId = f.season.id; terrain.setSeason(f.season); nature.setSeason(f.season); particles.setSeason(f.season); }
+      // an active seasonal event can dress the island in another season's look (Twinkle Season is snowy from late November)
+      const season = visualSeason(f.season);
+      if (season.id !== seasonId) { seasonId = season.id; terrain.setSeason(season); nature.setSeason(season); particles.setSeason(season); }
 
-      player.setOutfit(f.outfit);
+      player.setLook(f.look);
       player.setAccessory(f.accessory ?? null);
       place(player, f.player.x, f.player.y);
       player.setFacing(f.player.facing, f.dt);
@@ -219,6 +231,7 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
         if (markerT > 1.6) { markerT = -1; markerMesh.visible = false; }
       }
       dynamic.update(f.t);
+      eventLayer.update(f.t);
       nature.update(f.t, target.x, target.z);
       terrain.update(f.t);
 

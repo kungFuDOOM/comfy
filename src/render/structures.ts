@@ -378,6 +378,22 @@ export function createStation(s: Station): THREE.Group {
       g.add(contactShadow(1.5, 1.0, 'rect', 0.22));
       break;
     }
+    case 'wardrobe': {
+      // Home wardrobe: a tall pink cabinet with two doors, gold knobs, a heart and a bow on top
+      k.v.add(G.box(1.2, 1.7, 0.6), '#ffd0e0', { y: 0.85 });
+      k.v.add(G.box(1.28, 0.1, 0.66), '#fff4f8', { y: 1.72 });
+      for (const sx of [-1, 1]) {
+        k.v.add(G.box(0.5, 1.4, 0.04), '#ffe3ee', { x: sx * 0.29, y: 0.85, z: 0.31 });
+        k.v.add(G.ball(0.045, 8), PALETTE.gold, { x: sx * 0.08, y: 0.85, z: 0.35 });
+        k.v.add(G.ball(0.1, 10), '#ff8fb6', { x: sx * 0.12, y: 1.9, s: [1.1, 0.8, 0.5], rz: sx * 0.3 });
+      }
+      k.v.add(G.ball(0.06, 8), '#ffffff', { y: 1.9 });
+      k.v.add(G.ball(0.06, 8), '#ff7fa9', { x: -0.03, y: 1.2, z: 0.34 }).add(G.ball(0.06, 8), '#ff7fa9', { x: 0.03, y: 1.2, z: 0.34 });
+      for (const x of [-0.5, 0.5]) k.v.add(G.ball(0.07, 8), '#fff4f8', { x, y: 0.05 });
+      const l = makeLabel('Wardrobe', 1.6); l.position.set(0, 2.45, 0.3); g.add(l);
+      g.add(contactShadow(1.7, 1.0, 'rect', 0.22));
+      break;
+    }
     case 'grove': {
       k.v.add(G.cyl(0.8, 0.9, 0.5), '#e8dcf5', { y: 0.25 });
       k.v.add(G.cyl(0.45, 0.55, 0.6), '#f3ecff', { y: 0.8 });

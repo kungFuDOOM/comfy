@@ -16,12 +16,16 @@ export const T = { Water: 0, Sand: 1, Grass: 2, Path: 3, Hill: 4, Soil: 5, Lawn:
 const terrain = new Uint8Array(MAP_W * MAP_H);
 const solid = new Uint8Array(MAP_W * MAP_H);
 const reserved = new Uint8Array(MAP_W * MAP_H);
+/** Temporary blockers that come and go at runtime (seasonal event props such as the feast table). */
+const dyn = new Uint8Array(MAP_W * MAP_H);
 const region = new Uint8Array(MAP_W * MAP_H);
 const idx = (x: number, y: number) => y * MAP_W + x;
 const inMap = (x: number, y: number) => x >= 0 && y >= 0 && x < MAP_W && y < MAP_H;
 
 export const terrainAt = (x: number, y: number) => (inMap(x, y) ? terrain[idx(x, y)] : T.Water);
-export const isSolidTile = (x: number, y: number) => !inMap(x, y) || terrain[idx(x, y)] === T.Water || solid[idx(x, y)] === 1;
+export const isSolidTile = (x: number, y: number) => !inMap(x, y) || terrain[idx(x, y)] === T.Water || solid[idx(x, y)] === 1 || dyn[idx(x, y)] === 1;
+/** Block or free a tile for a while (not part of the saved map). */
+export function setDynamicBlock(x: number, y: number, on: boolean) { if (inMap(x, y)) dyn[idx(x, y)] = on ? 1 : 0; }
 
 // ---- Regions ----
 const AREA_ORDER: AreaId[] = ['town', 'blossom', 'pond', 'meadow', 'lighthouse', 'farbeach'];
@@ -54,7 +58,7 @@ export const isPlotTile = (x: number, y: number) => inRect(AREAS.garden, x, y);
 /** Open meadow ground: Ribbon Meadow by town, or anywhere in Sprinkle Meadow. */
 export const inMeadow = (x: number, y: number) => (inRect(AREAS.meadow, x, y) || (inMap(x, y) && region[idx(x, y)] === 3)) && terrainAt(x, y) === T.Grass;
 
-export type StationId = 'cafe' | 'boutique' | 'market' | 'grove' | 'chest' | 'crafting';
+export type StationId = 'cafe' | 'boutique' | 'market' | 'grove' | 'chest' | 'wardrobe' | 'crafting';
 export interface Station { id: StationId; x: number; y: number; w: number; label: string; prompt: string }
 export const stations: Station[] = [
   { id: 'cafe', x: 41, y: 35, w: 1, label: 'Puddle & Pip Café', prompt: 'Brew & shop the pantry' },
@@ -62,6 +66,7 @@ export const stations: Station[] = [
   { id: 'crafting', x: 59, y: 36, w: 1, label: 'Crafting Table', prompt: 'Make bows, charms & planks' },
   { id: 'market', x: 47, y: 36, w: 2, label: 'Tuppence Cart', prompt: 'Buy seeds, sell goods' },
   { id: 'grove', x: 63, y: 31, w: 1, label: 'Afterglow Grove', prompt: 'View the lantern grove' },
+  { id: 'wardrobe', x: 31, y: 49, w: 1, label: 'Home Wardrobe', prompt: 'Change into something cute' },
   { id: 'chest', x: 34, y: 49, w: 1, label: 'Softkeep Chest', prompt: 'Keep your things safe' },
 ];
 const nodeIdx = (n: NodeDef) => idx(n.x, n.y);

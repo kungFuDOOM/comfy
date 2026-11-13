@@ -3,8 +3,11 @@
 // The rest of the game only uses the ActorMesh interface below.
 import * as THREE from 'three';
 import type { Facing } from '../art/characters';
-import type { OutfitDef, VillagerDef } from '../data';
-import { cheetahTexture, cheetahToon, contactShadow, makeToon, PALETTE, vertexToon, type CheetahKind } from './materials';
+import type { VillagerDef } from '../data';
+import type { Look } from '../clothes/types';
+import { lookKey } from '../clothes/types';
+import { buildCloth, buildHood, buildShoes, headExtraOf, legsOf, sleeveOf } from './clothes3d';
+import { cheetahTexture, cheetahToon, contactShadow, makeToon, PALETTE, toon, vertexToon, type CheetahKind } from './materials';
 import { ball, Batch, G, lerpAngle, mat } from './util';
 
 export interface ActorMesh {
@@ -40,7 +43,7 @@ const at = (v: [number, number, number]) => ({ x: v[0], y: v[1], z: v[2] });
 /** Flared bell outfit profile, relative to the hip. */
 const DRESS: [number, number][] = [[0.001, 0], [0.3, 0], [0.35, 0.04], [0.345, 0.11], [0.29, 0.25], [0.2, 0.42], [0.14, 0.52], [0.001, 0.56]];
 const BAND: [number, number][] = [[0.3, -0.012], [0.365, 0.035], [0.36, 0.115], [0.325, 0.19], [0.3, 0.2]];
-let dressGeo: THREE.BufferGeometry | null = null, bandGeo: THREE.BufferGeometry | null = null, sleeveGeo: THREE.BufferGeometry | null = null;
+let dressGeo: THREE.BufferGeometry | null = null, bandGeo: THREE.BufferGeometry | null = null, sleeveGeo: THREE.BufferGeometry | null = null, forearmGeo: THREE.BufferGeometry | null = null, legGeo: THREE.BufferGeometry | null = null;
 const scaleUv = (g: THREE.BufferGeometry, su: number, sv: number) => {
   const uv = g.attributes.uv;
   for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * su, uv.getY(i) * sv);
@@ -298,7 +301,9 @@ function build(sp: Spec) {
 
   dressGeo ??= scaleUv(G.lathe(DRESS, 28), 2.5, 0.9);
   bandGeo ??= scaleUv(G.lathe(BAND, 22), 2.5, 0.28);
+  legGeo ??= G.capsule(0.075, 0.08).translate(0, -0.1, 0);
   sleeveGeo ??= scaleUv(G.capsule(0.072, 0.13).translate(0, -0.12, 0), 0.5, 0.4);
+  forearmGeo ??= G.capsule(0.058, 0.12).translate(0, -0.12, 0);
 
   const dressMat = fillMat(sp.dress), bandMat = fillMat(sp.band);
   const body = new THREE.Group();
@@ -315,6 +320,7 @@ function build(sp: Spec) {
     pivot.rotation.z = sx * 0.62;
     const sleeve = new THREE.Mesh(sleeveGeo!, dressMat);
     sleeve.castShadow = true;
+    const forearm = new THREE.Mesh(forearmGeo!, toon(sp.skin));
     const hb = new Batch().add(G.ball(0.086, 12), sp.skin, { y: -0.27 });
     if (sp.bag && sx === 1) {
       // round pink shopping bag with a little heart
@@ -323,21 +329,23 @@ function build(sp: Spec) {
       hb.add(G.ball(0.028, 6), '#ff7fa9', { x: 0.02, y: -0.46, z: 0.06 });
       hb.add(G.torus(0.055, 0.012, 10, Math.PI), '#fff6fb', { y: -0.38 });
     }
-    pivot.add(sleeve, hb.build());
+    const hand = hb.build();
+    pivot.add(forearm, sleeve, hand);
     body.add(pivot);
-    return { pivot, sx };
+    return { pivot, sx, sleeve };
   });
 
   // legs: stubby with chunky shoes
   const legs = [-1, 1].map((sx) => {
     const pivot = new THREE.Group();
     pivot.position.set(sx * 0.12, 0.27, 0);
-    const lb = new Batch()
-      .add(G.capsule(0.075, 0.08), sp.skin, { y: -0.1 })
-      .add(G.ball(0.105, 12), sp.shoes, { y: -0.2, z: 0.03, s: [1.05, 0.72, 1.25] });
-    pivot.add(lb.build());
-    return pivot;
+    const leg = new THREE.Mesh(legGeo!, toon(sp.skin));
+    leg.castShadow = true;
+    const shoe = new Batch().add(G.ball(0.105, 12), sp.shoes, { y: -0.2, z: 0.03, s: [1.05, 0.72, 1.25] }).build();
+    pivot.add(leg, shoe);
+    return { pivot, leg, shoe };
   });
+  const legPivots = legs.map((l) => l.pivot);
 
   const head = new THREE.Group();
   head.position.y = HEAD_Y + (sp.headDrop ?? 0);
@@ -348,7 +356,7 @@ function build(sp: Spec) {
   head.add(buildHead(sp.kind, sp.skin, sp.accent), eyes);
 
   if (sp.headScale) head.scale.set(...sp.headScale);
-  model.add(body, legs[0], legs[1], head);
+  model.add(body, legs[0].pivot, legs[1].pivot, head);
   const tick = sp.extra?.({ model, body, head });
   root.add(contactShadow(1.0 * sp.scale), model);
   const marker = ball(0.09, mat(PALETTE.gold, PALETTE.gold), 0, 2.0 * sp.scale, 0, 8);
@@ -359,8 +367,8 @@ function build(sp: Spec) {
   let ang = 0, last = -1, walk = 0, phase = 0, runK = 0;
   model.rotation.order = 'YXZ'; // yaw first, so the lean tips along the facing direction
   const off = Math.random() * 10;
-  const api: ActorMesh & { dressMat: THREE.MeshToonMaterial; bandMat: THREE.MeshToonMaterial; head: THREE.Group } = {
-    root, dressMat, bandMat, head,
+  const api: ActorMesh & { dressMat: THREE.MeshToonMaterial; bandMat: THREE.MeshToonMaterial; head: THREE.Group; body: THREE.Group; dress: THREE.Mesh; band: THREE.Mesh; arms: typeof arms; legs: typeof legs } = {
+    root, dressMat, bandMat, head, body, dress, band, arms, legs,
     setFacing(f, dt) { ang = lerpAngle(ang, FACE_ANGLE[f], Math.min(1, dt * 14)); model.rotation.y = ang; },
     animate(t, moving, run = false) {
       const dt = last < 0 ? 0 : Math.min(0.05, Math.max(0, t - last));
@@ -382,8 +390,8 @@ function build(sp: Spec) {
       head.position.y = HEAD_Y + br * 0.016 * idle - (1 - hop) * 0.02 * w;
       head.rotation.z = Math.sin(t * 1.1 + off) * 0.035 * idle - s * 0.05 * w;
       for (const a of arms) a.pivot.rotation.x = a.sx * s * (0.8 + runK * 0.25) * w + br * 0.05 * idle;
-      legs[0].rotation.x = -s * (0.75 + runK * 0.2) * w;
-      legs[1].rotation.x = s * (0.75 + runK * 0.2) * w;
+      legPivots[0].rotation.x = -s * (0.75 + runK * 0.2) * w;
+      legPivots[1].rotation.x = s * (0.75 + runK * 0.2) * w;
       eyes.scale.y = ((t + off * 3) % 3.7 < 0.12 ? 0.12 : 1) * eyeK; // blink
       marker.position.y = 2.0 * sp.scale + Math.sin(t * 3) * 0.06;
       tick?.(t, w);
@@ -422,52 +430,23 @@ function buildAccessories(): Record<string, THREE.Object3D> {
   };
 }
 
-export function createPlayerMesh(): ActorMesh & { setOutfit(o: OutfitDef): void; setAccessory(id: string | null): void } {
+export function createPlayerMesh(): ActorMesh & { setLook(l: Look): void; setAccessory(id: string | null): void } {
   const a = build({
     kind: 'player', skin: '#ffe9f4', accent: PALETTE.pink, dress: '#fff1e0', band: 'pink', shoes: '#ff8fb8',
-    scale: 1, bag: true, headScale: [1.1, 1.06, 1.08], headDrop: -0.04, bodyScale: [1.08, 0.92, 1.08], eyeScale: 1.16,
-    extra({ body }) {
-      const collar = new THREE.Mesh(G.torus(0.18, 0.038, 8, 18), makeToon(PALETTE.rose));
-      collar.rotation.x = Math.PI / 2.15;
-      collar.position.set(0, 0.56, 0.03);
-      collar.castShadow = true;
-      const heart = new Batch();
-      heart.add(G.ball(0.032, 8), '#ff7fa9', { x: -0.018, y: 0.5, z: 0.16 });
-      heart.add(G.ball(0.032, 8), '#ff7fa9', { x: 0.018, y: 0.5, z: 0.16 });
-      heart.add(G.ball(0.028, 8), '#ff9ec0', { y: 0.465, z: 0.17, s: [1.15, 0.85, 0.7] });
-      body.add(collar, heart.build());
-    },
+    scale: 1, headScale: [1.1, 1.06, 1.08], headDrop: -0.04, bodyScale: [1.08, 0.92, 1.08], eyeScale: 1.16,
   });
-
-  // hats (built once, toggled per outfit)
-  const bow = bowGeo(new Batch(), '#ffffff', 1.25).build(cheetahToon('pink'));
-  bow.position.set(...on(-38, 58, 1.08));
-  bow.rotation.set(-0.3, 0, 0.45);
-
-  const beret = new Batch()
-    .add(G.ball(0.3, 16), PALETTE.rose, { s: [1, 0.42, 1] })
-    .add(G.cyl(0.2, 0.22, 0.05), '#ff7fa9', { y: -0.07 })
-    .add(G.ball(0.035, 8), '#ff7fa9', { y: 0.14 })
-    .build();
-  beret.position.set(0.08, HB + 0.02, 0.02);
-  beret.rotation.set(-0.1, 0, -0.28);
-
-  const sunhat = new THREE.Group();
-  sunhat.add(new Batch()
-    .add(G.cyl(0.56, 0.6, 0.035, 24), '#fff4dc', {})
-    .add(G.ball(0.3, 16), '#fff4dc', { y: 0.02, s: [1, 0.7, 1] })
-    .build());
-  const hatBand = new THREE.Mesh(scaleUv(new THREE.CylinderGeometry(0.295, 0.31, 0.09, 20, 1, true), 2.2, 0.12), cheetahToon('classic'));
-  hatBand.position.y = 0.055;
-  hatBand.castShadow = true;
-  sunhat.add(hatBand);
-  sunhat.position.set(0, HB - 0.07, -0.05);
-  sunhat.rotation.x = -0.3;
-
-  a.head.add(bow, beret, sunhat);
+  // the wardrobe draws the clothes; the stock dress / hem of the shared body stay hidden
+  a.dress.visible = a.band.visible = false;
   const accessories = buildAccessories();
   a.head.add(...Object.values(accessories));
-  const tmp = new THREE.Color();
+  const skinLeg = toon('#ffe9f4');
+  const worn = new Map<string, THREE.Object3D>(); // slot -> model currently attached
+  const attach = (slot: string, obj: THREE.Object3D | null, parent: THREE.Object3D | null) => {
+    const cur = worn.get(slot);
+    if (cur === obj) return;
+    cur?.removeFromParent();
+    if (obj && parent) { parent.add(obj); worn.set(slot, obj); } else worn.delete(slot);
+  };
   let cur = '', curAcc: string | null = null;
   return Object.assign(a, {
     setAccessory(id: string | null) {
@@ -475,16 +454,35 @@ export function createPlayerMesh(): ActorMesh & { setOutfit(o: OutfitDef): void;
       curAcc = id;
       for (const [k, o] of Object.entries(accessories)) o.visible = k === id;
     },
-    setOutfit(o: OutfitDef) {
-      if (cur === o.id) return;
-      cur = o.id;
-      setFill(a.dressMat, o.pattern ?? o.body);
-      // printed outfits get a plain trim hem; plain outfits get a cheetah-print hem that contrasts with the fabric
-      tmp.set(o.body);
-      setFill(a.bandMat, o.pattern ? o.trim : tmp.r - tmp.g > 0.12 ? 'classic' : 'pink');
-      bow.visible = o.hat === 'bow';
-      beret.visible = o.hat === 'beret';
-      sunhat.visible = o.hat === 'sunhat';
+    setLook(l: Look) {
+      const key = lookKey(l);
+      if (cur === key) return;
+      cur = key;
+      // body: a dress, or a top over a bottom
+      attach('dress', l.dress ? buildCloth(l.dress) : null, a.body);
+      attach('top', l.dress ? null : buildCloth(l.top), a.body);
+      attach('bottom', l.dress ? null : buildCloth(l.bottom), a.body);
+      // sleeves + legs follow the clothes
+      const sl = sleeveOf(l), pants = legsOf(l);
+      for (const arm of a.arms) {
+        arm.sleeve.visible = !!sl.mat && sl.len > 0;
+        if (sl.mat) arm.sleeve.material = sl.mat;
+        arm.sleeve.scale.set(sl.len === 3 ? 1.22 : 1, sl.len === 1 || sl.len === 3 ? 0.5 : 1, sl.len === 3 ? 1.22 : 1);
+      }
+      for (const lg of a.legs) lg.leg.material = pants ?? skinLeg;
+      // shoes: hide the stock ones, hang the item's pair on the legs
+      const pair = l.shoes ? buildShoes(l.shoes) : null;
+      a.legs.forEach((lg, i) => { lg.shoe.visible = !l.shoes; attach('shoe' + i, pair ? pair[i] : null, lg.pivot); });
+      // head: hat (hood ears hide under a hat), face piece
+      attach('hat', l.hat ? buildCloth(l.hat) : null, a.head);
+      const hood = headExtraOf(l);
+      attach('hood', hood && !l.hat ? buildHood(hood) : null, a.head);
+      attach('face', l.face ? buildCloth(l.face) : null, a.head);
+      // bag: hand-held (right hand) or on the back / hip
+      const bagObj = l.bag ? buildCloth(l.bag) : null;
+      const hand = bagObj?.userData.mount === 'hand';
+      if (hand) bagObj!.position.set(0, -0.27, 0);
+      attach('bag', bagObj, hand ? a.arms[1].pivot : a.body);
     },
   });
 }

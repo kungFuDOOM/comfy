@@ -6,10 +6,14 @@ import { drawLantern, LANTERN_KINDS } from '../art/lantern';
 import { enterPlace, leavePlace, sfx } from '../audio';
 import { toast } from '../bus';
 import { canBrew, brewing, isUnlocked, recipesFor, startBrew } from '../cafe';
-import { buyDecor, buyOutfit, currentAccessory, currentOutfit, endPreview, ownedAccessories, previewOutfit, toggleAccessory, tryOn, wear } from '../boutique';
+import { buyDecor, currentAccessory, ownedAccessories, toggleAccessory } from '../boutique';
+import { CLOTHES, SLOTS, STYLES, clothById, variantsOf, type ClothDef, type Slot, type StyleId } from '../clothes';
+import { START_WORN } from '../clothes/start';
+import { buyCloth, canTakeOff, dailyStock, endPreview, equipOn, howToGet, isSold, isWorn, lookIsOwned, owns, previewing, previewItem, resolveLook, selectedCloth, takeOff, tryOn, wearItem, wearPreview } from '../wardrobe';
+import { PARTY_HAT, checklist, regionComplete } from '../regions';
 import { dragSpin, dressing, nudgeSpin } from '../dressing';
 import { startDressingRoom, stopDressingRoom } from '../render/dressingRoom';
-import { CURRENCY, ITEMS, OUTFITS, QUESTS, SHOP_DECOR, SKILLS, type Bench, type Recipe, SHOP_INGREDIENTS, SHOP_SEEDS, VILLAGERS, type VillagerDef } from '../data';
+import { CURRENCY, EVENT_PANTRY, ITEMS, QUESTS, SHOP_DECOR, SKILLS, type Bench, type Recipe, SHOP_INGREDIENTS, SHOP_SEEDS, VILLAGERS, type VillagerDef } from '../data';
 import { addItem, assignHotbar, BAG_SLOTS, BANK_SLOTS, count, earn, moveStack, removeItem, spend, tidyBag } from '../inventory';
 import { LOG_QUESTS, questsFrom, questStatus, questVisible, startQuest, statusText, turnIn } from '../questlog';
 import { AREA_LIST } from '../areas';
@@ -24,6 +28,10 @@ import { state } from '../state';
 import { getClock } from '../time';
 import { glyphEl } from '../input/prompts';
 import { btn, h, openPanel, type PanelApi } from './dom';
+import { renderEventsTab } from './eventsUi';
+import { eventItemOpen, getActiveEvents } from '../events';
+import { openCookieBake } from '../events/cookieBake';
+import { canBakePie, openPieBake } from '../events/pieBake';
 import { openPause } from './menuPanels';
 import { npcs } from '../npc';
 import { GROVE } from '../world';
@@ -130,14 +138,15 @@ function recipeList(body: HTMLElement, api: PanelApi, bench: Bench) {
   body.append(h('div', 'muted', BENCH_INTRO[bench]));
   for (const r of recipesFor(bench) as Recipe[]) {
     const def = ITEMS[r.id], open = isUnlocked(r);
-    const ok = canBrew(r.id) && !brewing.id;
+    const seasonal = !!r.event;
+    const ok = seasonal ? canBakePie(r) : canBrew(r.id) && !brewing.id;
     body.append(h('div', 'card row-card' + (open ? '' : ' locked'),
       itemIcon(r.id, 40),
       h('div', 'grow', h('b', '', def.name), h('div', 'muted', def.desc),
         open ? null : h('div', 'lock-note', `🔒 Needs ${skillName(r.skill)} level ${r.level}`),
         h('div', 'needs', ...Object.entries(r.needs).map(([k, n]) => h('span', count(k) >= n ? 'need ok' : 'need no', itemIcon(k, 16), `${ITEMS[k].name} ${count(k)}/${n}`))),
-        open ? h('div', 'muted small', `+${r.xp} ${skillName(r.skill)} XP`) : null),
-      btn(BENCH_VERB[bench], () => { if (startBrew(r.id)) api.rerender(); }, '', !ok || !open),
+        open ? h('div', 'muted small', `${seasonal ? (r.event === 'twinkle' ? 'Seasonal cookies, a little timing game · ' : 'Seasonal pie, a little timing game · ') : ''}+${r.xp} ${skillName(r.skill)} XP`) : null),
+      btn(seasonal ? (r.event === 'twinkle' ? 'Bake 🍪' : 'Bake 🥧') : BENCH_VERB[bench], () => { if (seasonal) (r.event === 'twinkle' ? openCookieBake : openPieBake)(r.id); else if (startBrew(r.id)) api.rerender(); }, '', !ok || !open),
     ));
   }
   if (brewing.id) {
@@ -161,6 +170,10 @@ export function openCafe() {
     else {
       body.append(h('div', 'muted', 'Fresh ingredients for the counter.'));
       for (const id of SHOP_INGREDIENTS) body.append(shopRow(id, ITEMS[id].buy!, () => buyItem(id, api)));
+      for (const e of getActiveEvents()) {
+        const extra = (EVENT_PANTRY[e.id] ?? []).filter(eventItemOpen); // week-gated goods wait for their chapter
+        if (extra.length) body.append(h('div', 'ev-sec', `${e.icon} ${e.name} specials`), ...extra.map((id) => shopRow(id, ITEMS[id].buy!, () => buyItem(id, api))));
+      }
     }
   }, () => leavePlace());
 }
@@ -237,37 +250,92 @@ function spinBtn(label: string, aria: string, dir: number) {
   return b;
 }
 
-/** The fitting-room controls: turn buttons, the selected look, Buy / Wear + Back, then the outfit and accessory picks. */
-function dressingView(body: HTMLElement, api: PanelApi, mode: 'shop' | 'wardrobe') {
+/** Filters the dressing panel remembers while it stays open. */
+interface DressUi { slot: Slot | 'all'; style: StyleId | 'all' }
+const newDressUi = (): DressUi => ({ slot: 'all', style: 'all' });
+
+/** A small picture of an item on the default look. Hats / glasses zoom to the head, shoes to the feet. Locked items are silhouettes. */
+function clothThumb(c: ClothDef, locked: boolean) {
+  return canvasEl(46, 52, (g) => {
+    g.fillStyle = locked ? '#f3e9ef' : '#fff0f6'; g.fillRect(0, 0, 46, 52);
+    const look = resolveLook(equipOn({ ...START_WORN }, c));
+    const head = c.slot === 'hat' || c.slot === 'face', feet = c.slot === 'shoes';
+    const sc = head ? 1.75 : feet ? 2.1 : 1.0;
+    const cy = head ? 26 + 27.5 * sc : feet ? 22 : 46;
+    if (locked) { const t = document.createElement('canvas'); t.width = 46; t.height = 52; const tg = t.getContext('2d')!; drawPlayer(tg, 23, cy, look, 'down', false, 0, sc); tg.globalCompositeOperation = 'source-in'; tg.fillStyle = '#cdbcc9'; tg.fillRect(0, 0, 46, 52); g.drawImage(t, 0, 0); }
+    else drawPlayer(g, 23, cy, look, 'down', false, 0, sc);
+  });
+}
+
+/** The fitting-room controls: turn buttons, the selected piece, Buy / Wear + Back, filters, and a grid of pieces with colour dots. */
+function dressingView(body: HTMLElement, api: PanelApi, mode: 'shop' | 'wardrobe', ui: DressUi) {
   const shop = mode === 'shop';
-  const sel = currentOutfit();
-  const owned = state.ownedOutfits.includes(sel.id), wearing = state.outfit === sel.id;
-  const status = wearing ? 'Wearing ✓' : owned ? (shop ? 'Yours · trying on' : 'Trying on') : 'Trying on';
+  const sel = selectedCloth();
+  const owned = !!sel && owns(sel.id), wearing = !!sel && isWorn(sel.id), sold = !!sel && isSold(sel);
+  const status = !sel ? '' : wearing ? 'Wearing ✓' : owned ? 'Yours · trying on' : sold ? 'Trying on' : '🔒 Not earned yet';
   body.append(
     h('div', 'dress-stage',
       spinBtn('◀', 'Turn left', -1),
-      h('div', 'dress-name', h('b', '', sel.name), h('span', 'dress-status', status, !owned ? price(sel.price) : null)),
+      h('div', 'dress-name', h('b', '', sel?.name ?? 'Your look'), h('span', 'dress-status', status, sel && !owned && sold ? price(sel.price) : null)),
       spinBtn('▶', 'Turn right', 1)),
     h('div', 'dress-actions',
-      !owned ? btn(h('span', 'inline', 'Buy ', price(sel.price)), () => { buyOutfit(sel.id); api.rerender(); }, 'dress-main', state.coins < sel.price)
-        : !wearing ? btn('Wear ✿', () => { wear(sel.id); api.rerender(); }, 'dress-main')
-          : btn('Wearing ✓', () => {}, 'dress-main', true),
+      !sel ? null
+        : !owned ? (sold ? btn(h('span', 'inline', 'Buy ', price(sel.price)), () => { buyCloth(sel.id); api.rerender(); }, 'dress-main', state.coins < sel.price) : btn('Locked 🔒', () => {}, 'dress-main', true))
+          : !wearing ? btn('Wear ✿', () => { wearItem(sel.id); api.rerender(); }, 'dress-main')
+            : canTakeOff(sel.slot) ? btn('Take off', () => { takeOff(sel.slot); api.rerender(); }, 'dress-main ghost')
+              : btn('Wearing ✓', () => {}, 'dress-main', true),
+      previewing() && lookIsOwned() ? btn('Wear look', () => { wearPreview(); api.rerender(); }, 'dress-main') : null,
       btn('Back', () => api.close(), 'ghost dress-back')),
   );
+  if (sel) body.append(h('div', 'muted small dress-desc', sel.desc, !owned ? ` ${howToGet(sel)}.` : ''));
+
+  // what this view can show: the day's stock, or everything owned plus the not-for-sale pieces still to earn
+  const all = shop ? dailyStock() : CLOTHES.filter((c) => owns(c.id) || !isSold(c));
+  const slotOk = (c: ClothDef) => ui.slot === 'all' || c.slot === ui.slot;
+  const bySlot = all.filter(slotOk);
+  const styles = STYLES.filter((st) => bySlot.some((c) => c.style === st.id));
+  if (ui.style !== 'all' && !styles.some((st) => st.id === ui.style)) ui.style = 'all';
+  const shown = bySlot.filter((c) => ui.style === 'all' || c.style === ui.style);
+
+  const slotTab = (id: Slot | 'all', label: string, icon: string) =>
+    btn(h('span', 'inline', icon, ' ', label), () => { ui.slot = id; api.rerender(); }, 'chip-tab' + (ui.slot === id ? ' on' : ''));
+  body.append(
+    h('div', 'dress-filter dress-slots', slotTab('all', 'All', '✿'), ...SLOTS.map((s) => slotTab(s.id, s.label, s.icon))),
+    h('div', 'dress-filter dress-styles',
+      btn('All styles', () => { ui.style = 'all'; api.rerender(); }, 'chip-tab small' + (ui.style === 'all' ? ' on' : '')),
+      ...styles.map((st) => btn(h('span', 'inline', st.icon, ' ', st.label), () => { ui.style = st.id; api.rerender(); }, 'chip-tab small' + (ui.style === st.id ? ' on' : '')))));
+
+  // one tile per colour family; the dots switch between its colours
+  const groups = new Map<string, ClothDef[]>();
+  for (const c of shown) (groups.get(c.slot + ':' + c.group) ?? groups.set(c.slot + ':' + c.group, []).get(c.slot + ':' + c.group)!).push(c);
   const list = h('div', 'dress-list');
-  for (const o of shop ? OUTFITS : OUTFITS.filter((x) => state.ownedOutfits.includes(x.id))) {
-    const mine = state.ownedOutfits.includes(o.id);
-    const tile = h('button', 'dress-tile' + (sel.id === o.id ? ' on' : '') + (state.outfit === o.id ? ' worn' : ''),
-      canvasEl(40, 46, (g) => { g.fillStyle = '#fff0f6'; g.fillRect(0, 0, 40, 46); drawPlayer(g, 20, 40, o, 'down', false, 0, 0.95); }),
-      h('span', 'dt-text', h('b', '', o.name), h('span', 'muted small', state.outfit === o.id ? '✓ Wearing' : mine ? 'Owned' : '', !mine ? price(o.price) : null)));
-    tile.title = o.desc;
-    tile.addEventListener('click', () => { if (shop) tryOn(o.id); else previewOutfit(o.id); api.rerender(); });
+  if (!groups.size) list.append(h('div', 'muted small', shop ? 'Nothing like that on the racks today. Try another filter!' : 'Nothing here yet. Shop, craft, and finish quests to fill the wardrobe.'));
+  for (const fam of groups.values()) {
+    const cur = fam.find((c) => c.id === sel?.id) ?? fam.find((c) => isWorn(c.id)) ?? fam[0];
+    const mine = owns(cur.id), locked = !mine && !isSold(cur);
+    const tile = h('div', 'dress-tile' + (sel?.id === cur.id ? ' on' : '') + (isWorn(cur.id) ? ' worn' : '') + (locked ? ' locked' : ''));
+    const main = h('button', 'dt-main', clothThumb(cur, locked),
+      h('span', 'dt-text', h('b', '', locked ? '???' : cur.name),
+        h('span', 'muted small', isWorn(cur.id) ? '✓ Wearing' : mine ? 'Owned' : locked ? howToGet(cur) : '', !mine && !locked ? price(cur.price) : null)));
+    main.title = locked ? howToGet(cur) : cur.desc;
+    main.addEventListener('click', () => { if (shop) tryOn(cur.id); else previewItem(cur.id); api.rerender(); });
+    tile.append(main);
+    const sibs = fam.length > 1 ? fam : variantsOf(cur).filter((v) => shown.includes(v));
+    if (sibs.length > 1) {
+      tile.append(h('div', 'dress-dots', ...sibs.map((v) => {
+        const d = h('button', 'cdot' + (v.id === cur.id ? ' on' : '') + (owns(v.id) ? ' own' : ''));
+        d.style.background = v.color; d.style.setProperty('--trim', v.trim);
+        d.title = v.tint; d.setAttribute('aria-label', v.tint);
+        d.addEventListener('click', () => { if (shop) tryOn(v.id); else previewItem(v.id); api.rerender(); });
+        return d;
+      })));
+    }
     list.append(tile);
   }
-  body.append(h('div', 'muted small dress-desc', shop ? `${sel.desc} Tap any look to try it on — it's free!` : sel.desc), list);
+  body.append(list);
   // accessories: handmade at the Crafting Table, worn as a small visible clip on the head
   const accs = ownedAccessories(), worn = currentAccessory();
-  body.append(h('div', 'sub', 'Accessories'),
+  body.append(h('div', 'sub', 'Hair pins'),
     accs.length ? h('div', 'chips dress-acc', ...accs.map((id) => {
       const c = h('button', 'chip-item' + (worn === id ? ' on' : ''), itemIcon(id, 22), h('span', '', `${ITEMS[id].name}${worn === id ? ' ✓' : ''}`));
       c.title = worn === id ? 'Tap to take it off' : 'Tap to wear it';
@@ -287,6 +355,7 @@ export function openCrafting() {
 // ---------- Boutique ----------
 export function openBoutique() {
   let tab: 'outfits' | 'decor' = 'outfits';
+  const ui = newDressUi();
   enterPlace('boutique');
   openPanel('Spot & Bow Boutique', (body, api) => {
     body.style.setProperty('--cheetah', `url(${cheetahDataUrl('classic')})`);
@@ -294,7 +363,7 @@ export function openBoutique() {
       h('div', 'tabs', tabBtn('Outfits', tab === 'outfits', () => { tab = 'outfits'; api.rerender(); }), tabBtn('Decor', tab === 'decor', () => { tab = 'decor'; api.rerender(); })));
     setDressing(body, api, tab === 'outfits');
     if (tab === 'outfits') {
-      dressingView(body, api, 'shop');
+      dressingView(body, api, 'shop', ui);
     } else {
       body.append(h('div', 'muted', 'Decor for your yard. Select it on the hotbar and face a yard tile.'));
       for (const id of SHOP_DECOR) body.append(shopRow(id, ITEMS[id].buy!, () => { if (buyDecor(id)) api.rerender(); }));
@@ -329,8 +398,9 @@ function tidyOnOpen() {
   if (n > 0) toast(`${n} ${n === 1 ? 'stack' : 'stacks'} moved to the Softkeep Chest to make room.`);
 }
 
-export function openBag() {
-  let tab: 'items' | 'wardrobe' = 'items';
+export function openBag(start: 'items' | 'wardrobe' = 'items') {
+  let tab: 'items' | 'wardrobe' = start;
+  const ui = newDressUi();
   tidyOnOpen();
   openPanel('Bag', (body, api) => {
     body.append(h('div', 'tabs', tabBtn('Items', tab === 'items', () => { tab = 'items'; api.rerender(); }), tabBtn('Wardrobe', tab === 'wardrobe', () => { tab = 'wardrobe'; api.rerender(); })));
@@ -348,7 +418,7 @@ export function openBag() {
       for (let i = ids.length; i < BAG_SLOTS; i++) grid.append(h('div', 'bagcell empty', h('span', 'nm', '\u00a0')));
       body.append(grid, h('div', 'muted small', 'Spare things keep safe in the Softkeep Chest, in the yard by your home.'));
     } else {
-      dressingView(body, api, 'wardrobe');
+      dressingView(body, api, 'wardrobe', ui);
     }
   }, () => { stopDressingRoom(); endPreview(); });
 }
@@ -391,7 +461,7 @@ export function openJournal(start = 'quests') {
   let tab = start;
   openPanel('Journal', (body, api) => {
     const t = (id: string, label: string) => tabBtn(label, tab === id, () => { tab = id; api.rerender(); });
-    body.append(h('div', 'tabs', t('quests', 'Quests'), t('skills', 'Skills'), t('collection', 'Collection'), t('friends', 'Friends'), t('island', 'Island'), t('map', 'Map'), t('lanterns', 'Lanterns')));
+    body.append(h('div', 'tabs', t('quests', 'Quests'), t('skills', 'Skills'), t('collection', 'Collection'), t('friends', 'Friends'), t('island', 'Island'), t('map', 'Map'), t('lanterns', 'Lanterns'), t('events', getActiveEvents().length ? `Events ${getActiveEvents()[0].icon}` : 'Events')));
     // the card widens / goes two-column for skills on phones (scenes.css); other tabs keep their usual size
     body.parentElement?.classList.toggle('skills-open', tab === 'skills');
     if (tab === 'skills') {
@@ -452,9 +522,12 @@ export function openJournal(start = 'quests') {
           h('div', 'grow', h('b', '', v.name), h('div', 'muted', `${v.speciesName} · ${v.personality}`), h('div', 'muted small', v.bio)),
           h('div', 'hearts', hearts5(v.id))));
       }
+    } else if (tab === 'events') {
+      renderEventsTab(body, clothThumb);
     } else if (tab === 'map') {
       renderMap(body, api);
     } else if (tab === 'island') {
+      body.append(h('div', 'muted small', state.partyHats.includes('star') ? '🌟 Every region is complete — the Island Star hat is yours!' : 'Complete a region to earn its party hat. Complete all six for the golden Island Star hat.'));
       body.append(h('div', 'muted', 'Sugarlily Isle is bigger than it looks. Cute barriers keep the farther corners shut until you are ready.'));
       for (const a of AREA_LIST) {
         const open = isAreaOpen(a.id);
@@ -467,7 +540,9 @@ export function openJournal(start = 'quests') {
             h('div', 'muted', a.blurb),
             open
               ? h('div', 'muted small', a.id === 'town' ? 'Open — always' : `Open ✓${friend ? ` · ${friend.name.split(' ')[0]} lives here` : ''}`)
-              : h('div', 'lock-note', `🔒 ${b!.name}: needs ${requirementText(a.req!)}${requirementMet(a.req!) ? ' — you can open it now!' : ''}`))));
+              : h('div', 'lock-note', `🔒 ${b!.name}: needs ${requirementText(a.req!)}${requirementMet(a.req!) ? ' — you can open it now!' : ''}`),
+            h('ul', 'region-list', ...checklist(a.id).map((st) => h('li', st.done ? 'done' : '', `${st.done ? '✓' : '○'} ${st.label}`))),
+            h('div', 'muted small', regionComplete(a.id) ? `🎉 Complete! ${clothById(PARTY_HAT[a.id])?.name} is in your wardrobe.` : `Finish these for the ${clothById(PARTY_HAT[a.id])?.name}.`))));
       }
     } else {
       renderLanternTab(body, api);

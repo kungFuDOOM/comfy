@@ -1,7 +1,8 @@
 // Game orchestration: loop, interaction, and hooking simulation up to the Three.js renderer.
 import { cheetahDataUrl } from './art/cheetah';
 import { setMood, sfx, updateDirector } from './audio';
-import { currentAccessory, currentOutfit } from './boutique';
+import { currentAccessory } from './boutique';
+import { currentLook } from './wardrobe';
 import { updateBrew } from './cafe';
 import { spawnOne, updateCollect } from './collect';
 import { decorHint, useYard } from './decorate';
@@ -13,10 +14,14 @@ import { initNpcs, npcs, presentNpcs, talkedToday, updateNpcs, type Npc } from '
 import { faceToward, frontTile, placePlayer, player, tileOf, updatePlayer, walkTo, cancelPath } from './player';
 import { count, selectedItem, selectSlot } from './inventory';
 import { nodeAtTile, nodeCenter, nodeHint, nodeNear, updateNodes, useNode } from './nodes';
-import { changed, toast } from './bus';
+import { bus, changed, toast } from './bus';
+import { tickAwards, checkRegions } from './regions';
+import { refreshEarned } from './wardrobe';
 import { sceneActive } from './render/stage';
 import { sharedWorld3D, type World3D } from './render/world3d';
 import { saveGame } from './save';
+import { activeEventSpots, eventSpotAtTile, tickEvents, type EventSpot } from './events';
+import './events/index';
 import { state } from './state';
 import { getClock } from './time';
 import { isPanelOpen } from './ui/dom';
@@ -32,6 +37,7 @@ let world3d: World3D;
 let saveTimer = 0;
 let seenHelpTimer = 0.8;
 let markerOn = false;
+let eventTimer = 0;
 
 // ---- Interaction ----
 type Target = { label: string; run: () => void } | null;
@@ -52,12 +58,25 @@ function npcNear(): Npc | null {
   return best;
 }
 
+/** The nearest seasonal-event spot within reach (a thin rectangle in tile units, so measure to its edge). */
+function spotNear(): { s: EventSpot; d: number } | null {
+  let best: { s: EventSpot; d: number } | null = null;
+  const px = player.x, py = player.y - 8;
+  for (const s of activeEventSpots()) {
+    const [x0, y0, x1, y1] = s.rect;
+    const d = Math.hypot(Math.max(x0 * TS, Math.min(px, x1 * TS)) - px, Math.max(y0 * TS, Math.min(py, y1 * TS)) - py);
+    if (d < (s.reach ?? 40) && (!best || d < best.d)) best = { s, d };
+  }
+  return best;
+}
+
 function openStation(s: Station) {
   if (s.id === 'cafe') openCafe();
   else if (s.id === 'boutique') openBoutique();
   else if (s.id === 'crafting') openCrafting();
   else if (s.id === 'market') openMarket();
   else if (s.id === 'chest') openChest();
+  else if (s.id === 'wardrobe') openBag('wardrobe');
   else openJournal('lanterns');
 }
 
@@ -69,11 +88,13 @@ function tileTarget(tx: number, ty: number): Target {
 }
 
 function currentTarget(): Target {
-  const n = npcNear(), s = stationNear(), nd = nodeNear(), bar = barrierNear();
+  const n = npcNear(), s = stationNear(), nd = nodeNear(), bar = barrierNear(), sp = spotNear();
   if (bar && !(n && Math.hypot(n.x - player.x, n.y - player.y) < bar.d)) return { label: barrierHint(bar.b), run: () => useBarrier(bar.b) };
   const dn = n ? Math.hypot(n.x - player.x, n.y - player.y) : Infinity;
   const ds = s ? Math.hypot((s.x + s.w / 2) * TS - player.x, s.y * TS + TS / 2 - (player.y - 8)) - 16 : Infinity;
   const dd = nd ? Math.hypot(nodeCenter(nd).x - player.x, nodeCenter(nd).y - (player.y - 8)) : Infinity;
+  const dsp = sp ? sp.d : Infinity;
+  if (sp && dsp <= dn && dsp <= ds && dsp <= dd) return { label: `${sp.s.label}: ${sp.s.prompt}`, run: () => sp.s.run() };
   if (n && dn <= ds && dn <= dd) return { label: `Chat with ${n.def.name.split(' ')[0]}`, run: () => openDialogue(n.def) };
   if (s && ds <= dd) return { label: `${s.label} — ${s.prompt}`, run: () => openStation(s) };
   if (nd) return { label: nodeHint(nd), run: () => useNode(nd) };
@@ -109,6 +130,15 @@ function handleClick(sx: number, sy: number) {
   const wx = pick.wx, wy = pick.wy;
   const tapMarker = (ok: boolean) => { if (ok) { world3d.marker(wx, wy); markerOn = true; } else cancelPath(); };
   const tx = Math.floor(wx / TS), ty = Math.floor(wy / TS);
+  // a seasonal-event spot (the feast table): walk to its approach tiles, then use it
+  const evSpot = eventSpotAtTile(tx, ty);
+  if (evSpot) {
+    const goals = (evSpot.approach ?? around(tx, ty)).filter((g) => !isSolidTile(g.x, g.y));
+    const go = () => evSpot.run();
+    if (spotNear()?.s === evSpot) go();
+    else if (!goals.length || !walkTo(goals, go)) cancelPath();
+    return;
+  }
   // plot / yard tile
   if (isPlotTile(tx, ty) || inYard(tx, ty)) {
     const me = tileOf();
@@ -174,7 +204,10 @@ function update(dt: number) {
   updateNodes(dt);
   updateLanterns(dt);
   tickGarden();
+  eventTimer -= dt;
+  if (eventTimer <= 0) { eventTimer = 0.5; tickEvents(); }
   updateCollect(dt, player.x, player.y);
+  tickAwards(dt, panel);
   // hint
   const tgt = panel ? null : currentTarget();
   setHint(tgt ? `${glyph('interact')} · ${tgt.label}` : null);
@@ -214,7 +247,7 @@ function render(t: number, dt: number) {
   const dress = dressing.active;
   world3d.render({
     t, dt, hour: dress ? 12.5 : clock.hour, season: clock.season,
-    player: dress ? { x: player.x, y: player.y, facing: 'down', moving: false, running: false, surface: 'grass' } : { ...player, running: player.running, surface: surfaceUnder() }, outfit: currentOutfit(), accessory: currentAccessory(), npcs: presentNpcs(), talkedToday,
+    player: dress ? { x: player.x, y: player.y, facing: 'down', moving: false, running: false, surface: 'grass' } : { ...player, running: player.running, surface: surfaceUnder() }, look: currentLook(), accessory: currentAccessory(), npcs: presentNpcs(), talkedToday,
   });
 }
 
@@ -232,6 +265,9 @@ export function startGame() {
   if (!state.spawns.length) for (let i = 0; i < 10; i++) spawnOne(player.x, player.y);
   lastX = player.x; lastY = player.y; stepDist = 0;
   setMood('town');
+  refreshEarned(false); // pieces earned before this update, and any party hat already deserved (queued for the ceremony)
+  checkRegions();
+  tickEvents(); // seasonal events: greet, build the table's collision (the 3D decorations follow on the first frame)
   if (booted) {
     cancelPath();
     world3d.snapCamera(player.x, player.y);
@@ -242,6 +278,7 @@ export function startGame() {
   booted = true;
   document.documentElement.style.setProperty('--cheetah', `url(${cheetahDataUrl('classic')})`);
   document.documentElement.style.setProperty('--cheetah-pink', `url(${cheetahDataUrl('pink')})`);
+  bus.on('openWardrobe', () => { if (!isPanelOpen()) openBag('wardrobe'); });
   world3d = sharedWorld3D(canvas);
   world3d.resize();
   window.addEventListener('resize', () => world3d.resize());

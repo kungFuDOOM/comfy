@@ -35,6 +35,20 @@ export interface Clock {
 const params = new URLSearchParams(location.search);
 const hourOverride = params.has('hour') ? Number(params.get('hour')) : null;
 const monthOverride = params.has('month') ? Number(params.get('month')) : null;
+/** ?date=YYYY-MM-DD previews any calendar day (seasonal events, daily stock). Invalid values are ignored. */
+const dateOverride: Date | null = (() => {
+  const m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(params.get('date') ?? '');
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return Number.isNaN(d.getTime()) || d.getMonth() !== Number(m[2]) - 1 ? null : d;
+})();
+export const hasDateOverride = dateOverride !== null;
+/** The calendar day the game believes it is: the real date, or the ?date= override (the time of day stays real). */
+export function today(): Date {
+  const d = new Date();
+  if (!dateOverride) return d;
+  return new Date(dateOverride.getFullYear(), dateOverride.getMonth(), dateOverride.getDate(), d.getHours(), d.getMinutes(), d.getSeconds());
+}
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const PHASE_NAMES: Record<Phase, string> = { morning: 'Morning', day: 'Daytime', evening: 'Evening', night: 'Night' };
 
@@ -50,7 +64,7 @@ export function phaseForHour(h: number): Phase {
 }
 
 export function getClock(): Clock {
-  const d = new Date();
+  const d = today();
   let hour = d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
   if (hourOverride !== null && !Number.isNaN(hourOverride)) hour = hourOverride;
   const month = monthOverride && monthOverride >= 1 && monthOverride <= 12 ? monthOverride : d.getMonth() + 1;

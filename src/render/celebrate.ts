@@ -160,3 +160,25 @@ export function welcomeAt(at: THREE.Vector3) {
 export function welcomeTrickle(at: THREE.Vector3) {
   celebrate.burst(at, { count: 2, colors: ['#ff8fb6', '#ffb3cf', '#ffffff', '#fff3a8'], shapes: [Shape.Heart, Shape.Star], spread: 0.6, speed: 0.3, up: 1.1, gravity: -0.1, size: [0.14, 0.22], life: [1.4, 2.0] });
 }
+
+/** Party confetti: streamers and stars burst up from the player, then flutter down. */
+export function confettiAt(at: THREE.Vector3) {
+  const cols = ['#ff9ec0', '#ffe27a', '#8fe0c0', '#c9a8ff', '#9bd4ff', '#ffffff'];
+  celebrate.burst(at, { count: 90, colors: cols, shapes: [Shape.Dot, Shape.Dot, Shape.Heart], spread: 0.4, speed: 2.4, up: 5.2, gravity: 4.2, size: [0.14, 0.24], life: [1.4, 2.1], stagger: 0.25 });
+  celebrate.burst(at, { count: 40, colors: cols, shapes: [Shape.Star], spread: 0.6, speed: 2.0, up: 4.2, gravity: 2.4, size: [0.16, 0.28], life: [1.0, 1.6], stagger: 0.5 });
+}
+
+/** Harvest Hush Feast: a swirl of autumn leaves, hearts and sparkles. */
+export function harvestAt(at: THREE.Vector3) {
+  const leaves = ['#ffb48a', '#ff9fa8', '#ffd36e', '#f6946f', '#ffc2d8'];
+  celebrate.burst(at, { count: 80, colors: leaves, shapes: [Shape.Puff, Shape.Dot], spread: 1.6, speed: 2.2, up: 4.6, gravity: 2.2, size: [0.14, 0.26], life: [1.6, 2.4], stagger: 0.6 });
+  celebrate.burst(at, { count: 28, colors: ['#ff8fb6', '#ffd9e8', '#ffffff'], shapes: [Shape.Heart], spread: 1.4, speed: 1.6, up: 3.8, gravity: 1.2, size: [0.2, 0.32], life: [1.4, 2.0], stagger: 0.5 });
+  celebrate.burst(at, { count: 30, colors: PASTEL, shapes: [Shape.Star], spread: 1.8, speed: 1.8, up: 3.4, gravity: 1.4, size: [0.14, 0.24], life: [1.0, 1.6], stagger: 0.6 });
+}
+
+/** Twinkle Season: a soft burst of snow puffs, gold and pink stars and hearts. */
+export function twinkleAt(at: THREE.Vector3) {
+  celebrate.burst(at, { count: 70, colors: ['#ffffff', '#fff3d6', '#ffe9f1'], shapes: [Shape.Puff, Shape.Dot], spread: 1.7, speed: 1.8, up: 4.2, gravity: 1.3, size: [0.14, 0.26], life: [1.8, 2.6], stagger: 0.6 });
+  celebrate.burst(at, { count: 36, colors: ['#ffe27a', '#ffb3cf', '#a8f0d0', '#ffffff'], shapes: [Shape.Star], spread: 1.8, speed: 1.8, up: 3.6, gravity: 1.0, size: [0.16, 0.28], life: [1.4, 2.0], stagger: 0.6 });
+  celebrate.burst(at, { count: 20, colors: ['#ff8fb6', '#ffd9e8'], shapes: [Shape.Heart], spread: 1.4, speed: 1.5, up: 3.4, gravity: 1.0, size: [0.2, 0.3], life: [1.4, 2.0], stagger: 0.5 });
+}

@@ -1,7 +1,7 @@
 // Static content tables: items, outfits, recipes, villagers, quests, collectibles.
 import type { AreaId } from './areas';
 
-export type ItemKind = 'tool' | 'seed' | 'crop' | 'ingredient' | 'drink' | 'collectible' | 'decor' | 'fish' | 'treat' | 'accessory';
+export type ItemKind = 'tool' | 'seed' | 'crop' | 'ingredient' | 'drink' | 'collectible' | 'decor' | 'fish' | 'treat' | 'accessory' | 'garment';
 
 export interface ItemDef {
   id: string;
@@ -10,6 +10,14 @@ export interface ItemDef {
   buy?: number;
   sell?: number;
   desc: string;
+  /** Seasonal event this item belongs to (events.ts). Event-only goods can only be made, found or earned while it is on. */
+  event?: string;
+  /** Chapter of that event in which it becomes available (events.ts); missing = the whole event. */
+  chapter?: string;
+  /** Relative chance to turn up as a seasonal find (default 3). */
+  findWeight?: number;
+  /** Every villager adores it as a gift (pies), whatever their usual likes. */
+  loved?: boolean;
 }
 
 export const CURRENCY = 'pips';
@@ -61,7 +69,39 @@ add({ id: 'star_brew', name: 'Starfreckle Brew', kind: 'drink', sell: 88, desc: 
 // handmade accessories
 add({ id: 'bow_pin', name: 'Ribbon Bow Clip', kind: 'accessory', sell: 40, desc: 'A hand-tied bow on a tiny clip.' });
 add({ id: 'shell_charm', name: 'Seashell Charm', kind: 'accessory', sell: 56, desc: 'A shell on a ribbon. You can hear a tiny tide.' });
+// handmade garments: crafting one adds it to the wardrobe for good (see wardrobe.ts)
+add({ id: 'blossom_crown', name: 'Handmade Blossom Crown', kind: 'garment', sell: 60, desc: 'Woven by hand from ribbon blossoms. Find it in your wardrobe.' });
+add({ id: 'twig_basket', name: 'Twig Basket', kind: 'garment', sell: 50, desc: 'Woven sugarwood twigs. Find it in your wardrobe.' });
+add({ id: 'woven_sunhat', name: 'Woven Sunhat', kind: 'garment', sell: 70, desc: 'A hand-woven hat. Find it in your wardrobe.' });
+add({ id: 'moonpetal_cape', name: 'Moonpetal Cape', kind: 'garment', sell: 110, desc: 'A short lilac cape. Find it in your wardrobe.' });
+add({ id: 'pearl_tiara', name: 'Pearlshell Tiara', kind: 'garment', sell: 160, desc: 'Rosy pearls on silver. Find it in your wardrobe.' });
 add({ id: 'petal_pin', name: 'Moonpetal Pin', kind: 'accessory', sell: 96, desc: 'A pressed petal pin that shimmers softly.' });
+// Harvest Hush Feast (Nov 2026, see events/harvest.ts): ingredients, pies, and the exclusive decor
+add({ id: 'pumpkin', name: 'Sugar Pumpkin', kind: 'crop', buy: 14, sell: 20, event: 'harvest', desc: 'A small, round, blush-orange pumpkin. Smells like a warm kitchen.' });
+add({ id: 'apple', name: 'Rosy Apple', kind: 'crop', buy: 9, sell: 14, event: 'harvest', desc: 'Crisp and pink-cheeked, straight from the orchard trees.' });
+add({ id: 'cinnamon', name: 'Cinnamon Stick', kind: 'ingredient', buy: 5, sell: 2, event: 'harvest', desc: 'A curl of warm spice. The Moths adore it.' });
+add({ id: 'pumpkin_pie', name: 'Pumpkin Cloud Pie', kind: 'treat', sell: 60, event: 'harvest', loved: true, desc: 'Silky pumpkin custard under a ribbon of whipped cream. Everyone loves a slice.' });
+add({ id: 'apple_pie', name: 'Rosy Apple Pie', kind: 'treat', sell: 56, event: 'harvest', loved: true, desc: 'A lattice-topped pie with cinnamon apples. Still warm.' });
+add({ id: 'd_cornucopia', name: 'Overflowing Cornucopia', kind: 'decor', event: 'harvest', desc: 'A woven horn of plenty, spilling pumpkins, apples and ribbons.' });
+add({ id: 'd_haybale', name: 'Cozy Hay Bale', kind: 'decor', event: 'harvest', desc: 'A round hay bale with a pink gingham bow. Surprisingly comfy.' });
+add({ id: 'd_pieshelf', name: 'Pie Cooling Shelf', kind: 'decor', event: 'harvest', desc: 'A little shelf of cooling pies, steam curling up forever.' });
+// Twinkle Season (Nov 27 to Dec 26 2026, see events/twinkle.ts): spices and cookies (week 2), ornaments and cocoa (week 3),
+// keepsakes (week 4) and the exclusive decor
+add({ id: 'ginger', name: 'Gingersnap Spice', kind: 'ingredient', buy: 5, sell: 2, event: 'twinkle', chapter: 'wk2', desc: 'Warm, sparkly ginger. Smells like a snowed-in kitchen.' });
+add({ id: 'peppermint', name: 'Peppermint Sprinkles', kind: 'ingredient', buy: 5, sell: 2, event: 'twinkle', chapter: 'wk2', desc: 'Pink and white crunchy flecks that tingle on your tongue.' });
+add({ id: 'gingerbread', name: 'Gingerbread Heart Cookie', kind: 'treat', sell: 54, event: 'twinkle', chapter: 'wk2', loved: true, desc: 'A honey-brown heart with pink icing frills. Everyone loves one.' });
+add({ id: 'peppermint_cookie', name: 'Peppermint Swirl Cookie', kind: 'treat', sell: 56, event: 'twinkle', chapter: 'wk2', loved: true, desc: 'A swirly pink-and-cream cookie with a peppermint crunch.' });
+add({ id: 'ornament', name: 'Lost Twinkle Ornament', kind: 'collectible', sell: 10, event: 'twinkle', chapter: 'wk3', findWeight: 6, desc: 'A little glass bauble that rolled off the town tree. It still glows a bit.' });
+add({ id: 'cocoa_pink', name: 'Marshmallow Cloud Cocoa', kind: 'drink', buy: 18, sell: 36, event: 'twinkle', chapter: 'wk3', desc: 'Strawberry cocoa under a pillow of marshmallow.' });
+add({ id: 'cocoa_mint', name: 'Peppermint Hush Cocoa', kind: 'drink', buy: 18, sell: 36, event: 'twinkle', chapter: 'wk3', desc: 'Cool mint, warm cocoa, one tiny candy cane.' });
+add({ id: 'cocoa_star', name: 'Starlight Cocoa', kind: 'drink', buy: 26, sell: 48, event: 'twinkle', chapter: 'wk3', desc: 'Golden cocoa with star sprinkles that twinkle as they melt.' });
+add({ id: 'candy_charm', name: 'Candy Cane Charm', kind: 'accessory', sell: 30, event: 'twinkle', chapter: 'wk4', desc: 'A tiny striped charm a friend gave you in return. Keep it, or sell it.' });
+add({ id: 'd_tw_tree', name: 'Tiny Twinkle Tree', kind: 'decor', event: 'twinkle', desc: 'A knee-high pine with pink baubles and a star that blinks, just for you.' });
+add({ id: 'd_tw_cookies', name: 'Cookie Jar Tower', kind: 'decor', event: 'twinkle', desc: 'A stack of three cookie jars. Do not count the cookies.' });
+add({ id: 'd_tw_cocoa', name: 'Cocoa Mug Stand', kind: 'decor', event: 'twinkle', desc: 'Three mugs on a stand, steaming forever.' });
+add({ id: 'd_tw_gifts', name: 'Ribbon Gift Stack', kind: 'decor', event: 'twinkle', desc: 'Three wrapped boxes, pink, cream and mint, with enormous bows.' });
+add({ id: 'd_tw_star', name: 'Eve Wishing Star', kind: 'decor', event: 'twinkle', desc: 'A soft golden star on a stand. It listens when you whisper.' });
+add({ id: 'd_tw_wreath', name: 'Twinkle Wreath', kind: 'decor', event: 'twinkle', desc: 'A snowy wreath with berries, bows and little lights.' });
 // decor
 add({ id: 'd_pouf', name: 'Pink Pouf', kind: 'decor', buy: 60, desc: 'A squashy seat in bubblegum pink.' });
 add({ id: 'd_rug', name: 'Cheetah Rug', kind: 'decor', buy: 120, desc: 'A flat, cheetah-print rug. Very plush.' });
@@ -77,6 +117,10 @@ export const SEED_CROP: Record<string, { crop: string; need: number }> = {
 
 export const SHOP_SEEDS = ['seed_puffberry', 'seed_cottonbloom'];
 export const SHOP_INGREDIENTS = ['beans', 'milk', 'syrup', 'honey', 'cocoa'];
+/** Extra café pantry stock while a seasonal event is on (event id to item ids). */
+export const EVENT_PANTRY: Record<string, string[]> = { harvest: ['cinnamon', 'pumpkin', 'apple'], twinkle: ['ginger', 'peppermint'] };
+/** Seasonal items that also turn up as collectibles around the island while the event is on (event id to item ids). */
+export const EVENT_COLLECTIBLES: Record<string, string[]> = { harvest: ['pumpkin', 'apple'], twinkle: ['ornament'] };
 export const SHOP_DECOR = ['d_pouf', 'd_rug', 'd_lamp', 'd_shelf', 'd_teacup', 'd_chair'];
 
 // --- Skills ---
@@ -103,6 +147,10 @@ export interface Recipe {
   xp: number;
   /** Quest stat bumped when one is made. */
   stat: string;
+  /** Only available while this seasonal event is active (see events.ts). */
+  event?: string;
+  /** ...and once this chapter of it has started. */
+  chapter?: string;
 }
 export const RECIPES: Recipe[] = [
   { id: 'pink_latte', needs: { beans: 1, milk: 1, syrup: 1 }, seconds: 3, bench: 'brew', skill: 'brewing', level: 1, xp: 12, stat: 'brewed' },
@@ -113,33 +161,26 @@ export const RECIPES: Recipe[] = [
   { id: 'berry_tart', needs: { puffberry: 2, milk: 1, honey: 1 }, seconds: 5, bench: 'bake', skill: 'baking', level: 1, xp: 16, stat: 'baked' },
   { id: 'blossom_scone', needs: { blossom: 2, milk: 1, honey: 1 }, seconds: 5, bench: 'bake', skill: 'baking', level: 4, xp: 30, stat: 'baked' },
   { id: 'cloud_cake', needs: { cottonbloom: 1, milk: 2, syrup: 1 }, seconds: 7, bench: 'bake', skill: 'baking', level: 8, xp: 60, stat: 'baked' },
+  // seasonal pies: baked with the little timing game in events/pieBake.ts
+  { id: 'pumpkin_pie', needs: { pumpkin: 1, cinnamon: 1, milk: 1 }, seconds: 0, bench: 'bake', skill: 'baking', level: 1, xp: 30, stat: 'baked', event: 'harvest' },
+  { id: 'apple_pie', needs: { apple: 2, cinnamon: 1, honey: 1 }, seconds: 0, bench: 'bake', skill: 'baking', level: 1, xp: 30, stat: 'baked', event: 'harvest' },
+  // Twinkle cookies: baked with the little timing game in events/cookieBake.ts (week 2 on)
+  { id: 'gingerbread', needs: { ginger: 1, honey: 1, milk: 1 }, seconds: 0, bench: 'bake', skill: 'baking', level: 1, xp: 30, stat: 'baked', event: 'twinkle', chapter: 'wk2' },
+  { id: 'peppermint_cookie', needs: { peppermint: 1, syrup: 1, milk: 1 }, seconds: 0, bench: 'bake', skill: 'baking', level: 1, xp: 30, stat: 'baked', event: 'twinkle', chapter: 'wk2' },
   { id: 'bow_pin', needs: { blossom: 2 }, seconds: 4, bench: 'craft', skill: 'crafting', level: 1, xp: 16, stat: 'crafted' },
   { id: 'shell_charm', needs: { shell: 2, blossom: 1 }, seconds: 5, bench: 'craft', skill: 'crafting', level: 4, xp: 32, stat: 'crafted' },
   { id: 'plank', needs: { twig: 2 }, seconds: 3, bench: 'craft', skill: 'crafting', level: 1, xp: 10, stat: 'crafted' },
+  { id: 'blossom_crown', needs: { blossom: 4 }, seconds: 5, bench: 'craft', skill: 'crafting', level: 2, xp: 24, stat: 'crafted' },
+  { id: 'twig_basket', needs: { twig: 4 }, seconds: 5, bench: 'craft', skill: 'crafting', level: 3, xp: 26, stat: 'crafted' },
+  { id: 'woven_sunhat', needs: { twig: 3, blossom: 2 }, seconds: 6, bench: 'craft', skill: 'crafting', level: 4, xp: 34, stat: 'crafted' },
+  { id: 'moonpetal_cape', needs: { moonpetal: 3, blossom: 2 }, seconds: 7, bench: 'craft', skill: 'crafting', level: 6, xp: 48, stat: 'crafted' },
+  { id: 'pearl_tiara', needs: { pearlshell: 3, moonpetal: 2 }, seconds: 8, bench: 'craft', skill: 'crafting', level: 10, xp: 80, stat: 'crafted' },
   { id: 'petal_pin', needs: { moonpetal: 2, pearlshell: 1 }, seconds: 6, bench: 'craft', skill: 'crafting', level: 8, xp: 64, stat: 'crafted' },
 ];
 
 // --- Boutique ---
-export type HatKind = 'none' | 'bow' | 'beret' | 'sunhat';
+// Outfits became the slot-based wardrobe (see clothes/). This is only the cheetah print kind the art helpers share.
 export type PatternKind = 'classic' | 'pink';
-export interface OutfitDef {
-  id: string;
-  name: string;
-  price: number;
-  body: string;
-  trim: string;
-  pattern?: PatternKind;
-  hat: HatKind;
-  desc: string;
-}
-export const OUTFITS: OutfitDef[] = [
-  { id: 'cozy', name: 'Cream Cozy Sweater', price: 0, body: '#fff1e0', trim: '#ffc9dc', hat: 'none', desc: 'Your comfy everyday knit.' },
-  { id: 'peony', name: 'Peony Pinafore', price: 80, body: '#ffb3cf', trim: '#ffffff', hat: 'bow', desc: 'Pink as a peony, with a big bow.' },
-  { id: 'strawberry', name: 'Strawberry Milk Overalls', price: 110, body: '#ff9ec0', trim: '#fff4f0', hat: 'beret', desc: 'Sweet overalls and a soft beret.' },
-  { id: 'spotted_sun', name: 'Spotted Sunhat Set', price: 130, body: '#ffd6e7', trim: '#7a4a3a', pattern: undefined, hat: 'sunhat', desc: 'A sunny dress with a cheetah-band sunhat.' },
-  { id: 'cheetah_coat', name: 'Cheetah Cuddle Coat', price: 150, body: '#f9deb0', trim: '#ff9ec0', pattern: 'classic', hat: 'none', desc: 'Cheetah print from collar to hem.' },
-  { id: 'rose_cheetah', name: 'Rosé Cheetah Dress', price: 180, body: '#ffc9dc', trim: '#ffffff', pattern: 'pink', hat: 'bow', desc: 'Pink cheetah print with a bow. Show-stopping.' },
-];
 
 // --- Villagers ---
 export type Species = 'dormouse' | 'hamster' | 'hedgehog' | 'bunny' | 'capybara' | 'moth' | 'axolotl' | 'seal';

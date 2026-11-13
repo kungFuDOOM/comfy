@@ -11,7 +11,7 @@ import { tileHeight } from './terrain';
 import { createNodeLayer } from './nodes3d';
 import { createBarriers } from './barriers';
 
-const SPAWN_COLOR: Record<string, string> = { shell: '#ffe0d0', blossom: '#ff9ec0', moth: '#fff3a8', button: '#ffffff' };
+const SPAWN_COLOR: Record<string, string> = { shell: '#ffe0d0', blossom: '#ff9ec0', moth: '#fff3a8', button: '#ffffff', pumpkin: '#ffa763', apple: '#ff7f93', ornament: '#ff9ec0' };
 
 /** Placeholder decor models keyed by item id. */
 export function createDecor(id: string): THREE.Group {
@@ -23,6 +23,57 @@ export function createDecor(id: string): THREE.Group {
     case 'd_shelf': g.add(box(0.6, 1.0, 0.3, '#ffc3da', 0, 0.5, 0)); break;
     case 'd_teacup': g.add(cyl(0.28, 0.2, 0.3, '#ffffff', 0, 0.15, 0)); g.add(ball(0.2, '#ff9ec0', 0, 0.35, 0)); break;
     case 'd_chair': g.add(box(0.6, 0.4, 0.6, '#f9deb0', 0, 0.2, 0)); g.add(box(0.6, 0.5, 0.12, '#f9deb0', 0, 0.65, -0.24)); break;
+    case 'd_cornucopia': {
+      const horn = cyl(0.3, 0.07, 0.8, '#e8b98a', -0.04, 0.36, 0, 12); horn.rotation.z = 1.05; g.add(horn);
+      g.add(ball(0.2, '#ffa763', 0.32, 0.62, 0.05)); g.add(ball(0.17, '#ff7f93', 0.4, 0.4, -0.12)); g.add(ball(0.14, '#c9a8e8', 0.18, 0.46, 0.2)); g.add(ball(0.13, '#ffd36e', 0.38, 0.22, 0.14));
+      break;
+    }
+    case 'd_haybale': {
+      const bale = cyl(0.42, 0.42, 0.6, '#f3d28b', 0, 0.42, 0, 18); bale.rotation.x = Math.PI / 2; g.add(bale);
+      const band = cyl(0.435, 0.435, 0.1, '#ffb3cf', 0, 0.42, 0, 18); band.rotation.x = Math.PI / 2; g.add(band);
+      g.add(ball(0.07, '#ff8fb6', 0, 0.86, 0));
+      break;
+    }
+    case 'd_pieshelf': {
+      g.add(box(0.8, 0.07, 0.4, '#e8b98a', 0, 0.45, 0)); g.add(box(0.8, 0.07, 0.4, '#e8b98a', 0, 0.95, 0));
+      for (const x of [-0.36, 0.36]) g.add(box(0.07, 1.0, 0.36, '#c98f5f', x, 0.5, 0));
+      for (const [x, y, c] of [[-0.2, 0.5, '#ffa14f'], [0.2, 0.5, '#f0b565'], [0, 1.0, '#ff7f93']] as [number, number, string][]) { g.add(cyl(0.16, 0.14, 0.07, '#f5cf9c', x, y + 0.06, 0)); g.add(cyl(0.12, 0.12, 0.04, c, x, y + 0.1, 0)); }
+      break;
+    }
+    case 'd_tw_tree': {
+      g.add(cyl(0.05, 0.07, 0.18, '#c99a7a', 0, 0.09, 0, 8));
+      for (const [y, r, h, c] of [[0.18, 0.36, 0.42, '#8fd7ae'], [0.44, 0.28, 0.4, '#9fe0b8'], [0.68, 0.19, 0.36, '#b0e8c4']] as [number, number, number, string][]) g.add(cyl(0.01, r, h, c, 0, y + h / 2, 0, 12));
+      for (const [x, y, z, c] of [[0.2, 0.3, 0.12, '#ff8fb6'], [-0.16, 0.5, 0.1, '#ffd36e'], [0.08, 0.7, -0.1, '#ffffff'], [-0.12, 0.28, -0.18, '#c9a8e8']] as [number, number, number, string][]) g.add(ball(0.04, c, x, y, z, 8));
+      g.add(ball(0.06, mat('#ffe27a', '#ffd95e', 'lamp'), 0, 1.08, 0, 8));
+      break;
+    }
+    case 'd_tw_cookies':
+      for (const [y, r, c] of [[0.0, 0.22, '#ffd6e4'], [0.3, 0.19, '#d8f1e4'], [0.58, 0.16, '#fff1c9']] as [number, number, string][]) {
+        g.add(cyl(r, r, 0.26, c, 0, y + 0.13, 0, 14)); g.add(cyl(r + 0.02, r + 0.02, 0.05, '#ff9ec0', 0, y + 0.28, 0, 14));
+      }
+      g.add(ball(0.05, '#ff8fb6', 0, 0.9, 0, 8));
+      break;
+    case 'd_tw_cocoa':
+      g.add(box(0.7, 0.06, 0.34, '#e8b98a', 0, 0.42, 0)); g.add(box(0.7, 0.06, 0.34, '#e8b98a', 0, 0.86, 0));
+      for (const x of [-0.31, 0.31]) g.add(box(0.06, 0.9, 0.3, '#c98f5f', x, 0.45, 0));
+      for (const [x, y, c] of [[-0.18, 0.45, '#ff9ec0'], [0.18, 0.45, '#9fe0c8'], [0, 0.89, '#ffd36e']] as [number, number, string][]) { g.add(cyl(0.09, 0.07, 0.14, '#ffffff', x, y + 0.08, 0, 12)); g.add(cyl(0.092, 0.092, 0.02, c, x, y + 0.14, 0, 12)); }
+      break;
+    case 'd_tw_gifts':
+      for (const [x, y, z, w, hh, c, rb] of [[-0.14, 0, 0.02, 0.4, 0.3, '#ffc2d8', '#ffffff'], [0.22, 0, -0.04, 0.3, 0.24, '#c8ecd9', '#ff8fb6'], [0.02, 0.3, 0, 0.28, 0.22, '#fff1d6', '#ff8fb6']] as [number, number, number, number, number, string, string][]) {
+        g.add(box(w, hh, w, c, x, y + hh / 2, z)); g.add(box(w + 0.01, hh + 0.01, 0.05, rb, x, y + hh / 2, z)); g.add(box(0.05, hh + 0.01, w + 0.01, rb, x, y + hh / 2, z)); g.add(ball(0.06, rb, x, y + hh + 0.04, z, 8));
+      }
+      break;
+    case 'd_tw_star':
+      g.add(cyl(0.025, 0.03, 0.55, '#e8b98a', 0, 0.28, 0, 8)); g.add(cyl(0.16, 0.18, 0.04, '#e8b98a', 0, 0.02, 0, 12));
+      { const st = ball(0.22, mat('#ffe27a', '#ffd95e', 'lamp'), 0, 0.82, 0, 5); st.scale.set(1, 1, 0.35); g.add(st); }
+      break;
+    case 'd_tw_wreath': {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.1, 8, 20), mat('#8fd7ae')); ring.position.set(0, 0.8, 0); g.add(ring);
+      g.add(cyl(0.025, 0.03, 0.5, '#e8b98a', 0, 0.25, -0.04, 8)); g.add(cyl(0.14, 0.16, 0.04, '#e8b98a', 0, 0.02, 0, 12));
+      for (const [x, y, c] of [[-0.26, 0.9, '#ff8fb6'], [0.24, 0.7, '#ff8fb6'], [0.1, 0.52, '#ffffff'], [0.27, 0.95, '#ffd36e']] as [number, number, string][]) g.add(ball(0.045, c, x, y, 0.08, 8));
+      g.add(ball(0.07, '#ffb3cf', -0.08, 1.12, 0.04, 8)); g.add(ball(0.07, '#ffb3cf', 0.08, 1.12, 0.04, 8)); g.add(ball(0.04, '#ff8fb6', 0, 1.12, 0.06, 8));
+      break;
+    }
     default: g.add(ball(0.3, '#ffb3cf', 0, 0.3, 0));
   }
   if (id !== 'd_rug') g.add(contactShadow(0.9));
