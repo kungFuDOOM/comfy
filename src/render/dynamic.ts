@@ -11,7 +11,8 @@ import { tileHeight } from './terrain';
 import { createNodeLayer } from './nodes3d';
 import { createBarriers } from './barriers';
 
-const SPAWN_COLOR: Record<string, string> = { shell: '#ffe0d0', blossom: '#ff9ec0', moth: '#fff3a8', button: '#ffffff', pumpkin: '#ffa763', apple: '#ff7f93', ornament: '#ff9ec0' };
+const WOOD_D = '#b98763';
+const SPAWN_COLOR: Record<string, string> = { shell: '#ffe0d0', blossom: '#ff9ec0', moth: '#fff3a8', button: '#ffffff', pumpkin: '#ffa763', apple: '#ff7f93', ornament: '#ff9ec0', sea_glass: '#b8f0d8', candy_copper: '#ffa98a', rose_quartz: '#ffb3d1', twinkle_geode: '#d4b8ff', frost_opal: '#bfe6ff' };
 
 /** A flat heart facing +z, about 2 units wide; scale it down where it is used. */
 const HEART_GEO = (() => {
@@ -114,19 +115,88 @@ export function createDecor(id: string): THREE.Group {
       g.add(ball(0.07, '#ffb3cf', -0.08, 1.12, 0.04, 8)); g.add(ball(0.07, '#ffb3cf', 0.08, 1.12, 0.04, 8)); g.add(ball(0.04, '#ff8fb6', 0, 1.12, 0.06, 8));
       break;
     }
+    case 'd_m_musicbox': {
+      g.add(box(0.5, 0.24, 0.36, '#ffb3cf', 0, 0.12, 0)); g.add(box(0.54, 0.07, 0.4, '#fff6ea', 0, 0.27, 0));
+      const crank = cyl(0.012, 0.012, 0.14, PALETTE.gold, 0.3, 0.14, 0, 6); crank.rotation.z = Math.PI / 2; g.add(crank);
+      g.add(ball(0.035, '#ffd36e', 0.38, 0.14, 0, 6));
+      g.add(cyl(0.018, 0.018, 0.18, '#ffffff', 0, 0.39, 0, 6)); g.add(ball(0.06, '#ffe3ee', 0, 0.52, 0, 8)); g.add(cyl(0.0, 0.14, 0.1, '#ff9ec0', 0, 0.43, 0, 12));
+      break;
+    }
+    case 'd_m_cloudlamp': {
+      g.add(cyl(0.2, 0.24, 0.1, '#ffe3ee', 0, 0.05, 0, 14));
+      for (const [x, y, z, r] of [[0, 0.38, 0, 0.26], [-0.2, 0.3, 0.06, 0.18], [0.2, 0.32, -0.04, 0.2], [0.04, 0.58, 0.02, 0.17], [-0.1, 0.5, -0.1, 0.14]] as number[][]) g.add(ball(r, mat('#ffffff', '#fff3f8', 'lamp'), x, y, z, 10));
+      break;
+    }
+    case 'd_m_teapot': {
+      const pot = ball(0.4, '#ffd0e0', 0, 0.42, 0, 16); pot.scale.set(1, 0.9, 1); g.add(pot);
+      g.add(cyl(0.3, 0.3, 0.05, '#fff6ea', 0, 0.2, 0, 16)); // cream base band
+      g.add(cyl(0.2, 0.28, 0.1, '#fff6ea', 0, 0.76, 0, 16)); g.add(ball(0.07, '#ff8fb6', 0, 0.86, 0, 8));
+      const spout = cyl(0.045, 0.08, 0.3, '#ffd0e0', 0.5, 0.5, 0, 8); spout.rotation.z = -1.0; g.add(spout);
+      const handle = mesh(new THREE.TorusGeometry(0.16, 0.035, 8, 14, Math.PI * 1.2), '#ffd0e0', -0.46, 0.46, 0); handle.rotation.z = Math.PI * 0.4; g.add(handle);
+      g.add(box(0.2, 0.3, 0.05, '#c98f5f', 0, 0.3, 0.38)); g.add(ball(0.025, PALETTE.gold, 0.06, 0.3, 0.42, 6)); // little round-ish door
+      for (const sx of [-1, 1]) g.add(ball(0.05, '#ff8fb6', sx * 0.22, 0.58, 0.32, 6));
+      break;
+    }
+    case 'd_m_globe': {
+      g.add(cyl(0.2, 0.24, 0.07, PALETTE.gold, 0, 0.04, 0, 14)); g.add(cyl(0.03, 0.03, 0.4, PALETTE.gold, 0, 0.26, 0, 8));
+      g.add(ball(0.26, '#bfe8f5', 0, 0.62, 0, 16));
+      for (const [x, y, z, r, c] of [[0.1, 0.7, 0.2, 0.1, '#ffd0e0'], [-0.14, 0.58, 0.18, 0.08, '#c8f0dc'], [0.17, 0.52, -0.1, 0.07, '#fff0a8']] as [number, number, number, number, string][]) { const land = ball(r, c, x, y, z, 8); land.scale.set(1, 1, 0.5); g.add(land); }
+      const ring = mesh(new THREE.TorusGeometry(0.3, 0.02, 8, 24), PALETTE.gold, 0, 0.62, 0); ring.rotation.set(0.3, 0, 0.5); g.add(ring);
+      break;
+    }
+    case 'd_m_moonswing': {
+      for (const sx of [-1, 1]) g.add(cyl(0.03, 0.04, 1.0, WOOD_D, sx * 0.32, 0.5, 0, 8));
+      const bar = cyl(0.025, 0.025, 0.72, WOOD_D, 0, 1.0, 0, 8); bar.rotation.z = Math.PI / 2; g.add(bar);
+      const moon = mesh(new THREE.TorusGeometry(0.22, 0.07, 10, 20, Math.PI * 1.15), '#fff0a8', 0, 0.4, 0); moon.rotation.z = Math.PI * 1.42; g.add(moon);
+      for (const sx of [-1, 1]) g.add(cyl(0.008, 0.008, 0.55, '#fff6ea', sx * 0.2, 0.7, 0, 4));
+      g.add(ball(0.04, '#ffd36e', 0.0, 0.2, 0.08, 6));
+      break;
+    }
+    case 'd_fishbowl': {
+      g.add(cyl(0.16, 0.2, 0.08, '#e8b98a', 0, 0.04, 0, 12));
+      const glass = ball(0.32, '#bfe6f6', 0, 0.42, 0, 14); glass.scale.set(1, 0.92, 1); g.add(glass);
+      g.add(cyl(0.27, 0.27, 0.05, '#ffd9e8', 0, 0.2, 0, 12));
+      const fish = ball(0.1, '#fffaf5', 0, 0.42, 0, 8); fish.scale.set(1.5, 1, 1); g.add(fish); g.add(ball(0.04, '#ff8fb6', 0.03, 0.47, 0.06, 6)); g.add(ball(0.06, '#ffb3cf', 0.16, 0.42, 0, 6));
+      break;
+    }
+    case 'd_forage_basket': {
+      g.add(cyl(0.34, 0.27, 0.3, '#e6b98a', 0, 0.15, 0, 14));
+      g.add(cyl(0.36, 0.36, 0.04, '#c98f5f', 0, 0.3, 0, 14));
+      for (const [x, y, z, r, c] of [[-0.12, 0.38, 0.05, 0.12, '#ff8fb6'], [0.1, 0.4, -0.06, 0.11, '#ffd0e2'], [0.16, 0.34, 0.12, 0.09, '#c79bff'], [-0.04, 0.34, -0.14, 0.1, '#ff9ec0']] as [number, number, number, number, string][]) g.add(ball(r, c, x, y, z, 8));
+      const cap = ball(0.1, '#ff9ec0', -0.22, 0.38, 0.06, 8); cap.scale.y = 0.7; g.add(cap);
+      break;
+    }
+    case 'd_gem_stand': {
+      g.add(box(0.7, 0.24, 0.4, '#ffd6e6', 0, 0.12, 0));
+      for (const [x, c, s] of [[-0.24, '#b8f0d8', 0.13], [-0.08, '#ffc94d', 0.15], [0.08, '#ffc2da', 0.13], [0.24, '#d4b8ff', 0.1]] as [number, string, number][]) { const m = ball(s, c, x, 0.24 + s, 0, 5); m.scale.y = 1.4; g.add(m); }
+      g.add(ball(0.05, mat('#fff3a8', '#ffe27a', 'lamp'), 0, 0.78, 0, 6));
+      break;
+    }
+    case 'd_cafe_sign': {
+      for (const x of [-0.26, 0.26]) g.add(box(0.05, 0.84, 0.05, '#c98f5f', x, 0.42, 0));
+      g.add(box(0.7, 0.5, 0.07, '#6a4a58', 0, 0.62, 0)); g.add(box(0.76, 0.56, 0.04, '#ffb3cf', 0, 0.62, -0.03));
+      g.add(cyl(0.1, 0.08, 0.12, '#fff0f6', -0.08, 0.66, 0.05, 10)); g.add(ball(0.04, '#ff8fb6', -0.08, 0.7, 0.09, 6)); g.add(box(0.44, 0.03, 0.02, '#ffffff', 0, 0.5, 0.05));
+      break;
+    }
     default: g.add(ball(0.3, '#ffb3cf', 0, 0.3, 0));
   }
   if (id !== 'd_rug') g.add(contactShadow(0.9));
   return g;
 }
 
+/** Bud / ripe colours per crop (a missing crop looks like cottonbloom). */
+const CROP_COLORS: Record<string, [string, string]> = {
+  puffberry: ['#ffc2da', '#ff8fb6'], cottonbloom: ['#f5f5f5', '#ffffff'], glowberry: ['#ffe9a8', '#ffc65e'], moonpetal: ['#e6d4ff', '#c9a8ff'],
+};
+
 function createCrop(crop: string, stage: number): THREE.Group {
   const g = new THREE.Group();
   const h = [0.15, 0.3, 0.42, 0.5][stage];
   g.add(cyl(0.025, 0.03, h, '#7fcf8e', 0, h / 2, 0, 6));
   g.add(ball(0.1, '#8fe0a0', -0.1, h * 0.6, 0, 6)); g.add(ball(0.1, '#8fe0a0', 0.1, h * 0.8, 0, 6));
-  if (stage >= 2) g.add(ball(0.08, crop === 'puffberry' ? '#ffc2da' : '#f5f5f5', 0, h + 0.05, 0, 6));
-  if (stage === 3) g.add(ball(0.17, crop === 'puffberry' ? '#ff8fb6' : '#ffffff', 0, h + 0.08, 0, 8));
+  const [bud, ripe] = CROP_COLORS[crop] ?? CROP_COLORS.cottonbloom;
+  if (stage >= 2) g.add(ball(0.08, bud, 0, h + 0.05, 0, 6));
+  if (stage === 3) g.add(ball(0.17, ripe, 0, h + 0.08, 0, 8));
   return g;
 }
 
