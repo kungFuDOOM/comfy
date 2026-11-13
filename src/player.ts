@@ -14,9 +14,11 @@ export const player = {
   faceTile: null as null | { x: number; y: number },
 };
 
-const SPEED = 100; // click-to-move pace
-const WALK = 96;
-const RUN = 192; // 2x WALK
+// A stroll and a light jog, in px/s. About one tile per 0.7s on foot, twice that while running:
+// unhurried, like crossing the square in Animal Crossing, and still a clear 2x when you hold run.
+const WALK = 44;
+const RUN = 88;
+const SPEED = WALK; // tap-to-walk uses the same stroll as the keyboard
 const ACCEL = 12; // 1/s smoothing toward the target velocity
 const DECEL = 18;
 const HALF = 7;
@@ -220,9 +222,10 @@ export function updatePlayer(dt: number, axisX: number, axisY: number, run = fal
   const k = 1 - Math.exp(-(input ? ACCEL : DECEL) * dt);
   vx += (mx * speed - vx) * k;
   vy += (my * speed - vy) * k;
-  if (!input && Math.hypot(vx, vy) < 4) { vx = vy = 0; }
-  player.moving = Math.hypot(vx, vy) > 8;
-  player.running = input && (analog || run) && Math.hypot(vx, vy) > WALK * 1.15;
+  let vel = Math.hypot(vx, vy);
+  if (!input && vel < 3) { vx = vy = 0; vel = 0; }
+  player.moving = vel > 3;
+  player.running = input && (analog || run) && vel > WALK * 1.15;
   if (input) faceMove(mx, my);
   if (vx || vy) tryMove(vx * dt, vy * dt);
 }
