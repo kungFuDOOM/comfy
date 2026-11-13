@@ -7,6 +7,7 @@ import { bus } from '../bus';
 import { VILLAGERS } from '../data';
 import { npcs, type Npc } from '../npc';
 import type { Season } from '../time';
+import type { FootSurface } from '../audio';
 import { MAP_H, MAP_W, TS } from '../world';
 import { createPlayerMesh, createVillagerMesh, type ActorMesh } from './actors';
 import { createPetMesh } from './petMesh';
@@ -31,7 +32,7 @@ export interface FrameInput {
   dt: number;
   hour: number;
   season: Season;
-  player: { x: number; y: number; facing: Facing; moving: boolean; running?: boolean; surface?: 'sand' | 'path' | 'grass' };
+  player: { x: number; y: number; facing: Facing; moving: boolean; running?: boolean; surface?: FootSurface };
   /** What the player is wearing (or trying on). */
   look: Look;
   /** Worn accessory item id (see boutique.currentAccessory). Omitted = none. */
