@@ -9,6 +9,7 @@ export interface Opt {
   ink?: string;
   trimPattern?: PatternId;
   deco?: string[];
+  tags?: string[];
   src?: Source;
 }
 /** A colour variant of a design: same shape and print, new colours. */
@@ -22,7 +23,7 @@ export function def(
 ) {
   const base: ClothDef = {
     id, name, slot, style, shape, color, trim, desc, price: o.src && o.src.k !== 'shop' ? 0 : price,
-    pattern: o.pattern, ink: o.ink, trimPattern: o.trimPattern, deco: o.deco,
+    pattern: o.pattern, ink: o.ink, trimPattern: o.trimPattern, deco: o.deco, tags: o.tags,
     group: id, tint: o.tint ?? 'Classic', src: o.src ?? { k: 'shop' },
   };
   CLOTHES.push(base);
