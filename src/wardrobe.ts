@@ -14,6 +14,7 @@ import { skillLevel, skillName } from './skills';
 import { state } from './state';
 import { getClock } from './time';
 import { areaById } from './areas';
+import { isMaxed, villagerById } from './friends';
 import { dateRange, eventById, eventPhase } from './events';
 
 export { lookKey };
@@ -187,6 +188,7 @@ export function howToGet(c: ClothDef): string {
     case 'skill': return `Reach ${skillName(s.skill)} level ${s.level}`;
     case 'craft': { const r = RECIPES.find((x) => x.id === s.recipe); return `Craft it at the Crafting Table${r ? ` (Crafting level ${r.level})` : ''}`; }
     case 'event': return eventHowTo(s.event);
+    case 'friend': return `Reach 10 hearts with ${villagerById(s.friend)?.name.split(' ')[0] ?? 'a friend'} (Journal › Friends)`;
     case 'region': return s.area === 'all' ? 'Complete all six regions' : `Complete ${areaById(s.area).name} (Journal › Island)`;
   }
 }
@@ -203,6 +205,7 @@ function earned(c: ClothDef): boolean {
     case 'quest': return state.questLog[s.quest] === 'done' || !!state.quests[s.quest];
     case 'skill': return skillLevel(s.skill) >= s.level;
     case 'craft': return count(s.recipe) > 0;
+    case 'friend': return isMaxed(s.friend);
     default: return false;
   }
 }

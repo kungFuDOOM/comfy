@@ -58,7 +58,7 @@ export const isPlotTile = (x: number, y: number) => inRect(AREAS.garden, x, y);
 /** Open meadow ground: Ribbon Meadow by town, or anywhere in Sprinkle Meadow. */
 export const inMeadow = (x: number, y: number) => (inRect(AREAS.meadow, x, y) || (inMap(x, y) && region[idx(x, y)] === 3)) && terrainAt(x, y) === T.Grass;
 
-export type StationId = 'cafe' | 'boutique' | 'market' | 'grove' | 'chest' | 'wardrobe' | 'crafting';
+export type StationId = 'cafe' | 'boutique' | 'market' | 'grove' | 'chest' | 'wardrobe' | 'crafting' | 'mailbox';
 export interface Station { id: StationId; x: number; y: number; w: number; label: string; prompt: string }
 export const stations: Station[] = [
   { id: 'cafe', x: 41, y: 35, w: 1, label: 'Puddle & Pip Café', prompt: 'Brew & shop the pantry' },
@@ -68,6 +68,7 @@ export const stations: Station[] = [
   { id: 'grove', x: 63, y: 31, w: 1, label: 'Afterglow Grove', prompt: 'View the lantern grove' },
   { id: 'wardrobe', x: 31, y: 49, w: 1, label: 'Home Wardrobe', prompt: 'Change into something cute' },
   { id: 'chest', x: 34, y: 49, w: 1, label: 'Softkeep Chest', prompt: 'Keep your things safe' },
+  { id: 'mailbox', x: 36, y: 48, w: 1, label: 'Mailbox', prompt: 'Read your letters' },
 ];
 const nodeIdx = (n: NodeDef) => idx(n.x, n.y);
 /** Gathering nodes on a walkable tile (bushes, shrubs, patches) block it; shell beds are flat and fish spots sit in the water. */

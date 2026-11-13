@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { buildings, props, stations, type Building, type Prop, type Station } from '../world';
 import { cheetahToon, contactShadow, lightPool, makeToon, PALETTE, vertexToon, type CheetahKind } from './materials';
-import { ball, Batch, G, makeLabel, mat } from './util';
+import { ball, Batch, box, G, makeLabel, mat } from './util';
 import { tileHeight } from './terrain';
 
 const STYLE = {
@@ -376,6 +376,25 @@ export function createStation(s: Station): THREE.Group {
       k.v.add(G.ball(0.05, 8), '#ff8fb6', { y: 0.81, z: 0.0 });
       const l = makeLabel('Softkeep Chest', 1.9); l.position.set(0, 1.55, 0.2); g.add(l);
       g.add(contactShadow(1.5, 1.0, 'rect', 0.22));
+      break;
+    }
+    case 'mailbox': {
+      // Mailbox: a pink post with a plump rounded box, a gold heart plate and a little flag that rises when a letter waits
+      k.v.add(G.box(0.12, 0.95, 0.12), '#f4d9b8', { y: 0.475 });
+      k.v.add(G.box(0.34, 0.06, 0.34), '#ffd9e6', { y: 0.04 });
+      k.v.add(G.box(0.62, 0.34, 0.4), '#ff9ec0', { y: 1.1 });
+      k.v.add(G.cyl(0.2, 0.2, 0.62, 14), '#ff9ec0', { y: 1.27, rz: Math.PI / 2 });
+      k.v.add(G.box(0.2, 0.16, 0.03), '#fff4f8', { y: 1.08, z: 0.21 });
+      k.v.add(G.ball(0.045, 8), PALETTE.gold, { y: 1.08, z: 0.235 });
+      k.v.add(G.ball(0.06, 8), '#ffffff', { x: -0.31, y: 1.45 });
+      const flag = new THREE.Group();
+      flag.name = 'mailFlag';
+      flag.position.set(0.34, 1.12, 0);
+      flag.add(box(0.03, 0.34, 0.03, '#f4d9b8', 0, 0.17, 0));
+      flag.add(box(0.2, 0.12, 0.03, '#ff5c8a', 0.1, 0.3, 0));
+      g.add(flag);
+      const l = makeLabel('Mailbox', 1.3); l.position.set(0, 1.9, 0.2); g.add(l);
+      g.add(contactShadow(0.9, 0.7, 'rect', 0.22));
       break;
     }
     case 'wardrobe': {

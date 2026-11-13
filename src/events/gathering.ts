@@ -8,6 +8,7 @@ import { currentAccessory } from '../boutique';
 import { toast } from '../bus';
 import { VILLAGERS, type VillagerDef } from '../data';
 import { bumpEvent, hasClaimed, isEventActive, setEventFlag } from '../events';
+import { eventAttended } from '../friends';
 import { presentNpcs } from '../npc';
 import { cancelPath, player } from '../player';
 import { confettiAt, twinkleAt, welcomeAt } from '../render/celebrate';
@@ -145,6 +146,7 @@ export function startGathering(kind: 'eve' | 'day', replay = false, onDone?: () 
     // keyed on the milestone itself (not the `replay` hint), and only while the event is on so the flag never gets
     // set without the payout.
     const attended = endAt >= 0 || skipAt >= 0;
+    if (attended && isEventActive('twinkle')) eventAttended(`twinkle:${kind}`); // friends grow closer, once per gathering
     if (attended && !hasClaimed('twinkle', kind) && isEventActive('twinkle')) {
       bumpEvent('twinkle', kind, 1); // pays the finale milestone: pips, outfits and decor
       setEventFlag('twinkle', `${kind}Done`);
