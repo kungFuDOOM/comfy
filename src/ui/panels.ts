@@ -522,13 +522,13 @@ export function openJournal(start = 'quests') {
     } else if (tab === 'collection') {
       body.append(h('div', 'muted', 'Everything you have found around the island.'));
       const grid = h('div', 'bag');
-      for (const id of ['shell', 'blossom', 'moth', 'button']) {
+      for (const id of ['shell', 'blossom', 'moth', 'button', 'frog', 'snail', 'drizzle', 'cloudcarp']) {
         const n = state.found[id] ?? 0;
         const cell = h('div', 'bagcell' + (n ? '' : ' locked'), itemIcon(id, 40), h('span', 'qty', n ? `×${n}` : ''), h('span', 'nm', n ? ITEMS[id].name : '???'));
         cell.title = n ? ITEMS[id].desc : 'Not found yet';
         grid.append(cell);
       }
-      const hint = { shell: 'Beaches', blossom: 'Meadows & the grove', moth: 'Dusk & night', button: 'The grove hillside' };
+      const hint = { shell: 'Beaches', blossom: 'Meadows & the grove', moth: 'Dusk & night', button: 'The grove hillside', frog: 'Near water, in the rain', snail: 'Rainy days', drizzle: 'Fishing in the rain', cloudcarp: 'Fishing in the rain (farther spots)' };
       body.append(grid, h('div', 'muted small', `Where to look — ${Object.entries(hint).map(([k, v]) => `${ITEMS[k].name}: ${v}`).join(' · ')}.`));
       body.append(h('div', 'muted small', `Season (${getClock().season.name}): ${getClock().season.blurb}`));
     } else if (tab === 'friends') {
