@@ -52,6 +52,7 @@ async function loadSfx(g: AudioGraph) {
   code = code.replace(/import\s*\{[^}]*\}\s*from\s*["'][^"']*engine\.ts[^"']*["'];?/, 'const getGraph = () => window.__offlineGraph;');
   code = code.replace(/from\s*["'](\/comfy\/[^"']+)["']/g, (_m, p) => `from "${location.origin}${p}"`);
   code = code.replace(/g\.ctx\.state\s*===\s*["']running["']/g, 'true');
+  code = code.replace(/!gate\([^)]*\)/g, 'false'); // cues are scheduled ahead of time, so the anti-spam gate would drop them
   (window as unknown as { __offlineGraph: AudioGraph }).__offlineGraph = g;
   const mod = await import(/* @vite-ignore */ URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
   return mod.sfx as Record<string, (...a: unknown[]) => void>;

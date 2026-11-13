@@ -63,7 +63,14 @@ def compose(tl, ov, skills, work, g):
     i = g - int(round(shot['start'] * fps))
     lt = T - shot['start']
     dur = shot['end'] - shot['start']
-    if shot.get('still'):
+    if shot.get('still') == 'wardrobe':
+        # the real wardrobe + dressing room, with a slow push-in towards the mirror
+        k = smooth(0, dur, lt)
+        z = 1.0 + 0.08 * k
+        cw, ch = W / z, H / z
+        cx, cy = W / 2 - 60 * k, H / 2
+        frame = ov.wardrobe.crop((cx - cw / 2, cy - ch / 2, cx + cw / 2, cy + ch / 2)).resize((W, H), Image.LANCZOS)
+    elif shot.get('still'):
         # the real Skills panel: lifted off a softly blurred game frame, sitting left so the caption has room
         k = smooth(0, dur, lt)
         frame = ov.skills_bg.copy()
@@ -82,7 +89,7 @@ def compose(tl, ov, skills, work, g):
         if not (c['start'] - 0.01 <= T <= c['end'] + 0.01):
             continue
         k = c['kind']
-        fin = 0.45 if k in ('title', 'endcard') else 0.35
+        fin = 0.45 if k in ('title', 'endcard', 'banner') else 0.35
         a = smooth(c['start'], c['start'] + fin, T) * (1 - smooth(c['end'] - 0.35, c['end'], T))
         if k == 'levelup':
             im, box = ov.get(f"ui/levelup-{c['skill']}.png")
@@ -98,7 +105,7 @@ def compose(tl, ov, skills, work, g):
             x -= 46 * (1 - smooth(c['start'], c['start'] + 0.4, T))
         elif k == 'story':
             y += 14 * (1 - smooth(c['start'], c['start'] + 0.6, T))
-        elif k in ('title', 'endcard'):
+        elif k in ('title', 'endcard', 'banner'):
             s = 1.0 + 0.05 * (1 - smooth(c['start'], c['start'] + 1.2, T)) + 0.015 * smooth(c['start'], c['end'], T)
             if abs(s - 1) > 0.002:
                 im = im.resize((int(im.width * s), int(im.height * s)), Image.LANCZOS)
@@ -135,6 +142,7 @@ def main():
     ImageDraw.Draw(mask).rounded_rectangle((0, 0, panel.width - 1, panel.height - 1), radius=30, fill=255)
     panel.putalpha(mask)
     ov.skills_panel = panel
+    ov.wardrobe = Image.open(os.path.join(work, 'ui', 'wardrobe.png')).convert('RGB')
 
     if len(sys.argv) > 3:  # preview: python3 assemble.py <work> <out.png> <seconds>
         T = float(sys.argv[3])

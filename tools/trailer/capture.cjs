@@ -16,17 +16,18 @@ const CLOCK = `(() => {
   window.cancelAnimationFrame = (i) => { q.delete(i); };
   let seed = 1234567;
   Math.random = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
-  const save = { v: 1, seenIntro: true, seenHelp: true, unlocked: { blossom: true, pond: true, meadow: true, lighthouse: true, farbeach: true }, mapV: 2 };
+  const save = { v: 1, seenIntro: true, seenHelp: true, unlocked: { blossom: true, pond: true, meadow: true, lighthouse: true, farbeach: true }, mapV: 2,
+    events: { twinkle: { counters: { tree1: 1, tree2: 3, tree3: 1 }, claimed: [], flags: {} } } };
   try { localStorage.setItem('comfy.save.v1', JSON.stringify(save)); localStorage.setItem('comfy.settings.v1', JSON.stringify({ music: 0, sfx: 0 })); } catch {}
 })();`;
 
-async function open(w, h) {
+async function open(w, h, query = '') {
   const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const page = await browser.newPage({ viewport: { width: w, height: h }, deviceScaleFactor: 1 });
   page.on('pageerror', (e) => console.error('pageerror:', e.message));
   page.on('console', (m) => { if (m.type() === 'error') console.error('console:', m.text()); });
   await page.addInitScript(CLOCK);
-  await page.goto(BASE + '?scene=game');
+  await page.goto(BASE + (query ? query + '&' : '?') + 'scene=game');
   await page.waitForFunction(() => document.getElementById('game'));
   await page.waitForTimeout(1500);
   const shots = await page.evaluate(async () => {
@@ -48,9 +49,11 @@ async function grab(page, id, t, fps, file) {
   if (mode === 'scout') {
     const w = Number(rest[0] || 960), h = Number(rest[1] || 540);
     const only = rest[2] ? rest[2].split(',') : null;
-    const { browser, page, shots } = await open(w, h);
-    for (const s of shots) {
-      if (only && !only.includes(s.id)) continue;
+    let cur = { ...(await open(w, h)), query: '' };
+    for (const s0 of cur.shots) {
+      if (only && !only.includes(s0.id)) continue;
+      if (s0.query !== cur.query) { await cur.browser.close(); cur = { ...(await open(w, h, s0.query)), query: s0.query }; }
+      const s = s0, page = cur.page;
       // warm up the shot (particles, wandering) at a low frame rate, then grab start / middle / end
       const marks = [0.05, s.dur / 2, s.dur - 0.05];
       let t = 0;
@@ -61,15 +64,22 @@ async function grab(page, id, t, fps, file) {
         console.log('scouted', s.id, m.toFixed(2));
       }
     }
-    await browser.close();
+    await cur.browser.close();
     return;
   }
   if (mode === 'frames') {
     const ids = rest[0].split(',');
     const fps = Number(rest[1] || 24), w = Number(rest[2] || 1280), h = Number(rest[3] || 720);
-    const { browser, page, shots } = await open(w, h);
+    // shots that need a different page query (seasonal events) get their own page load
+    let cur = { ...(await open(w, h)), query: '' };
     for (const id of ids) {
-      const s = shots.find((x) => x.id === id);
+      let s = cur.shots.find((x) => x.id === id);
+      if (s.query !== cur.query) {
+        await cur.browser.close();
+        cur = { ...(await open(w, h, s.query)), query: s.query };
+        s = cur.shots.find((x) => x.id === id);
+      }
+      const { page } = cur;
       const n = Math.ceil(s.dur * fps) + 1; // a frame of slack: the edit trims to the bar line
       const dir = path.join(outDir, id);
       fs.mkdirSync(dir, { recursive: true });
@@ -80,6 +90,6 @@ async function grab(page, id, t, fps, file) {
         if (i % 24 === 0) console.log(id, i, '/', n, ((Date.now() - t0) / (i + 1) / 1000).toFixed(2) + 's/frame');
       }
     }
-    await browser.close();
+    await cur.browser.close();
   }
 })();

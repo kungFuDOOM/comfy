@@ -2,7 +2,12 @@
 // Loaded into the dev build by tools/trailer/capture.cjs (never shipped with the game).
 // Every shot is a pure function of its local time, so frames can be rendered in any order or in parallel.
 import * as THREE from 'three';
-import { NODES, OUTFITS } from '../../src/data';
+import { NODES } from '../../src/data';
+import { resolveLook } from '../../src/wardrobe';
+import type { Slot } from '../../src/clothes/types';
+import { confettiAt, twinkleAt, harvestAt } from '../../src/render/celebrate';
+import { SEATS, SEAT_ORDER, PLAYER_SEAT, TABLE_CENTER } from '../../src/events/harvestLayout';
+import { GATHER_ORDER, GATHER_SPOTS, PLAYER_SPOT, TREE } from '../../src/events/twinkleLayout';
 import { celebrate, Shape } from '../../src/render/celebrate';
 import { heightAtUnits } from '../../src/render/terrain';
 import { state } from '../../src/state';
@@ -29,6 +34,8 @@ interface Pose {
   /** Villager overrides by id (position in tile units). Others wander or stay home. */
   cast?: Record<string, Actor>;
   outfit?: string;
+  /** A full look (overrides `outfit`). */
+  look?: Partial<Record<Slot, string>>;
 }
 interface Shot {
   id: string;
@@ -45,6 +52,8 @@ interface Shot {
   who?: string[];
   /** Barriers forced closed for this shot (opened again at their scripted moment). */
   closed?: string[];
+  /** URL query the page must be loaded with (seasonal events read ?event= / ?date= at load). */
+  query?: string;
 }
 
 // ---------- shared props ----------
@@ -106,6 +115,36 @@ function orbit(look: THREE.Vector3, yaw: number, pitch: number, dist: number) {
 /** Two bars of the day theme (108 bpm): montage shots cut on the bar line. */
 export const BAR2 = (60 / 108) * 8;
 
+
+/** Named looks from the wardrobe catalogue (src/clothes). */
+const LOOKS: Record<string, Partial<Record<Slot, string>>> = {
+  cozy: { top: 'cream_knit', bottom: 'petal_skirt', shoes: 'rosy_mary_janes' },
+  strawberry: { top: 'strawberry_milk_tee', bottom: 'strawberry_overalls', hat: 'strawberry_beret', shoes: 'rosy_mary_janes' },
+  rose_cheetah: { dress: 'rose_cheetah', hat: 'pink_bow', shoes: 'spotted_flats', bag: 'cheetah_purse' },
+  peony: { dress: 'peony_pinafore', hat: 'pink_bow', shoes: 'ballet_flats' },
+  spotted_sun: { dress: 'sun_dress', hat: 'spotted_sun', bag: 'picnic_basket', shoes: 'ballet_flats' },
+  cheetah_coat: { dress: 'cheetah_coat', hat: 'knit_bobble_beanie', shoes: 'snow_boots' },
+  winter: { dress: 'snowberry_coat', hat: 'earmuff_fluffs', shoes: 'snow_boots', bag: 'heart_purse' },
+  harvest: { dress: 'pumpkin_pop_dress', hat: 'baker_beret', shoes: 'rosy_mary_janes' },
+  partyhat: { dress: 'gingham_sundress', hat: 'party_pond', shoes: 'ballet_flats', bag: 'daisy_tote' },
+};
+/** The runway: one look per half beat. */
+const RUNWAY: Partial<Record<Slot, string>>[] = [
+  { dress: 'midnight_lace_gown', hat: 'bat_wing_bow', shoes: 'platform_boots', bag: 'coffin_purse' },
+  { dress: 'gingham_sundress', hat: 'flower_crown', shoes: 'ballet_flats', bag: 'picnic_basket' },
+  { dress: 'fringe_dress', hat: 'cowboy_hat', shoes: 'cowboy_boots' },
+  { dress: 'rosewater_gown', hat: 'rose_tiara', shoes: 'tea_party_heels' },
+  { dress: 'hedgewitch_robe', hat: 'witch_hat', bag: 'potion_basket', shoes: 'platform_boots' },
+  { dress: 'frog_onesie', hat: 'frog_hood', shoes: 'froggy_slippers' },
+  { top: 'disco_halter', bottom: 'bell_bottoms', hat: 'sparkle_headband', shoes: 'disco_boots' },
+  { dress: 'strawberry_smock', hat: 'strawberry_beret', bag: 'bunny_backpack', shoes: 'rosy_mary_janes' },
+];
+const BEAT = 60 / 108;
+const runwayIndex = (t: number) => Math.min(RUNWAY.length - 1, Math.floor(t / BEAT));
+
+const seatCast = () => Object.fromEntries(SEAT_ORDER.map((id, i): [string, Actor] => [id, { x: SEATS[i].x, z: SEATS[i].z, facing: SEATS[i].face }]));
+/** Everyone round the tree, turned to the camera for a group photo. */
+const treeCast = () => Object.fromEntries(GATHER_ORDER.map((id, i): [string, Actor] => [id, { x: GATHER_SPOTS[i].x, z: GATHER_SPOTS[i].z, facing: 'down' }]));
 
 export const SHOTS: Shot[] = [
   // ---------------- ACT 1: the long sleep ----------------
@@ -196,6 +235,38 @@ export const SHOTS: Shot[] = [
     cam: (t) => { const k = t / BAR2; return orbit(V(48, 1, 39.5), 0.1 + k * 0.12, 0.5, 21); },
     pose: () => ({ player: { x: 48, z: 41.5, facing: 'down' } }),
   },
+  {
+    id: 'runway', dur: BAR2, hour: 12.5, season: 'blossom',
+    cam: (t) => { const k = t / BAR2; return orbit(V(54.6, 0.95, 37.7), -0.12 + k * 0.24, 0.16, 4.3 - k * 0.5); },
+    pose: (t) => ({ player: { x: 54.6, z: 37.7, facing: 'down', rot: -0.12 + (t / BAR2) * 0.24 + Math.sin(t * 11) * 0.06 }, look: RUNWAY[runwayIndex(t)], cast: { zuzu: { x: 56.4, z: 37.3, facing: 'left' } } }),
+    extra: (t) => {
+      const i = runwayIndex(t);
+      if (i > 0 && !fired.has('rw' + i)) { fired.add('rw' + i); sparkle(V(54.6, heightAtUnits(54.6, 37.7) + 0.8, 37.7)); }
+    },
+  },
+  {
+    id: 'partyhat', dur: BAR2, hour: 16.2, season: 'blossom',
+    cam: (t) => { const k = t / BAR2; return orbit(V(44.4, 0.9, 16.8), 0.1 + k * 0.25, 0.26, 5.6 - k * 0.6); },
+    pose: () => ({ player: { x: 44.2, z: 16.9, facing: 'down' }, look: LOOKS.partyhat, cast: { tuppi: { x: 45.7, z: 16.6, facing: 'left' } } }),
+    extra: (t) => {
+      if (t >= 0.5 && !fired.has('confetti')) { fired.add('confetti'); confettiAt(V(44.2, heightAtUnits(44.2, 16.9) + 1.2, 16.9)); }
+      if (t >= 1.6 && !fired.has('confetti2')) { fired.add('confetti2'); confettiAt(V(44.2, heightAtUnits(44.2, 16.9) + 1.2, 16.9)); }
+    },
+  },
+  {
+    id: 'harvest', dur: 5.5, hour: 17.5, season: 'cocoa', query: '?event=harvest&date=2026-11-25',
+    cam: (t) => { const k = t / 5.5; return { pos: V(lerp(45.6, 46.6, k), lerp(6.4, 5.6, k), lerp(48.4, 47.4, k)), look: V(TABLE_CENTER.x - 0.4, 0.6, TABLE_CENTER.z - 0.2) }; },
+    pose: () => ({ player: { x: PLAYER_SEAT.x, z: PLAYER_SEAT.z, facing: 'up' }, look: LOOKS.harvest, cast: seatCast() }),
+    who: [...SEAT_ORDER],
+    extra: (t) => { if (t >= 2.4 && !fired.has('leaves')) { fired.add('leaves'); harvestAt(V(TABLE_CENTER.x, 1.6, TABLE_CENTER.z)); } },
+  },
+  {
+    id: 'twinkle', dur: 6.5, hour: 20.6, season: 'snowfluff', query: '?event=twinkle&date=2026-12-06', fog: [40, 110],
+    cam: (t) => { const k = t / 6.5; return orbit(V(TREE.x + 0.2, 1.1, TREE.z + 0.2), 0.42 + k * 0.3, 0.46 - k * 0.04, 8.8 - k * 1.2); },
+    pose: () => ({ player: { x: PLAYER_SPOT.x, z: PLAYER_SPOT.z + 0.4, facing: 'down' }, look: LOOKS.winter, cast: treeCast() }),
+    who: [...GATHER_ORDER],
+    extra: (t) => { if (t >= 2.2 && !fired.has('twinkle')) { fired.add('twinkle'); twinkleAt(V(TREE.x, TREE.height + 0.4, TREE.z)); } },
+  },
   // ---------------- ACT 3: lanterns ----------------
   {
     id: 'grove', dur: 6, hour: (t) => lerp(18.4, 21.5, smooth(0, 6, t)), season: 'cocoa',
@@ -216,6 +287,11 @@ export const SHOTS: Shot[] = [
     extra: (t) => { lanternSwarm.group.visible = true; lanternSwarm.update(t + 6, 48, 39, 12, 0.25, 2); },
   },
 ];
+
+/** A quick twinkle around the player for an outfit swap (light, so the new look shows straight away). */
+function sparkle(at: THREE.Vector3) {
+  celebrate.burst(at, { count: 16, colors: ['#ffffff', '#ffd9e8', '#fff3a8', '#c9a8ff'], shapes: [Shape.Star], spread: 0.55, speed: 1.6, up: 1.2, gravity: 0.8, size: [0.1, 0.18], life: [0.35, 0.55] });
+}
 
 /** The real gather beat: the node goes bare (it 'rests'), with a little sparkle pop where it was. */
 function gather(x: number, y: number) {
@@ -256,7 +332,7 @@ export function setup() {
   for (let i = 0; i < 12; i++) state.lanterns.push({ id: 9000 + i, kind: (['serve', 'gift', 'decor', 'collect', 'outfit', 'garden'] as const)[i % 6], at: 0 });
   // tuck the gameplay HUD away (the canvas is what gets captured, but the DOM screenshot path stays clean too)
   document.body.classList.add('scene', 'scene-cutscene');
-  return SHOTS.map((s) => ({ id: s.id, dur: s.dur }));
+  return SHOTS.map((s) => ({ id: s.id, dur: s.dur, query: s.query ?? '' }));
 }
 
 /** Render shot `id` at local time `t` (seconds). Frames of a shot must be rendered in increasing t. */
@@ -297,11 +373,12 @@ export function render(id: string, t: number, fps = 24) {
     },
   };
   world.setDirector(director);
-  const outfit = OUTFITS.find((o) => o.id === (pose.outfit ?? 'cozy'))!;
+  const worn = { hat: null, top: null, bottom: null, dress: null, shoes: null, bag: null, face: null, ...(pose.look ?? LOOKS[pose.outfit ?? 'cozy']) } as Record<Slot, string | null>;
+  const look = resolveLook(worn);
   world.render({
     t: 1000 + t, dt, hour, season: sea,
     player: { x: pose.player.x * TS, y: pose.player.z * TS, facing: pose.player.facing ?? 'down', moving: !!pose.player.moving, running: !!pose.player.running, surface: 'grass' },
-    outfit, accessory: null, npcs: cast, talkedToday: () => true,
+    look, accessory: null, npcs: cast, talkedToday: () => true,
   });
 }
 

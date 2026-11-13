@@ -4,7 +4,7 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 const BASE = process.env.TRAILER_URL || 'http://localhost:5173/comfy/';
-const CLOCK = `(() => { let vt = 0; performance.now = () => vt; window.__raf = window.requestAnimationFrame.bind(window); window.requestAnimationFrame = () => 0;
+const CLOCK = `(() => { let vt = 0; performance.now = () => vt; window.__raf = window.requestAnimationFrame.bind(window); let q = new Map(), id = 0; window.requestAnimationFrame = (cb) => { q.set(++id, cb); return id; }; window.cancelAnimationFrame = (i) => q.delete(i); window.__step = (ms) => { vt += ms; const c = [...q.values()]; q = new Map(); c.forEach((f) => { try { f(vt); } catch (e) { console.log(e.message); } }); };
   const xp = (lv) => { let t = 0; for (let l = 1; l < lv; l++) t += Math.round(40 * l ** 1.6); return t; };
   const save = { v: 1, seenIntro: true, seenHelp: true, mapV: 2, coins: 1240,
     unlocked: { blossom: true, pond: true, meadow: true, lighthouse: true, farbeach: true },
@@ -22,17 +22,37 @@ const CLOCK = `(() => { let vt = 0; performance.now = () => vt; window.__raf = w
   await page.waitForTimeout(2500);
 
   if (process.argv[3] === 'stickers') return stickers(page, out, browser);
-  // 1) Skills tab over a frame of the town at golden hour
+  // 1) the Journal's Skills tab and 2) the Bag's Wardrobe tab: full screenshots plus the panel on its own
   await page.evaluate(async () => {
     const d = await import('/comfy/tools/trailer/driver.ts');
     d.setup();
     document.body.classList.remove('scene', 'scene-cutscene');
     d.render('cafe', 3.2);
-    const p = await import('/comfy/src/ui/panels.ts');
-    p.openJournal('skills');
   });
-  await page.waitForTimeout(1200);
-  await page.screenshot({ path: path.join(out, 'skills.png'), timeout: 180000 });
+  const panels = [
+    ['skills', async () => { const p = await import('/comfy/src/ui/panels.ts'); p.openJournal('skills'); }],
+    ['wardrobe', async () => {
+      const { CLOTHES } = await import('/comfy/src/clothes/index.ts');
+      const { state } = await import('/comfy/src/state.ts');
+      state.ownedClothes = CLOTHES.map((c) => c.id); // a well-stocked wardrobe
+      Object.assign(state.worn, { dress: 'rosewater_gown', top: null, bottom: null, hat: 'rose_tiara', shoes: 'tea_party_heels', bag: 'heart_purse' });
+      const p = await import('/comfy/src/ui/panels.ts');
+      p.openBag('wardrobe');
+    }],
+  ];
+  for (const [name, openIt] of panels) {
+    await page.evaluate(async (src) => {
+      const dom = await import('/comfy/src/ui/dom.ts');
+      dom.closePanel?.();
+      await (0, eval)(src)();
+    }, openIt.toString());
+    // let scene loops opened by the panel (the wardrobe's dressing room) run for a moment
+    for (let i = 0; i < 40; i++) await page.evaluate(() => window.__step(33));
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: path.join(out, `${name}.png`), timeout: 180000 });
+    await page.locator('.panel').first().screenshot({ path: path.join(out, `${name}-panel.png`), timeout: 180000 });
+    console.log('captured', name);
+  }
 
   await stickers(page, out, browser);
 })();
