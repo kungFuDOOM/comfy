@@ -389,7 +389,7 @@ export function openBoutique() {
     } else if (tab === 'pets') {
       renderPetBody(body, api, true);
     } else {
-      body.append(h('div', 'muted', 'Decor for your yard. Select it on the hotbar and face a yard tile.'));
+      body.append(h('div', 'muted', 'Decor for your home and yard. Step through the front door to arrange your rooms, or select a piece on the hotbar and face a yard tile.'));
       for (const id of SHOP_DECOR) body.append(shopRow(id, ITEMS[id].buy!, () => { if (buyDecor(id)) api.rerender(); }));
     }
   }, () => { stopDressingRoom(); endPreview(); clearPetTrial(); leavePlace(); }, true);

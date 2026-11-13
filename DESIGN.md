@@ -35,7 +35,7 @@ with a café, a boutique, a little yard of your own, a tiny garden, shorelines t
 | --- | --- | --- |
 | **Café** | Buy ingredients, brew drinks (Pink Puff Latte, Honey Cloud Cappuccino, Spotted Mocha), serve them to villagers | Friendship, Steam Lanterns, quests, pips (selling) |
 | **Boutique & outfits** | Try on for free; mix and match 400+ pieces across hat / top / bottom / dress / shoes / bag / face slots in 29 styles; the boutique restocks 10–16 pieces daily; buy decor | Spotted Lanterns, pips sink, identity |
-| **Decorating** | Place/pick up decor in your fenced yard (a 10×4 lawn) | Hearth Lanterns, self-expression |
+| **Decorating** | Step through the Front Door into your home and arrange decor on an 8×6 grid (place, drag, turn, pick up), pick wallpaper and floors; or place/pick up decor in your fenced yard (a 10×4 lawn) | Hearth Lanterns, self-expression |
 | **Friends & gifting** | Talk once a day, give gifts, serve drinks; each villager has liked items | Hearts, new dialogue tiers, Ribbon Lanterns |
 | **Collecting** | Pick up Dewdrop Shells, Ribbon Blossoms, Steam-Moths, Starlit Buttons; fill the collection log | Sparkle Lanterns, gifts, pips |
 | **Exploring** | Wander paths, beaches, the meadow and the grove hillside; spawns depend on place, time of day and season | Everything above |
@@ -146,6 +146,14 @@ v0.1 has a gentle, open-ended ladder instead of levels:
 - Save/load: one JSON blob in localStorage (`comfy.save.v1`), autosaved every 5 s and on tab hide/close. It holds position, inventory, hotbar, pips, friendships, plots, decor, worn clothes and owned wardrobe, lanterns, quests, stats and collectible spawns. Plants keep growing while the tab is closed (progress uses timestamps).
 - No backend, no external assets.
 - Player activity animations: game code calls `startAct()` (`src/actions.ts`); fishing casts and bench brewing are mirrored from their timers. `render/playerActs.ts` blends procedural poses over idle/walk, hangs cached tool props on the hands only while needed, and plays splashes, chips, drops and sparkles through the pooled celebration particles. Moving (keys, stick, joystick or tap-to-walk) cancels an act; held acts (the bake games) end with their window. Visual only, nothing saved.
+
+## 7a. Home decorating
+
+The **Front Door** station (south face of the house) opens decorate mode: a fade into a dollhouse-style room (`render/homeRoom.ts`, a `home` scene on the shared renderer, floating far above the island so nothing else is in shot) and a tray UI (`ui/homeUi.ts`, `ui/home.css`). Rules live in `home.ts`, data (8×6 grid, 5 wallpapers, 5 floors, patterns painted in `art/homePatterns.ts`) in `homeData.ts`. The yard keeps its own tile decorating.
+
+- Items come from the bag (any `kind: 'decor'` item); placing consumes one, picking up returns it. One standing piece per cell; flat pieces (rugs) share a cell with a standing piece. Pieces rotate in quarter turns.
+- Mouse: hover shows a ghost, click places / selects, drag moves. Touch: tap to place or select, drag to move, big Turn / Pick up buttons; the tray docks to the right on short landscape screens. Keyboard: arrows move a cursor, E/Space confirm, `R` turn, `X` pick up, `[ ]` flip through pieces, `Tab` next tab, Esc back. Gamepad: D-pad / stick cursor, A confirm, X turn, Y pick up, LB/RB flip, Start next tab, B back (deselect, then leave). Extra scene buttons arrive on the bus as `sceneAction`.
+- Save: `state.home = { wall, floor, items: [{ id, x, y, rot }] }`, normalized on load (`normalizeHome`), so older saves get an empty blush-and-checker room. Saved after every change and on leaving.
 
 ## 7b. Soft Skills
 
