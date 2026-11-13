@@ -35,6 +35,8 @@ import { renderEventsTab } from './eventsUi';
 import { clearPetTrial, renderPetBody } from './petUi';
 import { eventItemOpen, getActiveEvents } from '../events';
 import { openShift } from './shiftUi';
+import { openContest } from './contestUi';
+import { RIBBONS, THEMES, hostedToday, ribbonOf, themeFor } from '../contest';
 import { SHIFTS_PER_DAY, orderable, shiftsLeft } from '../shift';
 import { openCookieBake } from '../events/cookieBake';
 import { canBakePie, openPieBake } from '../events/pieBake';
@@ -103,6 +105,7 @@ export function openDialogue(def: VillagerDef) {
         ),
       ),
       isBirthday(def.id) ? h('div', 'card fr-banner', h('div', 'grow', `🎂 It is ${def.name.split(' ')[0]}'s birthday! Gifts count double.`), btn(birthdayDone(def.id) ? '✓ Wished' : 'Wish happy birthday', () => { if (celebrateBirthday(def.id)) { addPoints(def.id, 20); line = infoOf(def.id)?.bdayThanks ?? 'Thank you!'; note = '+20 friendship ♥'; api.rerender(); } }, 'small', birthdayDone(def.id))) : null,
+      contestCard(def),
       ...questsFrom(def.id).map((q) => questBlock(q, (t) => { line = t; note = ''; api.rerender(); })).filter((e): e is HTMLElement => !!e),
       h('div', 'sub', (() => { const k = knownTastes(def.id).love; return `Give or serve something (${k.length ? `${def.name.split(' ')[0]} loves: ${k.map((l) => ITEMS[l].name).join(', ')}` : 'you are still learning what they love'})`; })()),
       giftable.length ? h('div', 'chips', ...giftable.map((id) => {
@@ -114,6 +117,17 @@ export function openDialogue(def: VillagerDef) {
       h('div', 'row', btn('Chat again', () => { const r = talk(def); line = r.text; note = ''; api.rerender(); }), btn('Bye!', () => api.close(), 'ghost')),
     ].filter((e): e is HTMLElement => !!e));
   }, () => { if (npc) npc.busy = false; });
+}
+
+/** The styling-contest invitation a hosting villager adds to their dialogue (one contest per host per day). */
+function contestCard(def: VillagerDef): HTMLElement | null {
+  const theme = themeFor(def.id);
+  if (!theme) return null;
+  const done = hostedToday(def.id);
+  return h('div', 'card quest-offer contest-offer',
+    h('b', '', `${theme.icon} Styling contest: ${theme.name}`),
+    h('div', 'muted', done ? 'You already dressed up for this one today. Come back tomorrow for a new theme!' : theme.blurb),
+    btn(done ? 'All done for today ☾' : 'Enter the contest 🎀', () => openContest(def, theme, clothThumb), 'small', done));
 }
 
 /** A quest offer / reminder / turn-in card inside a giver's dialogue. */
@@ -506,6 +520,17 @@ export function openJournal(start = 'quests') {
             h('div', 'muted small skill-xp', p.maxed ? 'Fully bloomed ✿' : `${p.into} / ${p.need} XP to Lv ${p.level + 1}`))));
       }
       body.append(list);
+      const shelf = h('div', 'card ribbon-shelf', h('b', '', '🎀 Ribbon shelf'),
+        h('div', 'muted small', 'Win ribbons at styling contests. Ask a friend who is hosting one! Each Golden Bow also earns a prize outfit piece.'));
+      const row = h('div', 'ribbon-row');
+      for (const th of THEMES) {
+        const r = ribbonOf(th.id);
+        const chip = h('span', 'ribbon-chip' + (r === undefined ? ' none' : ''), h('span', 'rc-icon', r === undefined ? '？' : RIBBONS[r].icon), h('span', 'rc-name', th.name));
+        chip.title = r === undefined ? `${th.name}: not entered yet` : `${th.name}: ${RIBBONS[r].name}`;
+        row.append(chip);
+      }
+      shelf.append(row);
+      body.append(shelf);
     } else if (tab === 'quests') {
       for (const q of LOG_QUESTS.filter(questVisible)) {
         const st = questStatus(q);
