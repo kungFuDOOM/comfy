@@ -33,6 +33,7 @@ export function loadGame(): boolean {
     if (typeof state.daily.shifts !== 'number' || !Number.isFinite(state.daily.shifts)) state.daily.shifts = 0;
     if (!state.regionSeen || typeof state.regionSeen !== 'object' || Array.isArray(state.regionSeen)) state.regionSeen = {};
     if (!Array.isArray(state.partyHats)) state.partyHats = [];
+    state.photos = sanitizePhotos(data.photos); // saves from before photo mode have no album
     state.pet = sanitizePet(data.pet); // saves from before pets: no pet yet; anything malformed is dropped
     if ((data.mapV ?? 1) < MAP_VERSION) migrateMap();
     state.mapV = MAP_VERSION;
@@ -40,6 +41,22 @@ export function loadGame(): boolean {
   } catch {
     return false;
   }
+}
+
+export const MAX_PHOTOS = 12;
+const MAX_THUMB_CHARS = 60000; // a ~160px JPEG is ~8-15k chars; anything much bigger is not one of ours
+
+/** Keep only well-formed album entries (a data:image thumbnail of sane size), newest first, within the cap. */
+function sanitizePhotos(v: unknown): SaveData['photos'] {
+  if (!Array.isArray(v)) return [];
+  const out: SaveData['photos'] = [];
+  for (const p of v) {
+    if (!p || typeof p !== 'object') continue;
+    const { at, thumb, note } = p as Record<string, unknown>;
+    if (typeof thumb !== 'string' || !thumb.startsWith('data:image/') || thumb.length > MAX_THUMB_CHARS) continue;
+    out.push({ at: Number.isFinite(Number(at)) ? Number(at) : 0, thumb, note: typeof note === 'string' ? note.slice(0, 30) : '' });
+  }
+  return out.slice(0, MAX_PHOTOS);
 }
 
 /** Friendship came later: saves without `bonds` (or with a damaged one) get a fresh one; points are clamped to what a heart scale allows. */
