@@ -1,4 +1,5 @@
 // Villagers: wandering, dialogue, friendship hearts, gifts and serving drinks.
+import { startAct } from './actions';
 import { drawVillager, type Facing } from './art/characters';
 import { sfx } from './audio';
 import { bus, changed } from './bus';
@@ -110,6 +111,7 @@ export function give(def: VillagerDef, itemId: string): Reply | null {
   if (!removeItem(itemId)) return null;
   list.push(def.id);
   sfx.gift();
+  startAct('give', 1.25, npc ? { tx: npc.x, ty: npc.y - 8 } : {});
   const loved = !!item.loved; // pies: every villager adores them
   const liked = loved || def.likes.includes(itemId);
   const gain = loved ? 30 : liked ? 20 : isDrink ? 8 : 4;

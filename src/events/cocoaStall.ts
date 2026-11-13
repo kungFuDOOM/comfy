@@ -1,5 +1,6 @@
 // The Twinkle cocoa market stall (week 3 on): three cups to buy with pips. Buying counts for the stall's goal, and a
 // cup is a drink, so it can be served to a friend like any café drink.
+import { startAct } from '../actions';
 import { itemIcon } from '../art/icons';
 import { toast } from '../bus';
 import { CURRENCY, ITEMS } from '../data';
@@ -23,6 +24,7 @@ export function openCocoaStall() {
           if (!spend(cost)) { toast('Not enough pips yet.'); return; }
           addItem(id);
           bumpEvent('twinkle', 'cocoa', 1);
+          startAct('sip', 1.5);
           toast(`${ITEMS[id].name}, steaming hot ☕`);
           api.rerender();
         }, '', state.coins < cost)));

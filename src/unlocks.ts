@@ -1,5 +1,6 @@
 // Unlocking the island: cute barriers, what they ask for, and what happens when they open.
 // The data lives in areas.ts, the tiles in world.ts; this is the rules and the messages.
+import { startAct } from './actions';
 import { sfx } from './audio';
 import { bus, changed, toast } from './bus';
 import { ITEMS, VILLAGERS } from './data';
@@ -82,7 +83,7 @@ export function barrierNear(): { b: Barrier; d: number } | null {
 export function useBarrier(b: Barrier) {
   if (barrierOpen(b.id)) return;
   const r = areaById(b.area).req!;
-  if (!requirementMet(r)) { sfx.tick(); toast(lockedMessage(b, r)); return; }
+  if (!requirementMet(r)) { sfx.tick(); startAct('ponder', 1.2); toast(lockedMessage(b, r)); return; }
   if (r.kind === 'pips' && !spend(r.cost)) { toast(lockedMessage(b, r)); return; }
   unlockArea(b.area);
 }
