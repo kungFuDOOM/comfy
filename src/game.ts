@@ -127,6 +127,15 @@ function interact() {
   currentTarget()?.run();
 }
 
+/**
+ * World handler for B / the on-screen run button. Menus and cutscenes never get here
+ * (dispatch closes them first). While a tap-walk is active that same hold is run, so it must not drop the path.
+ */
+function cancelAction() {
+  if (player.path.length) return;
+  cancelPath();
+}
+
 function handleClick(sx: number, sy: number) {
   if (isPanelOpen()) return;
   if (markerOn) { world3d.marker(null); markerOn = false; }
@@ -353,7 +362,7 @@ export function startGame() {
   window.addEventListener('resize', () => world3d.resize());
   buildHud({ mail: () => !isPanelOpen() && openMailbox(), skills: () => !isPanelOpen() && openJournal('skills'), journal: (tab) => !isPanelOpen() && openJournal(tab), bag: () => !isPanelOpen() && openBag(), help: () => !isPanelOpen() && openHelp(), map: () => !isPanelOpen() && openMap() });
   initInput(canvas, {
-    interact, tool: useTool, cancel: cancelPath, pause: openPause,
+    interact, tool: useTool, cancel: cancelAction, pause: openPause,
     bag: openBag, journal: openJournal, help: openHelp, map: openMap,
     hotbarStep: (d) => selectSlot(state.sel + d), hotbarSet: selectSlot,
     click: handleClick, camReset: () => world3d.resetCamera(),

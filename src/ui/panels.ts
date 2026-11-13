@@ -608,7 +608,7 @@ type HelpRow = [string, string];
 /** One card per device. CSS floats the card for the device used last to the top (body.input-*). */
 export const HELP: { mode: 'keyboard' | 'gamepad' | 'touch'; title: string; rows: HelpRow[] }[] = [
   { mode: 'keyboard', title: 'Keyboard & mouse', rows: [
-    ['WASD / Arrows', 'Walk, smoothly and relative to the camera'], ['Shift', 'Hold to run'],
+    ['WASD / Arrows', 'Walk, smoothly and relative to the camera'], ['Shift', 'Hold to run, including the rest of a click-to-walk'],
     ['E / Space', 'Talk, shop, and use what you are facing'], ['F', 'Use the selected hotbar item on the tile in front'],
     ['Click', 'Walk there, or interact with what you click'], ['1–9 / Q R / Wheel', 'Choose a hotbar slot'],
     ['B', 'Bag & wardrobe'], ['J', 'Journal'], ['K', 'Skills'], ['L', 'Lantern grove'], ['H', 'This help'], ['Esc', 'Pause menu (settings, back to title) · closes a window'],
@@ -616,14 +616,14 @@ export const HELP: { mode: 'keyboard' | 'gamepad' | 'touch'; title: string; rows
   ] },
   { mode: 'gamepad', title: 'Controller', rows: [
     ['Left stick', 'Walk — tilt sets the pace, and a full tilt is a normal walk'], ['A', 'Talk, shop, interact'],
-    ['B', 'Hold to run · cancel · close a window'], ['X', 'Use the selected hotbar item on the tile in front'],
+    ['B', 'Hold to run, including a tap-walk · close a window'], ['X', 'Use the selected hotbar item on the tile in front'],
     ['Y', 'Bag & wardrobe'], ['LB / RB', 'Previous / next hotbar slot'], ['Start', 'Pause menu (settings, back to title)'], ['View', 'Bag'],
     ['D-pad', 'Move the focus ring in windows (◀ ▶ also steps the hotbar)'],
     ['Right stick', 'Orbit and tilt the camera (click it to reset)'], ['LT / RT', 'Zoom out / zoom in'],
   ] },
   { mode: 'touch', title: 'Touch', rows: [
     ['Drag the left side', 'A joystick appears under your thumb — tilt sets the pace, and a full drag is a normal walk'],
-    ['A', 'Talk, shop, interact'], ['B', 'Hold to run · cancel'], ['X', 'Use the selected hotbar item on the tile in front'],
+    ['A', 'Talk, shop, interact'], ['B', 'Hold to run, including a tap-walk · close a window'], ['X', 'Use the selected hotbar item on the tile in front'],
     ['Y', 'Bag & wardrobe'], ['Hotbar', 'Tap a slot to switch tools'], ['Tap the island', 'Walk there, or talk to who you tap'],
     ['Top buttons', 'Journal, skills, bag and this help'], ['Journal › Pause', 'Resume, settings, or back to the title'],
   ] },
