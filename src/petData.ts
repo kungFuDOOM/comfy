@@ -45,6 +45,8 @@ export interface PetItem {
   c2: string;
   shape: 'bow' | 'beret' | 'beanie' | 'sweater';
   blurb: string;
+  /** Pet Care level that gifts this piece for free. Care pieces are never sold at the boutique. */
+  care?: number;
 }
 export const PET_ITEMS: PetItem[] = [
   { id: 'pb_strawberry', name: 'Strawberry Bow', slot: 'head', price: 45, c1: '#ff8fb6', c2: '#ffffff', shape: 'bow', blurb: 'A plump pink bow with a cream knot.' },
@@ -53,6 +55,10 @@ export const PET_ITEMS: PetItem[] = [
   { id: 'ph_bellbeanie', name: 'Bell Beanie', slot: 'head', price: 110, c1: '#fff3d6', c2: '#ffb3c6', shape: 'beanie', blurb: 'Knit cream beanie with a pink pom.' },
   { id: 'ps_marshmallow', name: 'Marshmallow Knit', slot: 'body', price: 140, c1: '#ffd9e8', c2: '#ffffff', shape: 'sweater', blurb: 'Pink and cream stripes, extra snuggly.' },
   { id: 'ps_mint', name: 'Mint Cuddle Sweater', slot: 'body', price: 140, c1: '#bfeedd', c2: '#ffffff', shape: 'sweater', blurb: 'Fresh mint with a folded collar.' },
+  // Pet Care rewards (see petcare.ts): given free as the skill levels up, never in the shop
+  { id: 'pb_care', name: 'Gold-star Bow', slot: 'head', price: 0, c1: '#ffe38a', c2: '#ffffff', shape: 'bow', blurb: 'A shiny little thank-you for caring so well.', care: 3 },
+  { id: 'ph_sunset', name: 'Sunset Beret', slot: 'head', price: 0, c1: '#ffb48a', c2: '#ff8fb6', shape: 'beret', blurb: 'Peach and rose, like the sky over the grove.', care: 8 },
+  { id: 'ps_cuddle', name: 'Best-Friend Knit', slot: 'body', price: 0, c1: '#d9c8ff', c2: '#fff0f6', shape: 'sweater', blurb: 'Lavender stripes, knit with extra love.', care: 12 },
 ];
 export const petItemById = (id: string | null | undefined): PetItem | undefined => PET_ITEMS.find((i) => i.id === id);
 
@@ -82,4 +88,15 @@ export function sanitizePet(raw: unknown): PetSave | null {
     return typeof id === 'string' && owned.includes(id) && petItemById(id)?.slot === slot ? id : null;
   };
   return { kind: r.kind, name, coat, owned, worn: { head: pick('head'), body: pick('body') } };
+}
+
+/** Daily Pet Care counters (XP only pays for the first few of each, so it stays cozy rather than a grind). */
+export interface PetCare { day: string; pat: number; play: number; snack: number; sniff: number }
+export const defaultPetCare = (): PetCare => ({ day: '', pat: 0, play: 0, snack: 0, sniff: 0 });
+export function sanitizePetCare(raw: unknown): PetCare {
+  const base = defaultPetCare();
+  if (!raw || typeof raw !== 'object') return base;
+  const r = raw as Record<string, unknown>;
+  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math.max(0, Math.min(99, Math.floor(v))) : 0);
+  return { day: typeof r.day === 'string' ? r.day : '', pat: num(r.pat), play: num(r.play), snack: num(r.snack), sniff: num(r.sniff) };
 }

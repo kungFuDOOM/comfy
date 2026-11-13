@@ -1,7 +1,9 @@
 import { defaultBonds, defaultState, state, type SaveData } from './state';
 import { TOWN_OFFSET, MAP_VERSION } from './world';
 import { migrateWardrobe } from './clothes/migrate';
-import { sanitizePet } from './petData';
+import { sanitizePet, sanitizePetCare } from './petData';
+import { sanitizeErrands } from './errandData';
+import { ITEMS } from './data';
 
 const KEY = 'comfy.save.v1';
 
@@ -34,6 +36,8 @@ export function loadGame(): boolean {
     if (!state.regionSeen || typeof state.regionSeen !== 'object' || Array.isArray(state.regionSeen)) state.regionSeen = {};
     if (!Array.isArray(state.partyHats)) state.partyHats = [];
     state.pet = sanitizePet(data.pet); // saves from before pets: no pet yet; anything malformed is dropped
+    state.petCare = sanitizePetCare(data.petCare); // saves from before Pet Care: fresh counters
+    state.errands = sanitizeErrands(data.errands, (id) => !!ITEMS[id]); // saves from before the bulletin board: empty, it posts on the first tick
     if ((data.mapV ?? 1) < MAP_VERSION) migrateMap();
     state.mapV = MAP_VERSION;
     return true;

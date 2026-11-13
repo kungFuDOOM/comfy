@@ -19,6 +19,9 @@ import { cancelCast, casting, nodeAtTile, nodeCenter, nodeHint, nodeNear, update
 import { bus, changed, toast } from './bus';
 import { getPetPose, hasPet, petName, petNear, petThePet, petWorldPos, resetPet, updatePet } from './pet';
 import { initPetUi, openAdopt, openPetPanel } from './ui/petUi';
+import { initPetCare, syncCareUnlocks } from './petcare';
+import { tickErrands } from './errands';
+import { openBoard } from './ui/errandsUi';
 import { tickAwards, checkRegions } from './regions';
 import { refreshEarned } from './wardrobe';
 import { sceneActive } from './render/stage';
@@ -86,6 +89,7 @@ function openStation(s: Station) {
   else if (s.id === 'chest') openChest();
   else if (s.id === 'wardrobe') openBag('wardrobe');
   else if (s.id === 'mailbox') openMailbox();
+  else if (s.id === 'board') openBoard();
   else if (s.id === 'petbed') { if (state.pet) openPetPanel(); else openAdopt(); }
   else openJournal('lanterns');
 }
@@ -267,7 +271,7 @@ function update(dt: number) {
   updateLanterns(dt);
   tickGarden();
   eventTimer -= dt;
-  if (eventTimer <= 0) { eventTimer = 0.5; tickEvents(); tickFriends(); }
+  if (eventTimer <= 0) { eventTimer = 0.5; tickEvents(); tickFriends(); tickErrands(); }
   updateCollect(dt, player.x, player.y);
   tickAwards(dt, panel);
   // hint
@@ -332,6 +336,7 @@ export function startGame() {
   setMood('town');
   refreshEarned(false); // pieces earned before this update, and any party hat already deserved (queued for the ceremony)
   checkRegions();
+  syncCareUnlocks(); // Pet Care accessories the saved level has earned
   syncFriendship(); // letters for hearts earned before the mailbox existed
   tickEvents(); // seasonal events: greet, build the table's collision (the 3D decorations follow on the first frame)
   cancelAct();
@@ -344,6 +349,7 @@ export function startGame() {
   }
   booted = true;
   initPetUi();
+  initPetCare();
   document.documentElement.style.setProperty('--cheetah', `url(${cheetahDataUrl('classic')})`);
   document.documentElement.style.setProperty('--cheetah-pink', `url(${cheetahDataUrl('pink')})`);
   bus.on('openFriends', () => { openJournal('friends'); });
