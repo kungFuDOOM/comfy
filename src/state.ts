@@ -1,6 +1,7 @@
 // The single mutable game state. Everything in here is persisted.
 import { START_WORN, startClothes } from './clothes/start';
 import type { Slot } from './clothes/types';
+import type { PetSave } from './petData';
 export type LanternKind = 'serve' | 'gift' | 'decor' | 'collect' | 'outfit' | 'garden';
 
 export interface PlacedDecor { id: string; x: number; y: number }
@@ -78,6 +79,8 @@ export interface SaveData {
   unlocked: Record<string, boolean>;
   /** Seasonal event progress by event id. */
   events: Record<string, EventProgress>;
+  /** The adopted pet companion (kind, name, coat, owned/worn pet accessories). null = not adopted yet. */
+  pet: PetSave | null;
   /** Map layout version the saved positions belong to (1 = the original small island). */
   mapV: number;
   /** Café shift totals; older saves get zeros. */
@@ -118,6 +121,7 @@ export function defaultState(): SaveData {
     questLog: {},
     unlocked: {},
     events: {},
+    pet: null,
     mapV: 2,
     cafe: defaultCafe(),
   };
