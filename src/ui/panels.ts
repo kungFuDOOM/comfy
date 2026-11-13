@@ -42,10 +42,11 @@ import { openPause } from './menuPanels';
 import { npcs } from '../npc';
 import { GROVE } from '../world';
 import { renderMap } from './mapPanel';
+import { visitDaysText } from '../merchant';
 
-const price = (n: number) => h('span', 'price', coinIcon(14), String(n));
+export const price = (n: number) => h('span', 'price', coinIcon(14), String(n));
 
-function canvasEl(w: number, h2: number, draw: (g: CanvasRenderingContext2D) => void, cls = '') {
+export function canvasEl(w: number, h2: number, draw: (g: CanvasRenderingContext2D) => void, cls = '') {
   const c = document.createElement('canvas');
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   c.width = w * dpr; c.height = h2 * dpr; c.style.width = w + 'px'; c.style.height = h2 + 'px'; c.className = cls;
@@ -56,7 +57,7 @@ function canvasEl(w: number, h2: number, draw: (g: CanvasRenderingContext2D) => 
 // ---------- Dialogue ----------
 const TYPE_CPS = 46;
 /** Speech bubble that types out its text with a per-speaker blip; tap it to show the whole line at once. */
-function typedBubble(text: string, speaker: string, api: PanelApi): HTMLElement {
+export function typedBubble(text: string, speaker: string, api: PanelApi): HTMLElement {
   const shownEl = h('span', ''), restEl = h('span', 'cs-rest');
   restEl.style.visibility = 'hidden'; // reserves the bubble's final size so it does not reflow
   restEl.textContent = text;
@@ -276,7 +277,7 @@ interface DressUi { slot: Slot | 'all'; style: StyleId | 'all' }
 const newDressUi = (): DressUi => ({ slot: 'all', style: 'all' });
 
 /** A small picture of an item on the default look. Hats / glasses zoom to the head, shoes to the feet. Locked items are silhouettes. */
-function clothThumb(c: ClothDef, locked: boolean) {
+export function clothThumb(c: ClothDef, locked: boolean) {
   return canvasEl(46, 52, (g) => {
     g.fillStyle = locked ? '#f3e9ef' : '#fff0f6'; g.fillRect(0, 0, 46, 52);
     const look = resolveLook(equipOn({ ...START_WORN }, c));
@@ -658,6 +659,7 @@ export function openHelp() {
       h('p', 'muted', 'Hushbell: the Long Frost put Sugarlily Isle to sleep when the Hush Bell in the lighthouse wound down. Wake it one small kindness at a time — brew, gift, decorate, and light lanterns — until the Bell rings again. Somewhere soft is waking up.'),
       h('p', 'muted small', 'Gather berries, blossoms, shells, coffee cherries and fish from the glimmering spots around the island — they grow back after a while. Everything you do grows a skill (see the Skills tab, or press K). Spare things keep safe in the Softkeep Chest by your home.'),
       h('p', 'muted small', 'Play with a keyboard, a controller or your fingers — the button hints on screen follow whichever you touched last, and its card hops to the top here.'),
+      h('p', 'muted small', `Tansy, a traveling merchant, sets up a stall east of Sugarlily Square on ${visitDaysText()} (9 AM to 8 PM). She sells rare outfits, decor and seeds, and her stock changes every visit.`),
       ...helpCards(),
       h('p', 'muted small help-tip', 'Tip: the café, boutique, cart, and grove altar open when you stand close and press the interact button. Time and season follow your real clock. Progress saves automatically.'),
       h('div', 'row end', btn('Let\'s go!', () => api.close())),

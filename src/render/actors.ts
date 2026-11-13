@@ -21,7 +21,7 @@ export interface ActorMesh {
 
 const FACE_ANGLE: Record<Facing, number> = { down: 0, right: Math.PI / 2, up: Math.PI, left: -Math.PI / 2 };
 
-type Kind = 'player' | 'dormouse' | 'hamster' | 'hedgehog' | 'bunny' | 'capybara' | 'moth' | 'axolotl' | 'seal';
+type Kind = 'player' | 'dormouse' | 'hamster' | 'hedgehog' | 'bunny' | 'capybara' | 'moth' | 'axolotl' | 'seal' | 'alpaca';
 type Fill = string | CheetahKind; // hex color or a cheetah print
 const isPrint = (f: Fill): f is CheetahKind => f === 'classic' || f === 'pink';
 
@@ -190,6 +190,23 @@ function buildHead(kind: Kind, skin: string, accent: string): THREE.Mesh {
       b.add(G.ball(0.032, 8), '#f59ac0', { ...at(on(0, -10, 1.05)), s: [1.3, 0.85, 0.75] });
       const smile = on(0, -26, 1.03);
       b.add(G.torus(0.04, 0.009, 8, Math.PI * 0.85), '#e7a0c0', { x: smile[0], y: smile[1], z: smile[2], rz: Math.PI, rx: 0.3 });
+      break;
+    }
+    case 'alpaca': {
+      // Tansy, the traveling merchant: tall banana ears, a big fluffy topknot, woolly cheeks and a soft cream muzzle.
+      const wool = '#ffffff';
+      for (const sx of [-1, 1]) {
+        b.add(G.capsule(0.07, 0.3), skin, { x: sx * 0.22, y: 0.5, z: -0.04, rz: -sx * 0.32, s: [1, 1, 0.7] });
+        b.add(G.capsule(0.04, 0.2), earInner, { x: sx * 0.22, y: 0.5, z: 0.0, rz: -sx * 0.32, s: [0.85, 1, 0.4] });
+        b.add(G.ball(0.12, 10), wool, { ...at(on(sx * 66, -12, 0.99)), s: [0.9, 0.9, 0.85] });
+        b.add(G.ball(0.11, 10), wool, { ...at(on(sx * 34, 50, 1.05)) });
+      }
+      b.add(G.ball(0.2, 14), wool, { ...at(on(0, 58, 1.0)), s: [1.35, 0.9, 1.1] });
+      b.add(G.ball(0.1, 10), '#f6ecfa', { ...at(on(0, 74, 1.12)), s: [1.2, 0.8, 1] });
+      b.add(G.ball(0.12, 12), '#fff7ee', { ...at(on(0, -14, 0.98)), s: [1.25, 0.85, 0.9] });
+      b.add(G.ball(0.034, 8), '#c0577d', { ...at(on(0, -8, 1.06)), s: [1.4, 0.8, 0.8] });
+      const smile = on(0, -26, 1.05);
+      b.add(G.torus(0.045, 0.01, 8, Math.PI * 0.9), '#c0577d', { x: smile[0], y: smile[1], z: smile[2], rz: Math.PI, rx: 0.3 });
       break;
     }
     case 'capybara': {
@@ -564,6 +581,33 @@ function puffStar(): THREE.Object3D {
   }
   b.add(G.ball(0.03, 8), '#fff6d2', { z: 0.01 });
   return b.build(vertexToon('#ffe7a0'));
+}
+
+/** Tansy's body: round and woolly, with a stuffed travel pack (a striped bedroll and a bell) on her back. */
+const ALPACA_SHAPE: Pick<Spec, 'scale' | 'headScale' | 'headDrop' | 'bodyScale' | 'eyeScale' | 'extra'> = {
+  scale: 1.04, headScale: [1.0, 1.1, 1.0], headDrop: 0.0, bodyScale: [1.12, 1.0, 1.12], eyeScale: 1.1,
+  extra({ model, body }) {
+    const pack = new Batch()
+      .add(G.ball(0.3, 14), '#ffd0e0', { y: 0.34, z: -0.3, s: [1.05, 1.0, 0.7] })
+      .add(G.cyl(0.13, 0.13, 0.6, 14), '#fff3c4', { y: 0.7, z: -0.3, rz: Math.PI / 2 })
+      .add(G.torus(0.13, 0.025, 14), '#ff9ec0', { x: -0.2, y: 0.7, z: -0.3, ry: Math.PI / 2 })
+      .add(G.torus(0.13, 0.025, 14), '#ff9ec0', { x: 0.2, y: 0.7, z: -0.3, ry: Math.PI / 2 })
+      .add(G.ball(0.05, 8), PALETTE.gold, { x: 0.0, y: 0.38, z: -0.5 })
+      .build();
+    body.add(pack);
+    const tail = new Batch().add(G.ball(0.07, 8), '#ffffff', {}).build();
+    tail.position.set(0, HIP_Y + 0.12, -0.46);
+    model.add(tail);
+    const scarf = new Batch().add(G.torus(0.2, 0.05, 18), '#ff9ec0', { rx: Math.PI / 2 }).add(G.ball(0.05, 8), '#ffd36e', { x: 0.07, y: -0.04, z: 0.19 }).build();
+    scarf.position.set(0, 0.56, 0.03);
+    body.add(scarf);
+    return (t) => { pack.rotation.z = Math.sin(t * 1.3) * 0.02; };
+  },
+};
+
+/** Tansy Packlewick, the traveling merchant (merchant.ts): a lilac-cream alpaca in a pink travel smock. */
+export function createMerchantMesh(): ActorMesh {
+  return build({ kind: 'alpaca', skin: '#f6ecfa', accent: '#ff9ec0', dress: '#ffd0e0', band: '#fff3c4', shoes: '#c9a8e8', ...ALPACA_SHAPE });
 }
 
 /** Per-species body tweaks: size, head shape, and extra pieces. Edit here to refine a character without touching build(). */
