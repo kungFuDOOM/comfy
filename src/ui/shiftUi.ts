@@ -1,6 +1,7 @@
 // Café shift window: customer order ticket -> three-step timing mini-game (pour, steam, flourish) -> serve -> next
 // customer -> recap. Copies the feel of events/pieBake.ts: a big press button, a sweeping heart, no way to fail.
 // Closing the window never spends anything (the pantry supplies the ingredients, see shift.ts).
+import { startAct } from '../actions';
 import { drawVillager } from '../art/characters';
 import { drawCup } from '../art/shiftCup';
 import { itemIcon } from '../art/icons';
@@ -52,6 +53,7 @@ export function openShift(onExit?: () => void) {
     // deferred: closePanel() may be running inside another openPanel(), which must win
     if (onExit) setTimeout(() => { if (!isPanelOpen()) onExit(); }, 0);
   });
+  startAct('brew', 0, { hold: true }); // stirring at the counter until this window closes, same as the bake games
   enterPlace('cafe'); // replacing the café window ran its leavePlace(); keep the café music through the shift
 
   function customerHead(c: Customer) {

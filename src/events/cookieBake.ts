@@ -3,6 +3,7 @@
 // zone. There is no failing (a late tray is just extra toasty). Two or more golden trays bake a bonus cookie.
 // Ingredients only leave the bag when the last tray is out, so closing the window loses nothing. Every timer is
 // cleared when the window closes or redraws, so nothing keeps running (or revives the panel) afterwards.
+import { startAct } from '../actions';
 import { sfx } from '../audio';
 import { itemIcon } from '../art/icons';
 import { changed, toast } from '../bus';
@@ -34,6 +35,7 @@ export function openCookieBake(recipeId: string) {
 
   const stopTimers = () => { cancelAnimationFrame(raf); clearTimeout(settle); raf = 0; settle = 0; };
 
+  startAct('bake', 0, { hold: true }); // whisking at the oven until this window closes
   openPanel('Bake Cookies 🍪', (body, api) => {
     if (made !== null) return renderDone(body, api);
     const s = TRAYS[tray];

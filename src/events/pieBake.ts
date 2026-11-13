@@ -1,6 +1,7 @@
 // Pie baking: a short, cozy timing game. Three steps (roll the crust, crimp the edge, bake to golden): press the big
 // button while the heart is over the pink zone. There is no failing; a better rhythm just earns a Golden Pie
 // (two pies). Ingredients are only used up when the pie is finished, so closing the window loses nothing.
+import { startAct } from '../actions';
 import { sfx } from '../audio';
 import { itemIcon } from '../art/icons';
 import { changed, toast } from '../bus';
@@ -33,6 +34,7 @@ export function openPieBake(recipeId: string) {
   const newZone = () => { zoneC = 0.22 + Math.random() * 0.56; t0 = performance.now(); pos = 0; };
   newZone();
 
+  startAct('bake', 0, { hold: true }); // whisking at the oven until this window closes
   openPanel('Bake a Pie 🥧', (body, api) => {
     const pie = r.id;
     if (made !== null) return renderDone(body, api);

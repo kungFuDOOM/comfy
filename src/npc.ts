@@ -1,4 +1,5 @@
 // Villagers: wandering, dialogue, friendship hearts, gifts and serving drinks.
+import { startAct } from './actions';
 import { drawVillager, type Facing } from './art/characters';
 import { sfx } from './audio';
 import { bus, changed } from './bus';
@@ -108,6 +109,7 @@ export function give(def: VillagerDef, itemId: string): Reply | null {
   if (!removeItem(itemId)) return null;
   list.push(def.id);
   sfx.gift();
+  startAct('give', 1.25, npc ? { tx: npc.x, ty: npc.y - 8 } : {});
   const taste = tasteOf(def.id, itemId);
   if (taste !== 'neutral') discover(def.id, taste, itemId); // now you know how they feel about it
   const birthday = isBirthday(def.id);
