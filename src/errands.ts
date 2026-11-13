@@ -7,6 +7,7 @@ import { DELIVER_KINDS, DO_KINDS, WEEKLY_GIFTS, type Errand, type ErrandScope } 
 import { addPoints, metFriend } from './friends';
 import { addItem, count, earn, removeItem } from './inventory';
 import { grantXp, skillName } from './skills';
+import { syncCareUnlocks } from './petcare';
 import { state } from './state';
 import { getClock, today } from './time';
 
@@ -84,6 +85,7 @@ function post(scope: ErrandScope, key: string): Errand[] {
 /** Roll the board over when the real day or week has changed. Returns true if anything was posted. */
 export function ensureErrands(): boolean {
   const e = state.errands, day = getClock().dayKey, wk = weekKey();
+  if (!VILLAGERS.some(metFriend)) return false; // nobody to post errands yet: try again once a friend is met
   let fresh = false;
   if (e.day !== day) { e.list = e.list.filter((x) => x.scope !== 'daily').concat(post('daily', day)); e.day = day; fresh = true; }
   if (e.week !== wk) { e.list = e.list.filter((x) => x.scope !== 'weekly').concat(post('weekly', wk)); e.week = wk; fresh = true; }
@@ -111,7 +113,7 @@ export function claimErrand(e: Errand): boolean {
   sfx.quest();
   toast(`Errand done! +${e.pips} pips, +${e.xp} ${skillName(e.skill as SkillId)} XP${extra} ♥`);
   const day = state.errands.list.filter((x) => x.scope === 'daily');
-  if (day.length === DAILY_COUNT && day.every((x) => x.done) && state.errands.swept !== state.errands.day) {
+  if (day.length > 0 && day.every((x) => x.done) && state.errands.swept !== state.errands.day) {
     state.errands.swept = state.errands.day;
     earn(SWEEP_BONUS);
     toast(`Board swept clean! Bonus +${SWEEP_BONUS} pips ✿`);
@@ -134,6 +136,7 @@ export function refreshText(scope: ErrandScope): string {
 export function tickErrands() {
   const e = state.errands;
   ensureErrands();
+  syncCareUnlocks(); // a pet adopted after the level was reached still gets its earned pieces
   if (e.greeted !== e.day && openCount() > 0) { e.greeted = e.day; toast('✿ Fresh errands are up on the Bulletin Board in the square!'); }
   for (const x of e.list) {
     if (!x.done && !x.notified && errandReady(x)) {
