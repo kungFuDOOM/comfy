@@ -446,7 +446,7 @@ export const QUESTS: QuestDef[] = [
   { id: 'q_boutique', title: 'Window Shopping', desc: 'Try on an outfit at Spot & Bow Boutique.', stat: 'tried', goal: 1, reward: 30, loop: 'Boutique' },
   { id: 'q_gift', title: 'A Little Something', desc: 'Give a gift to a villager.', stat: 'gifted', goal: 1, reward: 30, loop: 'Friends' },
   { id: 'q_collect', title: 'Treasure Trail', desc: 'Find 3 collectibles around the island.', stat: 'collected', goal: 3, reward: 50, loop: 'Collecting' },
-  { id: 'q_decor', title: 'Nest Builder', desc: 'Place a piece of decor in your yard.', stat: 'placed', goal: 1, reward: 40, loop: 'Decorating' },
+  { id: 'q_decor', title: 'Nest Builder', desc: 'Place a piece of decor in your home or yard.', stat: 'placed', goal: 1, reward: 40, loop: 'Decorating' },
   { id: 'q_lantern', title: 'First Glow', desc: 'Release your first Afterglow Lantern.', stat: 'lanterns', goal: 1, reward: 60, rewardItem: 'd_pouf', loop: 'Afterglow' },
   { id: 'q_sprout', title: 'Tiny Sprout', desc: 'Harvest something from the garden plot.', stat: 'harvested', goal: 1, reward: 30, loop: 'Garden' },
   { id: 'q_forage', title: 'Basket Full', desc: 'Gather 5 things from bushes, patches, beds and shrubs.', stat: 'foraged', goal: 5, reward: 40, loop: 'Foraging' },
