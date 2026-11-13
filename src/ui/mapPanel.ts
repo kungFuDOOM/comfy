@@ -24,6 +24,7 @@ const STATION_LABEL: Record<StationId, { icon: string; name: string; sub: string
   wardrobe: { icon: '👗', name: 'Home Wardrobe', sub: 'Change outfits' },
   petbed: { icon: '🐾', name: 'Pet Nook', sub: 'Adopt & dress a pet' },
   chest: { icon: '📦', name: 'Softkeep Chest', sub: 'Keep your things safe' },
+  mailbox: { icon: '✉️', name: 'Mailbox', sub: 'Letters from friends' },
 };
 
 /** A land tile of the area nearest its centre of mass, so labels never float in the sea. */

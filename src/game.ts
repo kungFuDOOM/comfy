@@ -29,6 +29,8 @@ import { getClock } from './time';
 import { isPanelOpen } from './ui/dom';
 import { buildHud, setHint, tickHud } from './ui/hud';
 import { openMap } from './ui/mapPanel';
+import { openMailbox } from './ui/friendsUi';
+import { syncFriendship, tickFriends } from './friends';
 import { openBag, openBoutique, openCafe, openChest, openCrafting, openDialogue, openHelp, openJournal, openMarket } from './ui/panels';
 import { openPause } from './ui/menuPanels';
 import { barrierHint, barrierNear, syncUnlocks, useBarrier } from './unlocks';
@@ -80,6 +82,7 @@ function openStation(s: Station) {
   else if (s.id === 'market') openMarket();
   else if (s.id === 'chest') openChest();
   else if (s.id === 'wardrobe') openBag('wardrobe');
+  else if (s.id === 'mailbox') openMailbox();
   else if (s.id === 'petbed') { if (state.pet) openPetPanel(); else openAdopt(); }
   else openJournal('lanterns');
 }
@@ -228,7 +231,7 @@ function update(dt: number) {
   updateLanterns(dt);
   tickGarden();
   eventTimer -= dt;
-  if (eventTimer <= 0) { eventTimer = 0.5; tickEvents(); }
+  if (eventTimer <= 0) { eventTimer = 0.5; tickEvents(); tickFriends(); }
   updateCollect(dt, player.x, player.y);
   tickAwards(dt, panel);
   // hint
@@ -293,6 +296,7 @@ export function startGame() {
   setMood('town');
   refreshEarned(false); // pieces earned before this update, and any party hat already deserved (queued for the ceremony)
   checkRegions();
+  syncFriendship(); // letters for hearts earned before the mailbox existed
   tickEvents(); // seasonal events: greet, build the table's collision (the 3D decorations follow on the first frame)
   if (booted) {
     cancelPath();
@@ -305,11 +309,12 @@ export function startGame() {
   initPetUi();
   document.documentElement.style.setProperty('--cheetah', `url(${cheetahDataUrl('classic')})`);
   document.documentElement.style.setProperty('--cheetah-pink', `url(${cheetahDataUrl('pink')})`);
+  bus.on('openFriends', () => { openJournal('friends'); });
   bus.on('openWardrobe', () => { if (!isPanelOpen()) openBag('wardrobe'); });
   world3d = sharedWorld3D(canvas);
   world3d.resize();
   window.addEventListener('resize', () => world3d.resize());
-  buildHud({ skills: () => !isPanelOpen() && openJournal('skills'), journal: (tab) => !isPanelOpen() && openJournal(tab), bag: () => !isPanelOpen() && openBag(), help: () => !isPanelOpen() && openHelp(), map: () => !isPanelOpen() && openMap() });
+  buildHud({ mail: () => !isPanelOpen() && openMailbox(), skills: () => !isPanelOpen() && openJournal('skills'), journal: (tab) => !isPanelOpen() && openJournal(tab), bag: () => !isPanelOpen() && openBag(), help: () => !isPanelOpen() && openHelp(), map: () => !isPanelOpen() && openMap() });
   initInput(canvas, {
     interact, tool: useTool, cancel: cancelPath, pause: openPause,
     bag: openBag, journal: openJournal, help: openHelp, map: openMap,

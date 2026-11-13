@@ -34,6 +34,31 @@ export interface EventProgress {
   announced: string;
 }
 
+/** A letter in the mailbox. Its words live in friendData.ts (looked up by id), so a save only keeps these few flags. */
+export interface Letter {
+  /** 'mimsy:h4' (a heart milestone) or 'mimsy:bday:2026' (a birthday thank-you). */
+  id: string;
+  from: string;
+  at: number;
+  read: boolean;
+  /** The attached gift (if any) has been taken. */
+  taken: boolean;
+}
+
+/** Friendship extras on top of `friend` (points per villager). Created with safe defaults, so older saves load untouched. */
+export interface Bonds {
+  /** Gift tastes discovered so far, per villager id. */
+  known: Record<string, { love: string[]; like: string[]; dislike: string[] }>;
+  letters: Letter[];
+  /** Every letter id ever delivered, so none arrives twice (even after it is deleted from the list). */
+  sent: string[];
+  /** Birthdays celebrated, as 'mimsy:2026'. */
+  wished: string[];
+  /** Event days attended (each pays the friends once), as 'harvest:feast'. */
+  attended: string[];
+}
+export const defaultBonds = (): Bonds => ({ known: {}, letters: [], sent: [], wished: [], attended: [] });
+
 export interface SaveData {
   v: number;
   px: number;
@@ -55,7 +80,10 @@ export interface SaveData {
   accessory: string | null;
   decor: PlacedDecor[];
   plots: Record<string, Plot>;
+  /** Friendship points per villager id: 20 per heart, up to 10 hearts (200). Old saves topped out at 100 (5 hearts). */
   friend: Record<string, number>;
+  /** Discovered tastes, mailbox, birthdays and event attendance (see Bonds). */
+  bonds: Bonds;
   daily: Daily;
   lanterns: Lantern[];
   lanternSeq: number;
@@ -105,6 +133,7 @@ export function defaultState(): SaveData {
     decor: [],
     plots: {},
     friend: {},
+    bonds: defaultBonds(),
     daily: { date: '', talked: [], gifted: [], served: [], lanternKinds: {}, shifts: 0 },
     lanterns: [],
     lanternSeq: 1,

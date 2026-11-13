@@ -286,6 +286,24 @@ export function drawItem(ctx: CanvasRenderingContext2D, id: string) {
       ctx.lineWidth = 5; ctx.strokeStyle = '#ff8fb6'; ctx.setLineDash([3, 4.6]); ctx.beginPath(); ctx.moveTo(16, 26); ctx.lineTo(16, 13); ctx.quadraticCurveTo(16, 8.4, 20.4, 8.4); ctx.quadraticCurveTo(24, 8.4, 24, 12); ctx.stroke(); ctx.setLineDash([]);
       heart(ctx, 16, 24, 2.6, '#ff6f94');
       break;
+    case 'jam_croissant': {
+      // a flaky crescent with a heart of berry jam
+      ctx.fillStyle = '#f3c07a'; ctx.strokeStyle = '#d9954f'; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(4, 22); ctx.quadraticCurveTo(5, 8, 16, 7); ctx.quadraticCurveTo(27, 8, 28, 22); ctx.quadraticCurveTo(24, 18, 22, 22); ctx.quadraticCurveTo(19, 16, 16, 22); ctx.quadraticCurveTo(13, 16, 10, 22); ctx.quadraticCurveTo(8, 18, 4, 22); ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = '#e0a45c'; ctx.lineWidth = 1.1;
+      for (const x of [10, 16, 22]) { ctx.beginPath(); ctx.moveTo(x, 10); ctx.lineTo(x, 19); ctx.stroke(); }
+      heart(ctx, 16, 15, 3.2, '#ff6f9c');
+      break;
+    }
+    case 'wiggle_cake': {
+      // a two-tier wobbly cake with pink frosting, sprinkles and a cherry
+      rr(ctx, 6, 18, 20, 9, 3); ctx.fillStyle = '#fff1dc'; ctx.fill(); ctx.strokeStyle = '#e9c9a0'; ctx.lineWidth = 1.2; ctx.stroke();
+      rr(ctx, 9, 11, 14, 8, 3); ctx.fillStyle = '#ffd0e2'; ctx.fill(); ctx.strokeStyle = '#ff9ec0'; ctx.stroke();
+      ctx.fillStyle = '#ff9ec0'; ctx.beginPath(); ctx.moveTo(6, 19); for (let x = 6; x <= 26; x += 5) ctx.quadraticCurveTo(x + 2.5, 25, x + 5, 19); ctx.lineTo(26, 18); ctx.lineTo(6, 18); ctx.fill();
+      for (const [x, y, c] of [[12, 14, '#ffffff'], [16, 13, '#a8f0d0'], [19.5, 15, '#fff3a8']] as [number, number, string][]) circle(ctx, x, y, 1, c);
+      circle(ctx, 16, 8.4, 2.6, '#ff5c8a'); ctx.strokeStyle = '#6fbf7e'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(16, 6); ctx.quadraticCurveTo(18, 3, 20, 4); ctx.stroke();
+      break;
+    }
     default:
       if (ITEMS[id]?.kind === 'decor') { drawDecor(ctx, id, 16, 30, 0.95); break; }
       circle(ctx, 16, 16, 8, '#ffb3cf');

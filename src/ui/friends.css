@@ -1,0 +1,58 @@
+/* Friendship: heart meter, Friends tab, mailbox and letters. */
+.heart-row { display: flex; flex-wrap: nowrap; gap: 1px; font-size: 17px; line-height: 1.1; font-weight: 700; }
+.heart-row .hr { color: #ffd6e6; }
+.heart-row .hr.on { color: #ff6b9b; text-shadow: 0 1px 0 rgba(217, 95, 144, 0.35); }
+.heart-row .hr.part { background: linear-gradient(90deg, #ff6b9b var(--fill, 0%), #ffd6e6 var(--fill, 0%)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.heart-row.big { font-size: 20px; }
+@media (max-width: 420px) { .heart-row { font-size: 15px; } }
+.fr-portrait { border-radius: 14px; border: 2px solid #ffd6e6; flex: none; }
+.fr-portrait.sil { filter: brightness(0) opacity(0.22); }
+.friend-card { flex-direction: column; align-items: stretch; gap: 6px; }
+.friend-card.bday { border-color: #ffb48a; background: linear-gradient(#fffaf6, #fff1f5); }
+.friend-card.maxed { border-color: #ffd36e; }
+.fr-head { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0; padding: 0; text-align: left; font-family: var(--font); color: var(--ink); cursor: pointer; border-radius: 12px; }
+.fr-head:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
+.fr-name { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.fr-chev { font-size: 16px; color: var(--pink-ink); flex: none; }
+.fr-bday-tag { font-size: 11px; font-weight: 700; background: #ffe5d3; color: #b8512c; border-radius: 10px; padding: 0 8px; }
+.fr-body { display: flex; flex-direction: column; gap: 6px; padding-top: 6px; border-top: 2px dashed #ffd6e6; }
+.fr-sec { font-weight: 700; font-size: 12px; color: var(--pink-ink); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+.fr-taste { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.fr-taste-h { font-size: 12px; font-weight: 700; min-width: 74px; }
+.fr-taste.love .fr-taste-h { color: #d9467a; } .fr-taste.dislike .fr-taste-h { color: #7a6a9a; }
+.fr-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.fr-item { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; background: #fff; border: 2px solid #ffd6e6; border-radius: 12px; padding: 1px 8px 1px 4px; }
+.fr-item.unk { padding: 1px 10px; color: var(--ink-l); border-style: dashed; }
+.fr-today { display: flex; flex-wrap: wrap; gap: 6px; }
+.fr-tick { font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 12px; background: #fff; border: 2px solid #ffd6e6; color: var(--ink-l); }
+.fr-tick.done { background: #f1fbef; border-color: #bfe6b8; color: #3d9a52; }
+.fr-reward { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 14px; background: #fff7fa; border: 2px solid #ffd6e6; }
+.fr-reward.got { background: #fff8e0; border-color: #ffd36e; }
+.fr-reward-t { font-weight: 700; font-size: 13px; }
+.fr-gift-emoji { font-size: 26px; line-height: 1; }
+.fr-top { align-items: center; flex-wrap: wrap; }
+.fr-bdays { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.fr-bd { font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 12px; background: #fff; border: 2px solid #ffd6e6; }
+.fr-bd.now { background: #ffe5d3; border-color: #ffb48a; color: #b8512c; }
+.fr-banner { background: linear-gradient(135deg, #fff1e4, #ffe0ea); border-color: #ffb48a; font-weight: 700; font-size: 13px; }
+
+.mail-list { display: flex; flex-direction: column; gap: 6px; }
+.mail-row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; font-family: var(--font); color: var(--ink); background: #fff; border: 2px solid #ffd6e6; border-radius: 16px; padding: 6px 10px; cursor: pointer; min-height: 44px; }
+.mail-row:hover { background: var(--pink-l); }
+.mail-row.unread { border-color: #ff9ec0; background: #fff4f8; }
+.mail-row:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
+.mail-dot { font-size: 11px; font-weight: 700; background: #ff6b9b; color: #fff; border-radius: 10px; padding: 0 8px; }
+.mail-gift { font-size: 18px; }
+.letter-wrap { display: flex; gap: 10px; align-items: flex-start; }
+.letter { flex: 1; min-width: 0; position: relative; background: #fffaf0; border: 2px solid #ffc3da; border-radius: 6px 18px 18px 18px; padding: 12px 14px; background-image: repeating-linear-gradient(transparent 0 23px, rgba(255, 195, 218, 0.35) 23px 24px); box-shadow: 0 3px 0 rgba(224, 112, 154, 0.25); animation: pop 0.25s ease-out; }
+.letter-stamp { position: absolute; top: 8px; right: 10px; width: 26px; height: 26px; border-radius: 6px; background: #ffd6e6; border: 2px dashed #ff9ec0; color: #ff6b9b; display: flex; align-items: center; justify-content: center; font-size: 14px; transform: rotate(6deg); }
+.letter-from { font-size: 12px; font-weight: 700; color: var(--ink-l); padding-right: 36px; }
+.letter-subject { font-weight: 700; font-size: 16px; color: var(--pink-ink); margin: 2px 0 6px; }
+.letter-body { margin: 0 0 6px; font-size: 14px; line-height: 1.5; }
+.letter-sign { font-weight: 700; font-size: 13px; color: var(--pink-ink); text-align: right; }
+.letter-gift { margin-top: 8px; }
+@media (max-width: 520px) { .letter-wrap { flex-direction: column; align-items: center; } .letter { width: 100%; } }
+.chip.mail { animation: pop 0.3s ease-out; }
+.chip.mail[hidden] { display: none; }
+.chip.mail .mail-ico { font-size: 16px; }
+.chip.mail span:last-child { background: #ff6b9b; color: #fff; border-radius: 10px; padding: 0 7px; font-size: 12px; }
