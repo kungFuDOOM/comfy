@@ -14,7 +14,8 @@ import { createEventLayer } from './eventLayer';
 import { createLightRig } from './lighting';
 import { PALETTE } from './materials';
 import { createBeach } from './beach';
-import { celebrate, confettiAt, welcomeAt, welcomeTrickle } from './celebrate';
+import { celebrate, confettiAt, heartsPopAt, Shape, welcomeAt, welcomeTrickle } from './celebrate';
+import { birthdayFriends, unreadLetters } from '../friends';
 import { createNature } from './nature';
 import { createParticles } from './particles';
 import { createPost } from './post';
@@ -112,6 +113,25 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
     welcomeAt(at);
     trickle.at.copy(at); trickle.left = 6; trickle.acc = 0;
   });
+
+  // Friendship (bus 'celebrate' from friends.ts): hearts over the friend for a new heart, confetti for a birthday or ten hearts.
+  const friendAt = (id: string) => {
+    const n = npcs.find((x) => x.def.id === id);
+    if (!n) return null;
+    const ux = n.x / TS, uz = n.y / TS;
+    return new THREE.Vector3(ux, heightAtUnits(ux, uz) + 1.0, uz);
+  };
+  bus.on('celebrate', (e: { id: string; kind: 'heart' | 'max' | 'birthday' }) => {
+    const at = friendAt(e.id);
+    if (!at) return;
+    if (e.kind === 'heart') heartsPopAt(at);
+    else { confettiAt(at); welcomeAt(at); }
+  });
+  let birthdayAcc = 0;
+  // the mailbox flag stands up while a letter is waiting (cheap: re-read only when the game state changes)
+  let mailUnread = unreadLetters();
+  bus.on('change', () => { mailUnread = unreadLetters(); });
+  let mailFlag: THREE.Object3D | undefined;
 
   // A region party hat was earned: confetti over the player.
   bus.on('partyHat', () => {
@@ -252,6 +272,21 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
         trickle.left -= f.dt; trickle.acc += f.dt;
         while (trickle.acc >= 0.3) { trickle.acc -= 0.3; welcomeTrickle(trickle.at); }
       }
+      // birthdays: a friend whose day it is keeps a soft trickle of hearts and confetti over their head
+      birthdayAcc += f.dt;
+      if (birthdayAcc > 1.2) {
+        birthdayAcc = 0;
+        for (const d of birthdayFriends()) {
+          const n = f.npcs.find((x) => x.def.id === d.id);
+          if (!n) continue;
+          const ux = n.x / TS, uz = n.y / TS;
+          const at = new THREE.Vector3(ux, heightAtUnits(ux, uz) + 1.5, uz);
+          welcomeTrickle(at);
+          celebrate.burst(at, { count: 3, colors: ['#ff9ec0', '#ffe27a', '#8fe0c0', '#c9a8ff', '#9bd4ff'], shapes: [Shape.Dot, Shape.Star], spread: 0.3, speed: 0.5, up: 1.0, gravity: 1.0, size: [0.1, 0.17], life: [1.2, 1.7] });
+        }
+      }
+      if (!mailFlag) mailFlag = structures.getObjectByName('mailFlag');
+      if (mailFlag) { const want = mailUnread > 0 ? 0 : -Math.PI / 2 + 0.2; mailFlag.rotation.z += (want - mailFlag.rotation.z) * Math.min(1, f.dt * 5); }
       celebrate.update(f.dt, pxScale);
       post.render(rig.night);
     },

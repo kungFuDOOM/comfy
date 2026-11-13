@@ -4,6 +4,7 @@ import { sfx } from './audio';
 import { changed, toast } from './bus';
 import { ITEMS } from './data';
 import { addItem, count, earn, removeItem } from './inventory';
+import { requestDone } from './friends';
 import { isAreaOpen, state } from './state';
 import { VILLAGERS } from './data';
 
@@ -99,6 +100,7 @@ export function turnIn(q: LogQuest): boolean {
   if (q.rewardItem) { addItem(q.rewardItem); extra = ` + ${ITEMS[q.rewardItem].name}`; }
   sfx.quest();
   toast(`Quest complete: ${q.title}! +${q.reward} pips${extra} ♥`);
+  requestDone(q.giver); // finishing a friend's request warms them up
   changed();
   return true;
 }
