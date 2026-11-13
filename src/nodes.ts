@@ -2,7 +2,7 @@
 // Harvest, deplete, and come back after a cozy wait. Depletion timestamps persist across reloads.
 import { sfx } from './audio';
 import { changed, toast } from './bus';
-import { ITEMS, NODES, NODE_KINDS, type NodeDef, type NodeTier } from './data';
+import { FISH_POOL, ITEMS, NODES, NODE_BONUS, NODE_KINDS, type NodeDef, type NodeTier } from './data';
 import { addItem, count } from './inventory';
 import { faceToward, player } from './player';
 import { cancelAct, startAct, type ActKind } from './actions';
@@ -10,6 +10,7 @@ import { bump } from './quests';
 import { skillLevel, skillName, grantXp } from './skills';
 import { state } from './state';
 import { noteGathered } from './regions';
+import { getClock } from './time';
 import { TS, areaAt } from './world';
 
 export const tierOf = (n: NodeDef): NodeTier => NODE_KINDS[n.kind][n.tier];
@@ -84,16 +85,39 @@ export function useNode(n: NodeDef) {
   harvest(n);
 }
 
+/** A fishing spot's catch: usually the tier's regular fish, sometimes one of its shy neighbours. */
+function pickFish(tier: number, fallback: string): string {
+  const pool = FISH_POOL[tier];
+  if (!pool) return fallback;
+  let r = Math.random() * pool.reduce((a, b) => a + b[1], 0);
+  for (const [id, w] of pool) if ((r -= w) <= 0) return id;
+  return pool[0][0];
+}
+
+/** Gathering sometimes turns up a little extra (a bug, a shell, a gem...). At most one per gather. */
+function rollBonus(n: NodeDef) {
+  const night = getClock().phase === 'evening' || getClock().phase === 'night';
+  for (const b of NODE_BONUS[`${n.kind}:${n.tier}`] ?? []) {
+    if (b.when === 'night' && !night) continue;
+    if (b.when === 'day' && night) continue;
+    if (Math.random() < b.chance) return b;
+  }
+  return null;
+}
+
 function harvest(n: NodeDef) {
   const t = tierOf(n);
   const qty = n.kind === 'fish' ? 1 : 1 + (Math.random() < 0.25 ? 1 : 0);
+  const item = n.kind === 'fish' ? pickFish(n.tier, t.item) : t.item;
   state.nodes[n.id] = Date.now() + t.respawn * 1000;
-  addItem(t.item, qty);
+  addItem(item, qty);
   grantXp(t.skill, t.xp);
   noteGathered(areaAt(n.x, n.y), n.kind);
-  const what = ITEMS[t.item].name;
-  if (n.kind === 'fish') { toast(`You caught a ${what}! ✿`); startAct('catch', 1.7, { item: t.item }); }
+  const what = ITEMS[item].name;
+  if (n.kind === 'fish') { toast(`You caught a ${what}! ✿`); startAct('catch', 1.7, { item }); }
   else toast(`Gathered ${qty > 1 ? qty + ' ' : ''}${what}${qty > 1 ? ' (a lucky bonus!)' : ''} +${t.xp} ${skillName(t.skill)} XP`);
+  const bonus = rollBonus(n);
+  if (bonus) { addItem(bonus.item); toast(`${bonus.msg}! ✿`); }
   sfx.harvest();
   bump(n.kind === 'fish' ? 'fished' : 'foraged');
   changed();

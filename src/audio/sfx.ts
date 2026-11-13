@@ -45,7 +45,7 @@ function gate(key: string, ms: number): boolean {
 
 const M = (n: number) => midiHz(n);
 
-export type FootSurface = 'grass' | 'path' | 'sand';
+export type FootSurface = 'grass' | 'path' | 'sand' | 'wood' | 'snow';
 /** Per-speaker blip pitch (MIDI). Unknown speakers hash to something in the same cheerful range. */
 const BLIP_BASE: Record<string, number> = { mimsy: 76, zuzu: 83, bramble: 67, nimbus: 72 };
 function baseFor(id: string): number {
@@ -58,28 +58,28 @@ export const sfx = {
   /** Light tick for hovering / tab hops / hotbar changes. */
   tick() {
     const g = live(); if (!g || !gate('tick', 40)) return;
-    tone(g, g.ctx.currentTime, M(88), 0.05, { type: 'triangle', peak: 0.12 });
+    tone(g, g.ctx.currentTime, M(88), 0.05, { type: 'sine', peak: 0.09 });
   },
   /** Confirm / button press. */
   confirm() {
     const g = live(); if (!g || !gate('confirm', 50)) return;
     const t = g.ctx.currentTime;
-    tone(g, t, M(79), 0.1, { type: 'triangle', peak: 0.2 });
-    tone(g, t + 0.06, M(86), 0.16, { type: 'sine', peak: 0.2 });
+    tone(g, t, M(79), 0.1, { type: 'sine', peak: 0.16 });
+    tone(g, t + 0.06, M(86), 0.16, { type: 'sine', peak: 0.15 });
   },
   /** Panel opens. */
   open() {
     const g = live(); if (!g || !gate('open', 80)) return;
     const t = g.ctx.currentTime;
-    tone(g, t, M(72), 0.14, { type: 'sine', peak: 0.2, slideTo: M(79) });
-    tone(g, t + 0.05, M(84), 0.12, { type: 'triangle', peak: 0.1 });
+    tone(g, t, M(72), 0.14, { type: 'sine', peak: 0.15, slideTo: M(79) });
+    tone(g, t + 0.05, M(84), 0.12, { type: 'sine', peak: 0.07 });
   },
   /** Panel closes / cancel. */
   back() {
     const g = live(); if (!g || !gate('back', 80)) return;
     const t = g.ctx.currentTime;
-    tone(g, t, M(81), 0.09, { type: 'triangle', peak: 0.18 });
-    tone(g, t + 0.06, M(74), 0.14, { type: 'sine', peak: 0.18 });
+    tone(g, t, M(81), 0.09, { type: 'sine', peak: 0.14 });
+    tone(g, t + 0.06, M(74), 0.14, { type: 'sine', peak: 0.14 });
   },
   /** Collectible picked up: three quick rising sparkles. */
   pickup() {
@@ -174,18 +174,34 @@ export const sfx = {
     tone(g, t + 0.48, M(107), 0.7, { type: 'sine', peak: 0.05 });
     tone(g, t + 0.58, M(112), 0.6, { type: 'sine', peak: 0.035 });
   },
-  /** One footstep. `alt` alternates feet; run = quicker, snappier. */
+  /** One footstep. `alt` alternates feet; run = quicker, snappier. Every surface is a soft, low-passed pat. */
   step(surface: FootSurface = 'grass', alt = false, run = false) {
     const g = live(); if (!g || !gate('step', 70)) return;
-    const t = g.ctx.currentTime, k = run ? 1.15 : 1, d = (alt ? 1 : 0.92) * (run ? 1.12 : 1);
-    if (surface === 'path') {
-      puff(g, t, 1800 * d, 1.4, 0.07 * k, run ? 0.035 : 0.045);
-      tone(g, t, 190 * d, 0.05, { type: 'sine', peak: 0.06 * k, slideTo: 120 });
-    } else if (surface === 'sand') {
-      puff(g, t, 2600 * d, 0.7, 0.06 * k, run ? 0.065 : 0.09);
-    } else {
-      puff(g, t, 650 * d, 0.9, 0.09 * k, run ? 0.055 : 0.07);
-      tone(g, t, 150 * d, 0.06, { type: 'sine', peak: 0.05 * k, slideTo: 90 });
+    // tiny random detune so a long walk never sounds like a loop
+    const t = g.ctx.currentTime, k = run ? 1.12 : 1, d = (alt ? 1 : 0.92) * (run ? 1.1 : 1) * (0.96 + Math.random() * 0.08);
+    const len = run ? 0.8 : 1;
+    switch (surface) {
+      case 'path': // stone: a dry little tap with a short, round knock
+        puff(g, t, 1500 * d, 1.2, 0.06 * k, 0.04 * len);
+        tone(g, t, 220 * d, 0.045, { type: 'sine', peak: 0.05 * k, slideTo: 130 });
+        break;
+      case 'sand': // a soft, hushed scuff
+        puff(g, t, 2200 * d, 0.6, 0.045 * k, 0.1 * len);
+        puff(g, t + 0.02, 900 * d, 0.5, 0.02 * k, 0.08 * len);
+        break;
+      case 'wood': // boardwalk: a hollow, warm "tok" with a tiny plank creak on alternate feet
+        tone(g, t, 300 * d, 0.07, { type: 'triangle', peak: 0.07 * k, slideTo: 170 });
+        puff(g, t, 1100 * d, 1.6, 0.05 * k, 0.035 * len);
+        if (alt) tone(g, t + 0.01, 520 * d, 0.05, { type: 'sine', peak: 0.012 * k, slideTo: 440 });
+        break;
+      case 'snow': // a muffled, creamy crunch: two tight bursts of high noise over a soft thump
+        puff(g, t, 3400 * d, 1.1, 0.04 * k, 0.03);
+        puff(g, t + 0.03, 2600 * d, 0.9, 0.035 * k, 0.07 * len);
+        tone(g, t, 120 * d, 0.06, { type: 'sine', peak: 0.03 * k, slideTo: 80 });
+        break;
+      default: // grass: a gentle, leafy pat
+        puff(g, t, 650 * d, 0.9, 0.075 * k, 0.07 * len);
+        tone(g, t, 150 * d, 0.06, { type: 'sine', peak: 0.045 * k, slideTo: 90 });
     }
   },
   /** One dialogue letter-tick. Each speaker has their own pitch; `i` (character index) adds a little melody. */
@@ -193,7 +209,7 @@ export const sfx = {
     const g = live(); if (!g || !gate('blip', 38)) return;
     const base = baseFor(speaker), steps = [0, 2, 4, 2, 5, 3, 7, 4];
     const m = base + steps[(i * 3 + speaker.length) % steps.length] + (Math.random() < 0.15 ? 12 : 0);
-    tone(g, g.ctx.currentTime, M(m), 0.055, { type: 'square', peak: 0.045 });
-    tone(g, g.ctx.currentTime, M(m), 0.07, { type: 'triangle', peak: 0.1 });
+    tone(g, g.ctx.currentTime, M(m), 0.07, { type: 'triangle', peak: 0.085 });
+    tone(g, g.ctx.currentTime, M(m) * 2, 0.04, { type: 'sine', peak: 0.02 });
   },
 };

@@ -53,7 +53,8 @@ export function initKeyboard(canvas: HTMLCanvasElement) {
       else if (k === 'j') trigger('journal');
     else if (k === 'k') trigger('skills');
       else if (k === 'k') trigger('skills');
-      else if (k === 'l') trigger('lantern');
+      else if (k === 'c') trigger('collection');
+    else if (k === 'l') trigger('lantern');
       else if (k === 'm') trigger('map');
       else if (k === 'h' || k === '?') trigger('help');
       return;
@@ -69,6 +70,7 @@ export function initKeyboard(canvas: HTMLCanvasElement) {
     else if (k === 'b') trigger('bag');
     else if (k === 'j') trigger('journal');
     else if (k === 'k') trigger('skills');
+    else if (k === 'c') trigger('collection');
     else if (k === 'l') trigger('lantern');
     else if (k === 'm') trigger('map');
     else if (k === 'h' || k === '?') trigger('help');

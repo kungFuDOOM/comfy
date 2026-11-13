@@ -229,7 +229,7 @@ export function setEventFlag(id: string, flag: string, on = true) { eventProgres
 
 /** Does the player have this event reward? (Wardrobe piece or bag/chest item.) */
 export const ownsEventItem = (id: string) =>
-  clothById(id) ? state.ownedClothes.includes(id) : (state.inv[id] ?? 0) > 0 || (state.bank[id] ?? 0) > 0 || state.decor.some((d) => d.id === id);
+  clothById(id) ? state.ownedClothes.includes(id) : (state.inv[id] ?? 0) > 0 || (state.bank[id] ?? 0) > 0 || state.decor.some((d) => d.id === id) || state.home.items.some((d) => d.id === id);
 
 /**
  * Give an exclusive event item. Refuses (returns false) when the event is not active, so nothing exclusive can be
