@@ -65,6 +65,10 @@ export type Source =
   | { k: 'skill'; skill: SkillId; level: number }
   | { k: 'craft'; recipe: string }
   | { k: 'region'; area: AreaId | 'all' }
+  /** A best-friend gift: given once you reach 10 hearts with this villager (id). */
+  | { k: 'friend'; friend: string }
+  /** Café shift milestone: worked this many shifts at Puddle & Pip (shift.ts). */
+  | { k: 'shift'; n: number }
   /** Exclusive to a seasonal event (events.ts): handed out by its activities while it is on, kept forever. */
   | { k: 'event'; event: string };
 

@@ -4,6 +4,7 @@ import './catalogTop';
 import './catalogGear';
 import './catalogSpecial';
 import './catalogEvents';
+import './catalogFriends';
 import { CLOTHES } from './build';
 import type { ClothDef, Slot } from './types';
 

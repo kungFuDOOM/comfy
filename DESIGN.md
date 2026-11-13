@@ -110,6 +110,8 @@ All animal friends are original designs drawn in code. Each has a liked-item pai
 **Friendship.** Each villager has 0–100 points shown as up to 5 hearts (20 points each). Talking once per day gives +6. A liked gift/drink gives +20; a neutral drink +8; a neutral gift +4.
 One gift and one drink per villager per day. A pink speech bubble with a heart floats over villagers you have not chatted with today.
 
+**Friendship hearts (v2).** Each friend has 10 hearts (20 points each, saved in `state.friend`; old 5-heart saves keep their points). Chat once a day (+6), give one gift a day (loved +24, liked +12, neutral +4, disliked +0; double on their birthday), finish their request (+40) and attend event days (+20). Tastes are discovered by gifting or from letters (`state.bonds.known`). Every friend has a real-calendar birthday (confetti trickle, a Wish button, a thank-you letter). Hearts 2, 4, 6, 8 and 10 put a letter in the mailbox by the yard (and a HUD envelope chip), often with a gift. At 10 hearts a friend gives a unique outfit piece (`clothes/catalogFriends.ts`) or café recipe (`Recipe.friend`). Chat lines warm up with hearts. Data: `friendData.ts`; logic: `friends.ts`; UI: `ui/friendsUi.ts` (Journal Friends tab, Mailbox). New save field `bonds` is optional and normalized in `save.ts`.
+
 ## 5. Day cycle and seasons (real world time)
 
 **Day cycle** follows the player's local clock: morning (5–10), day (10–17), evening (17–20:30), night (otherwise). The sky is a smooth multiply-tint

@@ -9,13 +9,16 @@ import { npcs, type Npc } from '../npc';
 import type { Season } from '../time';
 import { MAP_H, MAP_W, TS } from '../world';
 import { createPlayerMesh, createVillagerMesh, type ActorMesh } from './actors';
+import { createPetMesh } from './petMesh';
+import type { PetPose } from '../pet';
 import { createDynamic } from './dynamic';
 import { visualSeason } from '../events';
 import { createEventLayer } from './eventLayer';
 import { createLightRig } from './lighting';
 import { PALETTE } from './materials';
 import { createBeach } from './beach';
-import { celebrate, confettiAt, welcomeAt, welcomeTrickle } from './celebrate';
+import { celebrate, confettiAt, heartsPopAt, petHeartsAt, poofAt, Shape, welcomeAt, welcomeTrickle } from './celebrate';
+import { birthdayFriends, unreadLetters } from '../friends';
 import { createNature } from './nature';
 import { createParticles } from './particles';
 import { createPlayerActs } from './playerActs';
@@ -35,6 +38,8 @@ export interface FrameInput {
   accessory?: string | null;
   /** What the player is busy doing (fishing, watering...); omitted = nothing, so menus and cutscenes ease back to idle. */
   act?: Act | null;
+  /** The pet companion this frame (omitted / null = not adopted, or a scene that should not show her). */
+  pet?: PetPose | null;
   npcs: Npc[];
   talkedToday(id: string): boolean;
 }
@@ -42,6 +47,7 @@ export interface FrameInput {
 export type Pick =
   | { kind: 'npc'; id: string }
   | { kind: 'station'; id: string }
+  | { kind: 'pet' }
   | { kind: 'ground'; wx: number; wy: number }; // world pixels (1 tile = TS)
 
 // Camera: high three-quarter view. Offset is relative to the follow target, in tile units.
@@ -117,6 +123,25 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
     trickle.at.copy(at); trickle.left = 6; trickle.acc = 0;
   });
 
+  // Friendship (bus 'celebrate' from friends.ts): hearts over the friend for a new heart, confetti for a birthday or ten hearts.
+  const friendAt = (id: string) => {
+    const n = npcs.find((x) => x.def.id === id);
+    if (!n) return null;
+    const ux = n.x / TS, uz = n.y / TS;
+    return new THREE.Vector3(ux, heightAtUnits(ux, uz) + 1.0, uz);
+  };
+  bus.on('celebrate', (e: { id: string; kind: 'heart' | 'max' | 'birthday' }) => {
+    const at = friendAt(e.id);
+    if (!at) return;
+    if (e.kind === 'heart') heartsPopAt(at);
+    else { confettiAt(at); welcomeAt(at); }
+  });
+  let birthdayAcc = 0;
+  // the mailbox flag stands up while a letter is waiting (cheap: re-read only when the game state changes)
+  let mailUnread = unreadLetters();
+  bus.on('change', () => { mailUnread = unreadLetters(); });
+  let mailFlag: THREE.Object3D | undefined;
+
   // A region party hat was earned: confetti over the player.
   bus.on('partyHat', () => {
     const p = player.root.position;
@@ -127,6 +152,12 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   scene.add(player.root);
   const acts = createPlayerActs(player); // activity poses, held props, fishing line and splashes
   scene.add(acts.group);
+  const petMesh = createPetMesh(); // hidden until a frame carries a pet pose
+  scene.add(petMesh.root);
+  const petUnits = (x: number, y: number) => new THREE.Vector3(x / TS, heightAtUnits(x / TS, y / TS) + 0.35, y / TS);
+  bus.on('petHearts', (p: { x: number; y: number }) => petHeartsAt(petUnits(p.x, p.y)));
+  bus.on('petPoof', (p: { x: number; y: number }) => poofAt(petUnits(p.x, p.y), 0.8));
+  bus.on('petAdopted', (p: { x: number; y: number }) => welcomeAt(petUnits(p.x, p.y)));
   const villagers = new Map<string, ActorMesh>();
 
   let seasonId = '';
@@ -221,6 +252,11 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       player.animate(f.t, f.player.moving, !!f.player.running);
       acts.update(f.t, f.dt, f.act);
       particles.dust(f.dt, !!f.player.running, player.root.position, f.player.surface ?? 'grass');
+      if (f.pet) {
+        petMesh.root.visible = true;
+        place(petMesh, f.pet.x, f.pet.y);
+        petMesh.setPose(f.pet, f.t, f.dt);
+      } else petMesh.root.visible = false;
       for (const [id, v] of villagers) v.root.visible = f.npcs.some((n) => n.def.id === id); // absent villagers (e.g. Nimbus by day) hide
       for (const n of f.npcs) {
         let v = villagers.get(n.def.id);
@@ -259,6 +295,21 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
         trickle.left -= f.dt; trickle.acc += f.dt;
         while (trickle.acc >= 0.3) { trickle.acc -= 0.3; welcomeTrickle(trickle.at); }
       }
+      // birthdays: a friend whose day it is keeps a soft trickle of hearts and confetti over their head
+      birthdayAcc += f.dt;
+      if (birthdayAcc > 1.2) {
+        birthdayAcc = 0;
+        for (const d of birthdayFriends()) {
+          const n = f.npcs.find((x) => x.def.id === d.id);
+          if (!n) continue;
+          const ux = n.x / TS, uz = n.y / TS;
+          const at = new THREE.Vector3(ux, heightAtUnits(ux, uz) + 1.5, uz);
+          welcomeTrickle(at);
+          celebrate.burst(at, { count: 3, colors: ['#ff9ec0', '#ffe27a', '#8fe0c0', '#c9a8ff', '#9bd4ff'], shapes: [Shape.Dot, Shape.Star], spread: 0.3, speed: 0.5, up: 1.0, gravity: 1.0, size: [0.1, 0.17], life: [1.2, 1.7] });
+        }
+      }
+      if (!mailFlag) mailFlag = structures.getObjectByName('mailFlag');
+      if (mailFlag) { const want = mailUnread > 0 ? 0 : -Math.PI / 2 + 0.2; mailFlag.rotation.z += (want - mailFlag.rotation.z) * Math.min(1, f.dt * 5); }
       celebrate.update(f.dt, pxScale);
       post.render(rig.night);
     },
@@ -272,10 +323,20 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
         const d = Math.hypot(((tmp.x - ndc.x) * r.width) / 2, ((tmp.y - ndc.y) * r.height) / 2);
         if (d < bd) { bd = d; best = n; }
       }
-      if (best) return { kind: 'npc', id: best.def.id };
+      // the pet: small, so a forgiving test on her middle. Villagers win ties (she trots right beside them and the
+      // player), a direct hit on her beats a station behind her, and a near-miss only counts if nothing else was hit.
+      let dp = Infinity;
+      if (petMesh.root.visible) {
+        const q = petMesh.root.position;
+        tmp.set(q.x, q.y + 0.3, q.z).project(camera);
+        dp = Math.hypot(((tmp.x - ndc.x) * r.width) / 2, ((tmp.y - ndc.y) * r.height) / 2);
+      }
+      if (best && dp + 6 >= bd) return { kind: 'npc', id: best.def.id };
+      if (dp < 18 || best) return { kind: 'pet' }; // (best here means the pet was clearly closer than the villager)
       ray.setFromCamera(ndc, camera);
       const sh = ray.intersectObjects(structures.children, true).find((i) => i.object.userData.stationId !== undefined);
       if (sh) return { kind: 'station', id: sh.object.userData.stationId };
+      if (dp < 36) return { kind: 'pet' };
       if (!ray.ray.intersectPlane(plane, hit)) return null;
       return { kind: 'ground', wx: hit.x * TS, wy: hit.z * TS };
     },

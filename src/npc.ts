@@ -8,6 +8,7 @@ import { feastChat } from './events/pieLines';
 import { pieReply } from './events/pieLines';
 import { feastGathering, feastSeatFor } from './events/feastSeats';
 import { gatherKind, gatherSeatFor } from './events/twinkleSeats';
+import { addPoints, celebrateBirthday, chatPool, discover, dislikeReply, giftPoints, hearts as heartsOf, isBirthday, tasteOf } from './friends';
 import { twinkleChat } from './events/twinkleText';
 import { removeItem } from './inventory';
 import { moment } from './lanterns';
@@ -73,27 +74,24 @@ export function updateNpcs(dt: number) {
   }
 }
 
-export const hearts = (id: string) => Math.min(5, Math.floor((state.friend[id] ?? 0) / 20));
-const tier = (id: string) => (hearts(id) >= 4 ? 2 : hearts(id) >= 2 ? 1 : 0);
+export const hearts = heartsOf;
 export const talkedToday = (id: string) => ensureDaily().talked.includes(id);
 
-function addFriend(id: string, pts: number) {
-  state.friend[id] = Math.min(100, (state.friend[id] ?? 0) + pts);
-  changed();
-}
-
-export interface Reply { text: string; gain: number }
+export interface Reply { text: string; gain: number; /** The gift landed on the friend's birthday, so it counted double. */ birthday?: boolean }
 
 export function talk(def: VillagerDef): Reply {
   const daily = ensureDaily();
   const first = !daily.talked.includes(def.id);
+  let gain = 0;
   if (first) {
     daily.talked.push(def.id);
-    addFriend(def.id, 6);
+    gain = 6;
+    addPoints(def.id, gain);
     bump('talked');
   }
-  const pool = feastGathering() && Math.random() < 0.6 ? feastChat(def.id) : gatherKind() && Math.random() < 0.6 ? twinkleChat(def.id) : Math.random() < 0.4 ? [def.phase[getClock().phase]] : def.lines[tier(def.id)];
-  return { text: pool[(Math.random() * pool.length) | 0], gain: first ? 6 : 0 };
+  // lines warm up with hearts (friends.ts chatPool); event days and the time of day still get their turn
+  const pool = feastGathering() && Math.random() < 0.6 ? feastChat(def.id) : gatherKind() && Math.random() < 0.6 ? twinkleChat(def.id) : Math.random() < 0.4 ? [def.phase[getClock().phase]] : chatPool(def);
+  return { text: pool[(Math.random() * pool.length) | 0], gain };
 }
 
 /** Give an item. Drinks count as serving (a café moment); anything else is a gift. */
@@ -106,21 +104,37 @@ export function give(def: VillagerDef, itemId: string): Reply | null {
   const npc = npcs.find((n) => n.def.id === def.id);
   const wx = npc?.x ?? 0, wy = npc?.y ?? 0;
   if (list.includes(def.id)) {
-    return { text: isDrink ? "I'm all caffeinated for today, thank you! Maybe tomorrow?" : 'You are so sweet! One gift a day is plenty — I will cherish it.', gain: 0 };
+    return { text: isDrink ? "I'm all caffeinated for today, thank you! Maybe tomorrow?" : 'You are so sweet! One gift a day is plenty, and I will cherish it.', gain: 0 };
   }
   if (!removeItem(itemId)) return null;
   list.push(def.id);
   sfx.gift();
   startAct('give', 1.25, npc ? { tx: npc.x, ty: npc.y - 8 } : {});
-  const loved = !!item.loved; // pies: every villager adores them
-  const liked = loved || def.likes.includes(itemId);
-  const gain = loved ? 30 : liked ? 20 : isDrink ? 8 : 4;
-  addFriend(def.id, gain);
+  const taste = tasteOf(def.id, itemId);
+  if (taste !== 'neutral') discover(def.id, taste, itemId); // now you know how they feel about it
+  const birthday = isBirthday(def.id);
+  const gain = giftPoints(taste, isDrink) * (birthday ? 2 : 1);
+  addPoints(def.id, gain);
   if (isDrink) { bump('served'); moment('serve', wx, wy); }
-  else { bump('gifted'); if (liked) moment('gift', wx, wy); else if (Math.random() < 0.3) moment('gift', wx, wy); }
+  else { bump('gifted'); if (taste === 'love' || taste === 'like') moment('gift', wx, wy); else if (taste === 'neutral' && Math.random() < 0.3) moment('gift', wx, wy); }
   bus.emit('gift', { villager: def.id, item: itemId });
-  if (loved) return { text: pieReply(def.id), gain };
-  return { text: liked ? (isDrink ? def.loved : def.liked) : def.meh, gain };
+  if (birthday) celebrateBirthday(def.id);
+  const text = item.loved ? pieReply(def.id) : taste === 'love' ? def.loved : taste === 'like' ? def.liked : taste === 'dislike' ? dislikeReply(def.id) : def.meh;
+  return { text, gain, birthday };
+}
+/**
+ * A drink served during a café shift (shift.ts). Unlike give(), it is NOT limited by daily.served: a shift has several
+ * customers. Still earns friendship and counts as a served drink for quests. `perfects` is 0-3 (how pretty the cup is).
+ */
+export function shiftServe(def: VillagerDef, drinkId: string, perfects: number): Reply {
+  const liked = def.likes.includes(drinkId);
+  const gain = (liked ? 12 : 5) + perfects * 2;
+  const npc = npcs.find((n) => n.def.id === def.id);
+  addPoints(def.id, gain);
+  bump('served');
+  moment('serve', npc?.x ?? 0, npc?.y ?? 0);
+  sfx.gift();
+  return { text: liked ? def.loved : def.liked, gain };
 }
 export const drawNpc = (ctx: CanvasRenderingContext2D, n: Npc, t: number) =>
   drawVillager(ctx, n.def, n.x, n.y, t, n.facing, n.moving, 1, !talkedToday(n.def.id));

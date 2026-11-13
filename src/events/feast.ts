@@ -6,6 +6,7 @@ import { currentAccessory } from '../boutique';
 import { toast } from '../bus';
 import { VILLAGERS, type VillagerDef } from '../data';
 import { bumpEvent, eventFlag, isPeakDay, setEventFlag } from '../events';
+import { eventAttended } from '../friends';
 import { presentNpcs } from '../npc';
 import { cancelPath, player } from '../player';
 import { confettiAt, harvestAt, welcomeAt } from '../render/celebrate';
@@ -139,6 +140,7 @@ export function startFeast(replay = false, onDone?: () => void) {
     playing = false;
     if (!replay && endAt >= 0) {
       setEventFlag('harvest', 'feastDone');
+      eventAttended('harvest:feast'); // everyone at the table grows closer
       bumpEvent('harvest', 'feast', 1); // pays the feast milestone: pips, cozy outfits and the cornucopia
       toast('Everyone says thank you! 🍂 Check your wardrobe and bag for feast-day gifts.');
       sfx.quest();

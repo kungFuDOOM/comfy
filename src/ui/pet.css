@@ -1,0 +1,38 @@
+/* Pet companion UI: adoption, pet panel, boutique rack and the little pet card. Big touch targets; inputs >= 16px (no iOS zoom). */
+.pet-hero { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px; border-radius: 20px; background: linear-gradient(#fff4f8, #ffe9f1); border: 2px solid #ffc3da; }
+.pet-hero .pet-portrait { display: block; }
+.pet-hero .pet-title { font-size: 20px; font-weight: 700; color: var(--ink); }
+.pet-hero .pet-sub { font-size: 13px; color: var(--ink-l); font-weight: 600; }
+.pet-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pet-choices .btn { min-height: 56px; font-size: 17px; justify-content: center; }
+.btn.pet-pick { background: #fff; color: var(--pink-ink); text-shadow: none; border-color: #ffc3da; box-shadow: 0 3px 0 #ffc3da; }
+.btn.pet-pick.on { background: linear-gradient(#ffa3c6, #f27aa8); color: #fff; border-color: #d95f90; box-shadow: 0 3px 0 #d95f90; }
+.pet-coats { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.pet-coat { width: 48px; height: 48px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px #ffc3da, 0 2px 0 rgba(224, 112, 154, 0.3); cursor: pointer; padding: 0; }
+.pet-coat.on { box-shadow: 0 0 0 4px var(--pink-d); }
+.pet-field { display: flex; flex-direction: column; gap: 6px; }
+.pet-field label { font-weight: 700; color: var(--ink); font-size: 14px; }
+.pet-input { font-family: var(--font); font-size: 18px; font-weight: 600; min-height: 52px; padding: 10px 14px; border-radius: 16px; border: 3px solid #ffc3da; background: #fff; color: var(--ink); width: 100%; box-sizing: border-box; outline: none; }
+.pet-input:focus { border-color: var(--pink-d); box-shadow: 0 0 0 4px rgba(255, 158, 192, 0.35); }
+.pet-err { min-height: 18px; font-size: 13px; font-weight: 700; color: #c0384f; }
+.pet-actions { display: flex; gap: 10px; }
+.pet-actions .btn { flex: 1; min-height: 52px; font-size: 17px; justify-content: center; }
+.pet-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 16px; background: #fff; border: 2px solid #ffd6e6; }
+.pet-row .swatch { width: 34px; height: 34px; flex: none; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px #ffc3da; }
+.pet-row .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pet-row .txt b { color: var(--ink); font-size: 15px; }
+.pet-row .txt span { color: var(--ink-l); font-size: 12px; }
+.pet-row .btn { min-height: 44px; min-width: 76px; justify-content: center; }
+.pet-row.on { border-color: var(--pink-d); background: #fff4f8; }
+/* The pet card docks bottom-centre just above the interact hint, clear of the HUD chips, event banner and toasts
+   (top-left used to cover them on phones). On touch it rides above the hint, which itself sits above the action pad. */
+.pet-card { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(136px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 6px; border-radius: 20px; background: rgba(255, 248, 243, 0.96); border: 2px solid #ffc3da; box-shadow: 0 4px 0 rgba(224, 112, 154, 0.25); z-index: 5; max-width: calc(100vw - 20px); box-sizing: border-box; white-space: nowrap; animation: pet-card-in 0.2s ease-out; }
+@keyframes pet-card-in { from { opacity: 0; transform: translate(-50%, 6px); } to { opacity: 1; transform: translate(-50%, 0); } }
+body.input-touch .pet-card { bottom: calc(140px + var(--tb, 58px) * 3 + env(safe-area-inset-bottom)); }
+@media (min-width: 760px) and (min-aspect-ratio: 1/1) { body.input-touch .pet-card { bottom: calc(140px + env(safe-area-inset-bottom)); } }
+@media (max-width: 380px) { .pet-card .pet-portrait { display: none; } .pet-card { padding-left: 10px; } }
+.pet-card b { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+body.scene .pet-card { display: none; }
+.pet-card b { color: var(--ink); font-size: 15px; margin-right: 2px; }
+.pet-card .btn { min-height: 44px; padding: 6px 12px; font-size: 14px; }
+.pet-card.hide { display: none; }

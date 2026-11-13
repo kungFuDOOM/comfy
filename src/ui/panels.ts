@@ -23,14 +23,19 @@ import { hasMovedIn } from '../npc';
 import { isAreaOpen } from '../state';
 import { skillName, skillProgress } from '../skills';
 import { lanternCounts, SETS, slotPos } from '../lanterns';
-import { give, hearts, talk } from '../npc';
+import { give, talk } from '../npc';
+import { recipeFriendOk, birthdayDone, celebrateBirthday, addPoints, bondLabel, hearts, infoOf, isBirthday, knownTastes } from '../friends';
+import { heartRow, renderFriendsTab, tasteTag } from './friendsUi';
 import { progress } from '../quests';
 import { state } from '../state';
 import { getClock } from '../time';
 import { glyphEl } from '../input/prompts';
 import { btn, h, openPanel, type PanelApi } from './dom';
 import { renderEventsTab } from './eventsUi';
+import { clearPetTrial, renderPetBody } from './petUi';
 import { eventItemOpen, getActiveEvents } from '../events';
+import { openShift } from './shiftUi';
+import { SHIFTS_PER_DAY, orderable, shiftsLeft } from '../shift';
 import { openCookieBake } from '../events/cookieBake';
 import { canBakePie, openPieBake } from '../events/pieBake';
 import { openPause } from './menuPanels';
@@ -39,7 +44,6 @@ import { GROVE } from '../world';
 import { renderMap } from './mapPanel';
 
 const price = (n: number) => h('span', 'price', coinIcon(14), String(n));
-const hearts5 = (id: string) => { const n = hearts(id); return '♥'.repeat(n) + '♡'.repeat(5 - n); };
 
 function canvasEl(w: number, h2: number, draw: (g: CanvasRenderingContext2D) => void, cls = '') {
   const c = document.createElement('canvas');
@@ -87,26 +91,28 @@ export function openDialogue(def: VillagerDef) {
   openPanel(def.name, (body, api) => {
     const portrait = canvasEl(110, 120, (g) => { g.fillStyle = '#fff0f6'; g.fillRect(0, 0, 110, 120); drawVillager(g, def, 55, 108, performance.now() / 1000, 'down', false, 2.3); }, 'portrait');
     const giftable = Object.keys(state.inv).filter((id) => ['crop', 'drink', 'collectible', 'ingredient', 'seed', 'fish', 'treat', 'accessory'].includes(ITEMS[id].kind));
-    body.append(
+    body.append(...[
       h('div', 'dlg',
         portrait,
         h('div', 'dlg-main',
           h('div', 'dlg-sub', `${def.speciesName} · ${def.personality}`),
-          h('div', 'hearts', hearts5(def.id)),
+          heartRow(def.id, 'big'),
+          h('div', 'muted small', `${bondLabel(def.id)} · ${hearts(def.id)}/10 ♥`),
           typedBubble(line, def.id, api),
           note ? h('div', 'note', note) : null,
         ),
       ),
+      isBirthday(def.id) ? h('div', 'card fr-banner', h('div', 'grow', `🎂 It is ${def.name.split(' ')[0]}'s birthday! Gifts count double.`), btn(birthdayDone(def.id) ? '✓ Wished' : 'Wish happy birthday', () => { if (celebrateBirthday(def.id)) { addPoints(def.id, 20); line = infoOf(def.id)?.bdayThanks ?? 'Thank you!'; note = '+20 friendship ♥'; api.rerender(); } }, 'small', birthdayDone(def.id))) : null,
       ...questsFrom(def.id).map((q) => questBlock(q, (t) => { line = t; note = ''; api.rerender(); })).filter((e): e is HTMLElement => !!e),
-      h('div', 'sub', `Give or serve something (${def.name.split(' ')[0]} likes: ${def.likes.map((l) => ITEMS[l].name).join(', ')})`),
+      h('div', 'sub', (() => { const k = knownTastes(def.id).love; return `Give or serve something (${k.length ? `${def.name.split(' ')[0]} loves: ${k.map((l) => ITEMS[l].name).join(', ')}` : 'you are still learning what they love'})`; })()),
       giftable.length ? h('div', 'chips', ...giftable.map((id) => {
         const label = ITEMS[id].kind === 'drink' || ITEMS[id].kind === 'treat' ? 'Serve' : 'Give';
-        const c = h('button', 'chip-item', itemIcon(id, 26), h('span', '', `${label} ${ITEMS[id].name} ×${count(id)}`));
-        c.addEventListener('click', () => { const r = give(def, id); if (r) { line = r.text; note = r.gain ? `+${r.gain} friendship ♥` : ''; api.rerender(); } });
+        const c = h('button', 'chip-item', itemIcon(id, 26), h('span', '', `${label} ${ITEMS[id].name} ×${count(id)} ${tasteTag(def.id, id)}`.trim()));
+        c.addEventListener('click', () => { const r = give(def, id); if (r) { line = r.text; note = r.gain ? `+${r.gain} friendship ♥${r.birthday ? ' (birthday bonus!)' : ''}` : ''; api.rerender(); } });
         return c;
       })) : h('div', 'muted', 'Your bag has nothing to share yet. Brew a drink at the café or collect something lovely!'),
       h('div', 'row', btn('Chat again', () => { const r = talk(def); line = r.text; note = ''; api.rerender(); }), btn('Bye!', () => api.close(), 'ghost')),
-    );
+    ].filter((e): e is HTMLElement => !!e));
   }, () => { if (npc) npc.busy = false; });
 }
 
@@ -145,7 +151,7 @@ function recipeList(body: HTMLElement, api: PanelApi, bench: Bench) {
     body.append(h('div', 'card row-card' + (open ? '' : ' locked'),
       itemIcon(r.id, 40),
       h('div', 'grow', h('b', '', def.name), h('div', 'muted', def.desc),
-        open ? null : h('div', 'lock-note', `🔒 Needs ${skillName(r.skill)} level ${r.level}`),
+        open ? null : h('div', 'lock-note', r.friend && !recipeFriendOk(r.friend) ? `🔒 Reach 10 hearts with ${VILLAGERS.find((v) => v.id === r.friend)?.name.split(' ')[0] ?? 'a friend'} to learn it` : `🔒 Needs ${skillName(r.skill)} level ${r.level}`),
         h('div', 'needs', ...Object.entries(r.needs).map(([k, n]) => h('span', count(k) >= n ? 'need ok' : 'need no', itemIcon(k, 16), `${ITEMS[k].name} ${count(k)}/${n}`))),
         open ? h('div', 'muted small', `${seasonal ? (r.event === 'twinkle' ? 'Seasonal cookies, a little timing game · ' : 'Seasonal pie, a little timing game · ') : ''}+${r.xp} ${skillName(r.skill)} XP`) : null),
       btn(seasonal ? (r.event === 'twinkle' ? 'Bake 🍪' : 'Bake 🥧') : BENCH_VERB[bench], () => { if (seasonal) (r.event === 'twinkle' ? openCookieBake : openPieBake)(r.id); else if (startBrew(r.id)) api.rerender(); }, '', !ok || !open),
@@ -162,13 +168,14 @@ function recipeList(body: HTMLElement, api: PanelApi, bench: Bench) {
   }
 }
 
-export function openCafe() {
-  let tab: 'brew' | 'bake' | 'pantry' = 'brew';
+export function openCafe(start: 'brew' | 'bake' | 'shifts' | 'pantry' = 'brew') {
+  let tab = start;
   enterPlace('cafe');
   openPanel('Puddle & Pip Café', (body, api) => {
     const t = (id: typeof tab, label: string) => tabBtn(label, tab === id, () => { tab = id; api.rerender(); });
-    body.append(h('div', 'tabs', t('brew', 'Brew'), t('bake', 'Bake'), t('pantry', 'Pantry')));
+    body.append(h('div', 'tabs', t('brew', 'Brew'), t('bake', 'Bake'), t('shifts', 'Shifts'), t('pantry', 'Pantry')));
     if (tab === 'brew' || tab === 'bake') recipeList(body, api, tab);
+    else if (tab === 'shifts') shiftsTab(body);
     else {
       body.append(h('div', 'muted', 'Fresh ingredients for the counter.'));
       for (const id of SHOP_INGREDIENTS) body.append(shopRow(id, ITEMS[id].buy!, () => buyItem(id, api)));
@@ -178,6 +185,18 @@ export function openCafe() {
       }
     }
   }, () => leavePlace());
+}
+
+/** Shifts tab: how a shift works, today's shifts left, and the big Start button. */
+function shiftsTab(body: HTMLElement) {
+  const left = shiftsLeft(), menu = orderable();
+  body.append(
+    h('div', 'muted', 'Tie on an apron and run the counter! A few friends drop in, one at a time. Make each order with a little timing game: a prettier cup means bigger tips, more hearts and more Barista XP.'),
+    h('div', 'card', h('b', '', `Shifts today: ${left} of ${SHIFTS_PER_DAY} left`),
+      h('div', 'muted', `The pantry stocks everything for shifts, so your bag stays untouched. Shifts worked so far: ${state.cafe.shifts}.`),
+      h('div', 'muted small', `On the menu: ${menu.map((r) => ITEMS[r.id].name).join(', ') || 'nothing yet'}. More drinks unlock as your Barista level grows.`)),
+    btn(left <= 0 ? 'All done for today ☾' : menu.length ? 'Start a shift ☕' : 'Unlock a drink first ☕', () => openShift(() => openCafe('shifts')), 'shift-go', left <= 0 || !menu.length),
+  );
 }
 
 function buyItem(id: string, api: PanelApi) {
@@ -356,21 +375,24 @@ export function openCrafting() {
 
 // ---------- Boutique ----------
 export function openBoutique() {
-  let tab: 'outfits' | 'decor' = 'outfits';
+  let tab: 'outfits' | 'decor' | 'pets' = 'outfits';
   const ui = newDressUi();
+  clearPetTrial();
   enterPlace('boutique');
   openPanel('Spot & Bow Boutique', (body, api) => {
     body.style.setProperty('--cheetah', `url(${cheetahDataUrl('classic')})`);
     body.append(h('div', 'cheetah-band'),
-      h('div', 'tabs', tabBtn('Outfits', tab === 'outfits', () => { tab = 'outfits'; api.rerender(); }), tabBtn('Decor', tab === 'decor', () => { tab = 'decor'; api.rerender(); })));
+      h('div', 'tabs', tabBtn('Outfits', tab === 'outfits', () => { tab = 'outfits'; api.rerender(); }), tabBtn('Decor', tab === 'decor', () => { tab = 'decor'; api.rerender(); }), tabBtn('Pets', tab === 'pets', () => { tab = 'pets'; api.rerender(); })));
     setDressing(body, api, tab === 'outfits');
     if (tab === 'outfits') {
       dressingView(body, api, 'shop', ui);
+    } else if (tab === 'pets') {
+      renderPetBody(body, api, true);
     } else {
       body.append(h('div', 'muted', 'Decor for your yard. Select it on the hotbar and face a yard tile.'));
       for (const id of SHOP_DECOR) body.append(shopRow(id, ITEMS[id].buy!, () => { if (buyDecor(id)) api.rerender(); }));
     }
-  }, () => { stopDressingRoom(); endPreview(); leavePlace(); }, true);
+  }, () => { stopDressingRoom(); endPreview(); clearPetTrial(); leavePlace(); }, true);
 }
 
 // ---------- Market ----------
@@ -400,14 +422,17 @@ function tidyOnOpen() {
   if (n > 0) toast(`${n} ${n === 1 ? 'stack' : 'stacks'} moved to the Softkeep Chest to make room.`);
 }
 
-export function openBag(start: 'items' | 'wardrobe' = 'items') {
-  let tab: 'items' | 'wardrobe' = start;
+export function openBag(start: 'items' | 'wardrobe' | 'pet' = 'items') {
+  let tab: 'items' | 'wardrobe' | 'pet' = start;
   const ui = newDressUi();
   tidyOnOpen();
   openPanel('Bag', (body, api) => {
-    body.append(h('div', 'tabs', tabBtn('Items', tab === 'items', () => { tab = 'items'; api.rerender(); }), tabBtn('Wardrobe', tab === 'wardrobe', () => { tab = 'wardrobe'; api.rerender(); })));
+    body.append(h('div', 'tabs', tabBtn('Items', tab === 'items', () => { tab = 'items'; api.rerender(); }), tabBtn('Wardrobe', tab === 'wardrobe', () => { tab = 'wardrobe'; api.rerender(); }),
+      state.pet ? tabBtn(state.pet.name, tab === 'pet', () => { tab = 'pet'; api.rerender(); }) : null));
     setDressing(body, api, tab === 'wardrobe');
-    if (tab === 'items') {
+    if (tab === 'pet') {
+      renderPetBody(body, api, false);
+    } else if (tab === 'items') {
       const ids = Object.keys(state.inv);
       body.append(h('div', 'muted', `Tap an item to put it in your selected hotbar slot. ${ids.length}/${BAG_SLOTS} slots used.`));
       const grid = h('div', 'bag');
@@ -507,23 +532,7 @@ export function openJournal(start = 'quests') {
       body.append(grid, h('div', 'muted small', `Where to look — ${Object.entries(hint).map(([k, v]) => `${ITEMS[k].name}: ${v}`).join(' · ')}.`));
       body.append(h('div', 'muted small', `Season (${getClock().season.name}): ${getClock().season.blurb}`));
     } else if (tab === 'friends') {
-      for (const v of VILLAGERS) {
-        if (!hasMovedIn(v)) {
-          // not moved in yet: a soft silhouette and a hint where to find them
-          const area = AREA_LIST.find((a) => a.id === v.area)!;
-          const sil = canvasEl(52, 56, (g) => { drawVillager(g, v, 26, 52, 0, 'down', false, 1.2); }, 'silhouette');
-          sil.style.filter = 'brightness(0) opacity(0.22)';
-          body.append(h('div', 'card row-card locked',
-            sil,
-            h('div', 'grow', h('b', '', 'Still napping…'), h('div', 'muted', `Somebody is curled up somewhere in ${area.name}.`), h('div', 'lock-note', `🔒 Open ${area.name} to wake them`)),
-            h('div', 'hearts', '???')));
-          continue;
-        }
-        body.append(h('div', 'card row-card',
-          canvasEl(52, 56, (g) => { drawVillager(g, v, 26, 52, 0, 'down', false, 1.2); }),
-          h('div', 'grow', h('b', '', v.name), h('div', 'muted', `${v.speciesName} · ${v.personality}`), h('div', 'muted small', v.bio)),
-          h('div', 'hearts', hearts5(v.id))));
-      }
+      renderFriendsTab(body, api);
     } else if (tab === 'events') {
       renderEventsTab(body, clothThumb);
     } else if (tab === 'map') {

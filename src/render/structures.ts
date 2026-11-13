@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { buildings, props, stations, type Building, type Prop, type Station } from '../world';
 import { cheetahToon, contactShadow, lightPool, makeToon, PALETTE, vertexToon, type CheetahKind } from './materials';
-import { ball, Batch, G, makeLabel, mat } from './util';
+import { ball, Batch, box, G, makeLabel, mat } from './util';
 import { tileHeight } from './terrain';
 
 const STYLE = {
@@ -378,6 +378,25 @@ export function createStation(s: Station): THREE.Group {
       g.add(contactShadow(1.5, 1.0, 'rect', 0.22));
       break;
     }
+    case 'mailbox': {
+      // Mailbox: a pink post with a plump rounded box, a gold heart plate and a little flag that rises when a letter waits
+      k.v.add(G.box(0.12, 0.95, 0.12), '#f4d9b8', { y: 0.475 });
+      k.v.add(G.box(0.34, 0.06, 0.34), '#ffd9e6', { y: 0.04 });
+      k.v.add(G.box(0.62, 0.34, 0.4), '#ff9ec0', { y: 1.1 });
+      k.v.add(G.cyl(0.2, 0.2, 0.62, 14), '#ff9ec0', { y: 1.27, rz: Math.PI / 2 });
+      k.v.add(G.box(0.2, 0.16, 0.03), '#fff4f8', { y: 1.08, z: 0.21 });
+      k.v.add(G.ball(0.045, 8), PALETTE.gold, { y: 1.08, z: 0.235 });
+      k.v.add(G.ball(0.06, 8), '#ffffff', { x: -0.31, y: 1.45 });
+      const flag = new THREE.Group();
+      flag.name = 'mailFlag';
+      flag.position.set(0.34, 1.12, 0);
+      flag.add(box(0.03, 0.34, 0.03, '#f4d9b8', 0, 0.17, 0));
+      flag.add(box(0.2, 0.12, 0.03, '#ff5c8a', 0.1, 0.3, 0));
+      g.add(flag);
+      const l = makeLabel('Mailbox', 1.3); l.position.set(0, 1.9, 0.2); g.add(l);
+      g.add(contactShadow(0.9, 0.7, 'rect', 0.22));
+      break;
+    }
     case 'wardrobe': {
       // Home wardrobe: a tall pink cabinet with two doors, gold knobs, a heart and a bow on top
       k.v.add(G.box(1.2, 1.7, 0.6), '#ffd0e0', { y: 0.85 });
@@ -392,6 +411,19 @@ export function createStation(s: Station): THREE.Group {
       for (const x of [-0.5, 0.5]) k.v.add(G.ball(0.07, 8), '#fff4f8', { x, y: 0.05 });
       const l = makeLabel('Wardrobe', 1.6); l.position.set(0, 2.45, 0.3); g.add(l);
       g.add(contactShadow(1.7, 1.0, 'rect', 0.22));
+      break;
+    }
+    case 'petbed': {
+      // Pet Nook: a woven basket with a pink cushion, a little heart pillow and a ball of yarn
+      k.v.add(G.cyl(0.58, 0.5, 0.26, 20), '#e8c79a', { y: 0.13 });
+      k.v.add(G.torus(0.56, 0.07, 22), '#f6dfb8', { y: 0.27, rx: Math.PI / 2 });
+      k.v.add(G.cyl(0.48, 0.48, 0.07, 20), '#ffc3d6', { y: 0.22 });
+      for (const sx of [-1, 1]) k.v.add(G.ball(0.1, 10), '#ff8fb6', { x: sx * 0.07 - 0.2, y: 0.34, z: -0.12, s: [1, 1, 0.55] });
+      k.v.add(G.ball(0.11, 10), '#ff8fb6', { x: -0.2, y: 0.28, z: -0.12, s: [1.3, 1, 0.55] });
+      k.v.add(G.ball(0.13, 12), '#fff3a8', { x: 0.72, y: 0.13, z: 0.3 });
+      k.v.add(G.torus(0.1, 0.012, 14), '#f0b24f', { x: 0.72, y: 0.14, z: 0.3, rx: Math.PI / 2, ry: 0.4 });
+      const l = makeLabel('Pet Nook', 1.4); l.position.set(0, 1.05, 0.2); g.add(l);
+      g.add(contactShadow(1.5, 1.4, 'round', 0.22));
       break;
     }
     case 'grove': {

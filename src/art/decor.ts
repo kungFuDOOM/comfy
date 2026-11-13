@@ -91,6 +91,29 @@ export function drawDecor(ctx: CanvasRenderingContext2D, id: string, x: number, 
       }
       heart(ctx, 0, -33, 3, '#ff8fb6');
       break;
+    case 'd_cafe_menu':
+      ellipse(ctx, 0, -1, 11, 3, 'rgba(120,70,100,0.18)');
+      ctx.strokeStyle = '#c99a7a'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-9, -1); ctx.lineTo(-6, -12); ctx.moveTo(9, -1); ctx.lineTo(6, -12); ctx.moveTo(0, -3); ctx.lineTo(0, -12); ctx.stroke();
+      rr(ctx, -10, -32, 20, 23, 3.5); ctx.fillStyle = '#ffb3cf'; ctx.fill(); ctx.strokeStyle = '#ff8fb6'; ctx.lineWidth = 1; ctx.stroke();
+      rr(ctx, -7.6, -29.6, 15.2, 18.2, 2); ctx.fillStyle = '#5a4048'; ctx.fill();
+      heart(ctx, 0, -24.6, 3.2, '#ffd0e2');
+      ctx.fillStyle = '#ffe6ef'; ctx.fillRect(-5.4, -19.6, 7, 1.2); ctx.fillRect(-5.4, -17, 5.4, 1.2); ctx.fillRect(-5.4, -14.4, 6.4, 1.2);
+      circle(ctx, 4.4, -19, 0.9, '#ffd36e'); circle(ctx, 4.4, -16.4, 0.9, '#ff9ec0'); circle(ctx, 4.4, -13.8, 0.9, '#9fe0c8');
+      rr(ctx, -8, -9.6, 16, 2, 1); ctx.fillStyle = '#c99a7a'; ctx.fill();
+      ellipse(ctx, -3, -33.4, 3, 2.1, '#ff8fb6', -0.35); ellipse(ctx, 3, -33.4, 3, 2.1, '#ff8fb6', 0.35); circle(ctx, 0, -33, 1.5, '#ffd0e2');
+      break;
+    case 'd_cafe_succulent':
+      ellipse(ctx, 0, -1, 10, 2.8, 'rgba(120,70,100,0.18)');
+      ellipse(ctx, 0, -2.4, 9.5, 2.4, '#fff'); ctx.strokeStyle = '#ffb3cf'; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(0, -2.4, 9.5, 2.4, 0, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = '#ff9ec0'; ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(7.6, -9, 3.2, -1.3, 1.5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-7.5, -15); ctx.lineTo(7.5, -15); ctx.quadraticCurveTo(7, -3, 0, -3); ctx.quadraticCurveTo(-7, -3, -7.5, -15); ctx.closePath(); ctx.fillStyle = '#ffd0e2'; ctx.fill(); ctx.strokeStyle = '#ff9ec0'; ctx.lineWidth = 1.3; ctx.stroke();
+      heart(ctx, 0, -9, 2.2, '#ff8fb6');
+      for (const [x, y, rot, c] of [[-7, -17.5, -1.15, '#8fd3aa'], [7, -17.5, 1.15, '#8fd3aa'], [-4.4, -21, -0.6, '#8fd3aa'], [4.4, -21, 0.6, '#8fd3aa'], [0, -22.6, 0, '#a6e0bd'], [-2.4, -18.6, -0.5, '#a6e0bd'], [2.4, -18.6, 0.5, '#a6e0bd']] as [number, number, number, string][]) {
+        ellipse(ctx, x, y, 2.7, 4.6, c, rot); circle(ctx, x + Math.sin(rot) * 4, y - Math.cos(rot) * 4, 0.9, '#ff9ec0');
+      }
+      ellipse(ctx, 0, -17.6, 2.6, 3.2, '#c2efd2');
+      rr(ctx, -8, -16.4, 16, 2.6, 1.3); ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = '#ffb3cf'; ctx.lineWidth = 0.9; ctx.stroke();
+      break;
     case 'd_tw_cocoa':
       ellipse(ctx, 0, -1, 12, 3, 'rgba(120,70,100,0.18)');
       rr(ctx, -11, -16, 22, 3, 1.4); ctx.fillStyle = '#e8b98a'; ctx.fill(); rr(ctx, -11, -28, 22, 3, 1.4); ctx.fill();

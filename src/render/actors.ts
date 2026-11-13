@@ -14,7 +14,7 @@ export interface ActorMesh {
   root: THREE.Group;
   /** Rotates around Y, smoothed. */
   setFacing(f: Facing, dt: number): void;
-  /** Idle breathing / walk bob. */
+  /** Idle breathing, and a walk/run cycle whose stride follows how far the actor actually moved. */
   animate(t: number, moving: boolean, run?: boolean): void;
   setAlert?(on: boolean): void;
 }
@@ -29,9 +29,20 @@ const isPrint = (f: Fill): f is CheetahKind => f === 'classic' || f === 'pink';
 const HEAD_Y = 1.0;
 const HA = 0.46, HB = 0.39, HC = 0.41; // head ellipsoid radii
 const HIP_Y = 0.2;
+const LEG_Y = 0.27;
+const STEP = 0.22; // swing radius of the shoe, from the hip pivot
 const EYE = '#4f2b40';
 const BLUSH = '#ff9dbd';
 const DEG = Math.PI / 180;
+
+/**
+ * -1..1 stride position. Mostly a straight step, so a planted shoe stays put while the body
+ * passes over it, with a little sine so the turnaround stays soft.
+ */
+function strideShape(phase: number): number {
+  const linear = Math.asin(Math.sin(phase)) / (Math.PI / 2);
+  return linear * 0.8 + Math.sin(phase) * 0.2;
+}
 
 /** Point on the head surface. yaw 0 = face front (+z), pitch up. `out` pushes along the radius. */
 function on(yaw: number, pitch: number, out = 1): [number, number, number] {
@@ -338,7 +349,7 @@ function build(sp: Spec) {
   // legs: stubby with chunky shoes
   const legs = [-1, 1].map((sx) => {
     const pivot = new THREE.Group();
-    pivot.position.set(sx * 0.12, 0.27, 0);
+    pivot.position.set(sx * 0.12, LEG_Y, 0);
     const leg = new THREE.Mesh(legGeo!, toon(sp.skin));
     leg.castShadow = true;
     const shoe = new Batch().add(G.ball(0.105, 12), sp.shoes, { y: -0.2, z: 0.03, s: [1.05, 0.72, 1.25] }).build();
@@ -364,7 +375,7 @@ function build(sp: Spec) {
   marker.visible = false;
   root.add(marker);
 
-  let ang = 0, last = -1, walk = 0, phase = 0, runK = 0;
+  let ang = 0, last = -1, walk = 0, phase = 0, runK = 0, hasPrev = false, prevX = 0, prevZ = 0;
   model.rotation.order = 'YXZ'; // yaw first, so the lean tips along the facing direction
   const off = Math.random() * 10;
   const api: ActorMesh & { model: THREE.Group; dressMat: THREE.MeshToonMaterial; bandMat: THREE.MeshToonMaterial; head: THREE.Group; body: THREE.Group; dress: THREE.Mesh; band: THREE.Mesh; arms: typeof arms; legs: typeof legs } = {
@@ -373,25 +384,55 @@ function build(sp: Spec) {
     animate(t, moving, run = false) {
       const dt = last < 0 ? 0 : Math.min(0.05, Math.max(0, t - last));
       last = t;
-      walk += ((moving ? 1 : 0) - walk) * Math.min(1, dt * 10);
-      runK += ((moving && run ? 1 : 0) - runK) * Math.min(1, dt * 9);
-      if (walk > 0.01) phase += dt * (11 + runK * 6); else phase = 0;
+      // How far the body actually travelled (tiles). Height ease and teleports don't count as steps.
+      let dist = 0;
+      if (hasPrev) {
+        const d = Math.hypot(root.position.x - prevX, root.position.z - prevZ);
+        if (d < 0.75) dist = d;
+      }
+      prevX = root.position.x; prevZ = root.position.z; hasPrev = true;
+      // No travel (a wall, a pause) eases back to idle instead of freezing a stride.
+      const travelled = dist > 0.0008;
+      const blend = 1 - Math.exp(-dt * 8);
+      walk += (((moving && travelled) ? 1 : 0) - walk) * blend;
+      runK += (((moving && run && travelled) ? 1 : 0) - runK) * (1 - Math.exp(-dt * 5));
+      // Swing grows from a clear walk into a jog. Stride is the distance one step of that swing covers,
+      // so the feet keep up with whatever speed she's actually moving.
+      const legAmp = 0.7 + runK * 0.3;
+      const armAmp = 0.72 + runK * 0.42;
+      const plant = 0.04 + runK * 0.04;
+      const stride = Math.max(0.2, 2 * (plant + STEP * Math.sin(legAmp)) * sp.scale);
+      if (dist > 0.0004) phase = (phase + (dist / stride) * Math.PI) % (Math.PI * 2);
       const w = walk, idle = 1 - w;
-      const s = Math.sin(phase), hop = Math.abs(Math.cos(phase)); // feet land at the swing extremes
+      const s = strideShape(phase);
+      const legAngle = Math.asin(Math.max(-1, Math.min(1, s * Math.sin(legAmp)))) * w;
+      const hop = Math.abs(Math.cos(phase)); // up as the feet pass, down as one lands
       const br = Math.sin(t * 2.3 + off);
-      // hop with squash on landing, stretch at the top
-      const sq = (hop - 0.45) * w;
-      model.position.y = hop * (0.075 + runK * 0.02) * w * sp.scale;
-      model.rotation.x = runK * 0.17; // slight forward lean
-      model.scale.set(sp.scale * (1 - sq * 0.07), sp.scale * (1 + sq * 0.14), sp.scale * (1 - sq * 0.07));
-      model.rotation.z = s * 0.045 * w;
-      // breathing
+      const lift = (0.034 + runK * 0.04) * w;
+      const sq = (hop - 0.45) * w * (0.65 + runK * 0.25);
+      model.position.y = hop * (0.04 + runK * 0.03) * w * sp.scale + Math.sin(t * 2.1 + off) * 0.006 * idle;
+      model.rotation.x = (0.06 + runK * 0.08) * w; // a little lean, more when running
+      model.scale.set(sp.scale * (1 - sq * 0.05), sp.scale * (1 + sq * 0.09), sp.scale * (1 - sq * 0.05));
+      model.rotation.z = s * (0.04 + runK * 0.015) * w;
+      body.rotation.y = s * (0.06 + runK * 0.03) * w;
+      // breathing fades out as the stride fades in
       body.scale.set(1 - br * 0.014 * idle, 1 + br * 0.035 * idle, 1 - br * 0.014 * idle);
-      head.position.y = HEAD_Y + br * 0.016 * idle - (1 - hop) * 0.02 * w;
-      head.rotation.z = Math.sin(t * 1.1 + off) * 0.035 * idle - s * 0.05 * w;
-      for (const a of arms) a.pivot.rotation.x = a.sx * s * (0.8 + runK * 0.25) * w + br * 0.05 * idle;
-      legPivots[0].rotation.x = -s * (0.75 + runK * 0.2) * w;
-      legPivots[1].rotation.x = s * (0.75 + runK * 0.2) * w;
+      head.position.y = HEAD_Y + br * 0.016 * idle - (1 - hop) * 0.016 * w;
+      head.rotation.y = s * (0.045 + runK * 0.02) * w;
+      head.rotation.z = Math.sin(t * 1.1 + off) * 0.035 * idle - s * 0.045 * w;
+      // Arms oppose the same-side leg: positive X swings the limb backward.
+      for (const a of arms) {
+        a.pivot.rotation.x = -a.sx * s * armAmp * w + br * 0.045 * idle;
+        a.pivot.rotation.z = a.sx * (0.62 - (0.08 + runK * 0.14) * w);
+      }
+      // Left foot is forward when s > 0, and lifts while it swings forward (cos > 0).
+      const swing = Math.cos(phase);
+      legPivots[0].rotation.x = -legAngle;
+      legPivots[1].rotation.x = legAngle;
+      legPivots[0].position.y = LEG_Y + Math.max(0, swing) * lift;
+      legPivots[1].position.y = LEG_Y + Math.max(0, -swing) * lift;
+      legPivots[0].position.z = s * plant * w;
+      legPivots[1].position.z = -s * plant * w;
       eyes.scale.y = ((t + off * 3) % 3.7 < 0.12 ? 0.12 : 1) * eyeK; // blink
       marker.position.y = 2.0 * sp.scale + Math.sin(t * 3) * 0.06;
       tick?.(t, w);
@@ -400,6 +441,7 @@ function build(sp: Spec) {
   };
   api.animate(0, false);
   last = -1;
+  hasPrev = false;
   return api;
 }
 
