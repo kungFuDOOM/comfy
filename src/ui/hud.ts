@@ -40,10 +40,22 @@ export function buildHud(actions: { mail(): void; skills(): void; journal(tab: s
     (() => { const b = h('button', 'chip lantern', lanternCanvas, lanternEl); b.title = 'Afterglow Lanterns (L)'; b.onclick = () => actions.journal('lanterns'); return b; })(),
   );
   buildMerchantChip(top);
-  const quick = h('div', 'hud-quick',
+  // Seven labelled buttons: an always-visible row on wide screens, a "Menu" toggle + drawer on phones (CSS decides).
+  const toggle = h('button', 'btn small menu-toggle', '✿ Menu');
+  toggle.type = 'button'; toggle.setAttribute('aria-haspopup', 'true'); toggle.setAttribute('aria-expanded', 'false');
+  const drawer = h('div', 'menu-drawer',
     ...([['✿ Journal', () => actions.journal('quests'), 'journal'], ['✧ Skills', actions.skills, 'skills'], ['❀ Log', () => actions.journal('collection'), 'collection'], ['❖ Bag', actions.bag, 'bag'], ['🗺 Map', actions.map, 'map'], ['📷 Photo', actions.photo, 'photo'], ['? Help', actions.help, 'help']] as [string, () => void, PromptKey][])
-      .map(([t, f, k]) => { const b = h('button', 'btn small', t, glyphEl(k)); b.onclick = f; return b; }),
+      .map(([t, f, k]) => { const b = h('button', 'btn small', t, glyphEl(k)); b.type = 'button'; b.onclick = () => { setMenu(false); f(); }; return b; }),
   );
+  const quick = h('div', 'hud-quick', toggle, drawer);
+  const setMenu = (on: boolean) => { quick.classList.toggle('open', on); toggle.setAttribute('aria-expanded', String(on)); };
+  toggle.onclick = () => setMenu(!quick.classList.contains('open'));
+  document.addEventListener('pointerdown', (e) => { if (quick.classList.contains('open') && !quick.contains(e.target as Node)) setMenu(false); }, true);
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape') setMenu(false); });
+  // Close it whenever a scene / the dressing room takes over, or a panel opens.
+  new MutationObserver(() => { if (document.body.classList.contains('scene') || document.body.classList.contains('dressing')) setMenu(false); })
+    .observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  document.getElementById('ui')!.addEventListener('pointerdown', (e) => { if ((e.target as HTMLElement).closest?.('.panel-backdrop')) setMenu(false); }, true);
   hotbarEl = h('div', 'hotbar');
   hintEl = h('div', 'hint');
   rainbowEl = h('div', 'rainbow'); rainbowEl.setAttribute('aria-hidden', 'true');
