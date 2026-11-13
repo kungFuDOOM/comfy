@@ -12,7 +12,7 @@ import { createNodeLayer } from './nodes3d';
 import { createBarriers } from './barriers';
 
 const WOOD_D = '#b98763';
-const SPAWN_COLOR: Record<string, string> = { shell: '#ffe0d0', blossom: '#ff9ec0', moth: '#fff3a8', button: '#ffffff', pumpkin: '#ffa763', apple: '#ff7f93', ornament: '#ff9ec0' };
+const SPAWN_COLOR: Record<string, string> = { shell: '#ffe0d0', blossom: '#ff9ec0', moth: '#fff3a8', button: '#ffffff', pumpkin: '#ffa763', apple: '#ff7f93', ornament: '#ff9ec0', sea_glass: '#b8f0d8', candy_copper: '#ffa98a', rose_quartz: '#ffb3d1', twinkle_geode: '#d4b8ff', frost_opal: '#bfe6ff' };
 
 /** A flat heart facing +z, about 2 units wide; scale it down where it is used. */
 const HEART_GEO = (() => {
@@ -150,6 +150,32 @@ export function createDecor(id: string): THREE.Group {
       const moon = mesh(new THREE.TorusGeometry(0.22, 0.07, 10, 20, Math.PI * 1.15), '#fff0a8', 0, 0.4, 0); moon.rotation.z = Math.PI * 1.42; g.add(moon);
       for (const sx of [-1, 1]) g.add(cyl(0.008, 0.008, 0.55, '#fff6ea', sx * 0.2, 0.7, 0, 4));
       g.add(ball(0.04, '#ffd36e', 0.0, 0.2, 0.08, 6));
+      break;
+    }
+    case 'd_fishbowl': {
+      g.add(cyl(0.16, 0.2, 0.08, '#e8b98a', 0, 0.04, 0, 12));
+      const glass = ball(0.32, '#bfe6f6', 0, 0.42, 0, 14); glass.scale.set(1, 0.92, 1); g.add(glass);
+      g.add(cyl(0.27, 0.27, 0.05, '#ffd9e8', 0, 0.2, 0, 12));
+      const fish = ball(0.1, '#fffaf5', 0, 0.42, 0, 8); fish.scale.set(1.5, 1, 1); g.add(fish); g.add(ball(0.04, '#ff8fb6', 0.03, 0.47, 0.06, 6)); g.add(ball(0.06, '#ffb3cf', 0.16, 0.42, 0, 6));
+      break;
+    }
+    case 'd_forage_basket': {
+      g.add(cyl(0.34, 0.27, 0.3, '#e6b98a', 0, 0.15, 0, 14));
+      g.add(cyl(0.36, 0.36, 0.04, '#c98f5f', 0, 0.3, 0, 14));
+      for (const [x, y, z, r, c] of [[-0.12, 0.38, 0.05, 0.12, '#ff8fb6'], [0.1, 0.4, -0.06, 0.11, '#ffd0e2'], [0.16, 0.34, 0.12, 0.09, '#c79bff'], [-0.04, 0.34, -0.14, 0.1, '#ff9ec0']] as [number, number, number, number, string][]) g.add(ball(r, c, x, y, z, 8));
+      const cap = ball(0.1, '#ff9ec0', -0.22, 0.38, 0.06, 8); cap.scale.y = 0.7; g.add(cap);
+      break;
+    }
+    case 'd_gem_stand': {
+      g.add(box(0.7, 0.24, 0.4, '#ffd6e6', 0, 0.12, 0));
+      for (const [x, c, s] of [[-0.24, '#b8f0d8', 0.13], [-0.08, '#ffc94d', 0.15], [0.08, '#ffc2da', 0.13], [0.24, '#d4b8ff', 0.1]] as [number, string, number][]) { const m = ball(s, c, x, 0.24 + s, 0, 5); m.scale.y = 1.4; g.add(m); }
+      g.add(ball(0.05, mat('#fff3a8', '#ffe27a', 'lamp'), 0, 0.78, 0, 6));
+      break;
+    }
+    case 'd_cafe_sign': {
+      for (const x of [-0.26, 0.26]) g.add(box(0.05, 0.84, 0.05, '#c98f5f', x, 0.42, 0));
+      g.add(box(0.7, 0.5, 0.07, '#6a4a58', 0, 0.62, 0)); g.add(box(0.76, 0.56, 0.04, '#ffb3cf', 0, 0.62, -0.03));
+      g.add(cyl(0.1, 0.08, 0.12, '#fff0f6', -0.08, 0.66, 0.05, 10)); g.add(ball(0.04, '#ff8fb6', -0.08, 0.7, 0.09, 6)); g.add(box(0.44, 0.03, 0.02, '#ffffff', 0, 0.5, 0.05));
       break;
     }
     default: g.add(ball(0.3, '#ffb3cf', 0, 0.3, 0));

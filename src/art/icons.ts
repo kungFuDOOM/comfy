@@ -1,5 +1,6 @@
 // Item and UI icons, drawn in code onto small canvases.
 import { ITEMS } from '../data';
+import { drawCollectIcon } from './collectIcons';
 import { drawDecor } from './decor';
 import { cheetahPattern } from './cheetah';
 import { circle, ellipse, rr, star, heart } from './draw';
@@ -305,6 +306,7 @@ export function drawItem(ctx: CanvasRenderingContext2D, id: string) {
       break;
     }
     default:
+      if (drawCollectIcon(ctx, id)) break;
       if (ITEMS[id]?.kind === 'decor') { drawDecor(ctx, id, 16, 30, 0.95); break; }
       circle(ctx, 16, 16, 8, '#ffb3cf');
   }

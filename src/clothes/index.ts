@@ -6,6 +6,7 @@ import './catalogSpecial';
 import './catalogEvents';
 import './catalogFriends';
 import './catalogMerchant';
+import './catalogSets';
 import { CLOTHES } from './build';
 import type { ClothDef, Slot } from './types';
 

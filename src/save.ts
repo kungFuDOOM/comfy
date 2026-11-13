@@ -1,4 +1,5 @@
-import { defaultBonds, defaultMerchant, defaultState, state, type SaveData } from './state';
+import { defaultBonds, defaultMerchant, defaultState, emptyCollection, state, type SaveData } from './state';
+import { normalizeHome } from './home';
 import { TOWN_OFFSET, MAP_VERSION } from './world';
 import { migrateWardrobe } from './clothes/migrate';
 import { sanitizePet } from './petData';
@@ -35,7 +36,9 @@ export function loadGame(): boolean {
     state.merchant = sanitizeMerchant(data.merchant, defaultMerchant()); // saves from before the merchant: nobody has visited yet
     if (!state.regionSeen || typeof state.regionSeen !== 'object' || Array.isArray(state.regionSeen)) state.regionSeen = {};
     if (!Array.isArray(state.partyHats)) state.partyHats = [];
+    state.home = normalizeHome(data.home); // saves from before home decorating: an empty, default-styled room
     state.pet = sanitizePet(data.pet); // saves from before pets: no pet yet; anything malformed is dropped
+    state.collection = sanitizeCollection(data.collection);
     if ((data.mapV ?? 1) < MAP_VERSION) migrateMap();
     state.mapV = MAP_VERSION;
     return true;
@@ -62,6 +65,20 @@ function normalizeFriendship(data: Partial<SaveData>) {
     const v = Number(state.friend[k]);
     state.friend[k] = Number.isFinite(v) ? Math.max(0, Math.min(200, v)) : 0;
   }
+}
+
+/** Collection Log data is optional in old saves, and is trusted no further than its shape. */
+function sanitizeCollection(raw: unknown): SaveData['collection'] {
+  const c = emptyCollection();
+  if (!raw || typeof raw !== 'object') return c;
+  const r = raw as Partial<Record<keyof SaveData['collection'], unknown>>;
+  if (r.got && typeof r.got === 'object' && !Array.isArray(r.got)) {
+    for (const [k, v] of Object.entries(r.got)) if (typeof v === 'number' && Number.isFinite(v)) c.got[k] = v;
+  }
+  const strs = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
+  c.done = strs(r.done); c.fresh = strs(r.fresh); c.titles = strs(r.titles);
+  c.title = typeof r.title === 'string' && c.titles.includes(r.title) ? r.title : null;
+  return c;
 }
 
 /**
