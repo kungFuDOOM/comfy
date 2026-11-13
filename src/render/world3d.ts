@@ -7,17 +7,19 @@ import { bus } from '../bus';
 import { VILLAGERS } from '../data';
 import { npcs, type Npc } from '../npc';
 import type { Season } from '../time';
+import type { FootSurface } from '../audio';
 import { MAP_H, MAP_W, TS } from '../world';
-import { createPlayerMesh, createVillagerMesh, type ActorMesh } from './actors';
+import { createPlayerMesh, createVillagerMesh, type ActorMesh, type Expression } from './actors';
 import { createPetMesh } from './petMesh';
 import type { PetPose } from '../pet';
 import { createDynamic } from './dynamic';
 import { visualSeason } from '../events';
 import { createEventLayer } from './eventLayer';
+import { createMerchantLayer } from './merchant3d';
 import { createLightRig } from './lighting';
 import { PALETTE } from './materials';
 import { createBeach } from './beach';
-import { celebrate, confettiAt, heartsPopAt, petHeartsAt, poofAt, Shape, welcomeAt, welcomeTrickle } from './celebrate';
+import { celebrate, confettiAt, heartsPopAt, petHeartsAt, poofAt, Shape, twinkleAt, welcomeAt, welcomeTrickle } from './celebrate';
 import { birthdayFriends, unreadLetters } from '../friends';
 import { createNature } from './nature';
 import { createParticles } from './particles';
@@ -25,23 +27,29 @@ import { createPlayerActs } from './playerActs';
 import { createPost } from './post';
 import { createStructures } from './structures';
 import { createTerrain, heightAtUnits } from './terrain';
+import { createWeatherLayer } from './weatherLayer';
+import { view } from '../weather';
 
 export interface FrameInput {
   t: number;
   dt: number;
   hour: number;
   season: Season;
-  player: { x: number; y: number; facing: Facing; moving: boolean; running?: boolean; surface?: 'sand' | 'path' | 'grass' };
+  player: { x: number; y: number; facing: Facing; moving: boolean; running?: boolean; surface?: FootSurface };
   /** What the player is wearing (or trying on). */
   look: Look;
   /** Worn accessory item id (see boutique.currentAccessory). Omitted = none. */
   accessory?: string | null;
+  /** Show the weather (rain, snow, puddles, grey sky). Omitted = clear skies, for the title screen and cutscenes. */
+  weather?: boolean;
   /** What the player is busy doing (fishing, watering...); omitted = nothing, so menus and cutscenes ease back to idle. */
   act?: Act | null;
   /** The pet companion this frame (omitted / null = not adopted, or a scene that should not show her). */
   pet?: PetPose | null;
   npcs: Npc[];
   talkedToday(id: string): boolean;
+  /** Photo mode (photo.ts): her face, and how far she turns away from the camera (radians; 0 = facing it). Omitted = normal play. */
+  photo?: { expression: Expression; turn: number };
 }
 
 export type Pick =
@@ -65,6 +73,10 @@ export interface World3D {
   /** Nudge the camera (radians / zoom units). Yaw, pitch and zoom are clamped so it can't flip or enter the player. */
   orbit(dYaw: number, dTilt: number, dZoom: number): void;
   resetCamera(): void;
+  /** Photo mode: a free camera (full orbit, low angles, close-ups) centred on the player. Leaving it eases back to the follow cam. */
+  setPhotoCamera(on: boolean): void;
+  /** Render a fresh frame and copy it to a new 2D canvas (long side capped at `maxSide`). Null if the copy fails. */
+  capture(maxSide: number): HTMLCanvasElement | null;
   /** Show the little tap marker at a ground point (world px); null hides it. */
   marker(wx: number | null, wy?: number): void;
   /** Current (smoothed) yaw: 0 = camera south of the player looking north; + moves the camera east. */
@@ -88,6 +100,8 @@ export interface Director {
 const YAW_MAX = 1.0;
 const TILT_MAX = 0.2; // +/- radians around the default pitch
 const ZOOM_MIN = 0.6, ZOOM_MAX = 1.45;
+// photo mode: the whole circle, from near the ground to nearly top-down, and from a close-up out to a wide view
+const PHOTO = { yaw: Infinity, tiltMin: -0.72, tiltMax: 0.5, zoomMin: 0.16, zoomMax: 1.8 };
 
 export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   // No canvas MSAA: the post stack renders into its own multisampled HDR target.
@@ -108,7 +122,9 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   const dynamic = createDynamic();
   const particles = createParticles(); // after structures: reads the café steam vents
   const eventLayer = createEventLayer(); // seasonal event decorations (events.ts)
-  scene.add(terrain.group, nature.group, beach, structures, dynamic.group, eventLayer.group, particles.group, celebrate.group);
+  const weather = createWeatherLayer(); // rain / snow, puddles, cloud shadows (driven by the weather view)
+  const merchantLayer = createMerchantLayer(); // the traveling merchant's stall (merchant.ts)
+  scene.add(terrain.group, nature.group, beach, structures, dynamic.group, eventLayer.group, merchantLayer.group, particles.group, weather.group, celebrate.group);
 
   // A friend moving in (bus 'friendArrived', only from a live unlock, never a save restore): a burst of hearts at
   // their spot, then a gentle trickle for a few seconds so the welcome is still there if the camera is elsewhere.
@@ -148,6 +164,12 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
     confettiAt(new THREE.Vector3(p.x, p.y + 0.8, p.z));
   });
 
+  // A Collection Log set was completed: confetti and twinkles over the player.
+  bus.on('setComplete', () => {
+    const p = player.root.position, at = new THREE.Vector3(p.x, p.y + 0.8, p.z);
+    confettiAt(at); twinkleAt(at);
+  });
+
   const player = createPlayerMesh();
   scene.add(player.root);
   const acts = createPlayerActs(player); // activity poses, held props, fishing line and splashes
@@ -181,7 +203,9 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   }
 
   // player-controlled camera offsets (smoothed toward their targets)
-  const cam = { yaw: 0, yawT: 0, tilt: 0, tiltT: 0, zoom: 1, zoomT: 1 };
+  const cam = { yaw: 0, yawT: 0, tilt: 0, tiltT: 0, zoom: 1, zoomT: 1, lift: 0 };
+  let photoCam = false;
+  let lastNight = 0;
   const basePitch = Math.atan2(CAM_UP, CAM_BACK), baseDist = Math.hypot(CAM_UP, CAM_BACK);
 
   function placeCamera() {
@@ -189,9 +213,9 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
     const k = (aspect < 1 ? 1 + (1 - aspect) * 0.9 : 1) * cam.zoom;
     const pitch = basePitch + cam.tilt, d = baseDist * k;
     const horiz = Math.cos(pitch) * d;
-    camPos.set(target.x + Math.sin(cam.yaw) * horiz, target.y + Math.sin(pitch) * d, target.z + Math.cos(cam.yaw) * horiz);
+    camPos.set(target.x + Math.sin(cam.yaw) * horiz, target.y + cam.lift + Math.sin(pitch) * d, target.z + Math.cos(cam.yaw) * horiz);
     camera.position.copy(camPos);
-    camera.lookAt(target);
+    camera.lookAt(target.x, target.y + cam.lift, target.z);
   }
 
   function place(a: ActorMesh, px: number, py: number) {
@@ -222,9 +246,34 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
     resize,
     snapCamera(px, py) { target.set(px / TS, 0, py / TS); placeCamera(); },
     orbit(dYaw, dTilt, dZoom) {
-      cam.yawT = Math.max(-YAW_MAX, Math.min(YAW_MAX, cam.yawT + dYaw));
-      cam.tiltT = Math.max(-TILT_MAX, Math.min(TILT_MAX, cam.tiltT + dTilt));
-      cam.zoomT = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, cam.zoomT + dZoom));
+      const L = photoCam ? PHOTO : { yaw: YAW_MAX, tiltMin: -TILT_MAX, tiltMax: TILT_MAX, zoomMin: ZOOM_MIN, zoomMax: ZOOM_MAX };
+      cam.yawT = Math.max(-L.yaw, Math.min(L.yaw, cam.yawT + dYaw));
+      cam.tiltT = Math.max(L.tiltMin, Math.min(L.tiltMax, cam.tiltT + dTilt));
+      cam.zoomT = Math.max(L.zoomMin, Math.min(L.zoomMax, cam.zoomT + dZoom));
+    },
+    setPhotoCamera(on) {
+      if (on === photoCam) return;
+      photoCam = on;
+      if (on) { cam.tiltT = -0.2; cam.zoomT = 0.55; return; } // start close on her, a little lower than the follow cam
+      // back to the follow camera: take the shortest way round, then ease into the normal limits
+      const turns = Math.round(cam.yawT / (Math.PI * 2)) * Math.PI * 2;
+      cam.yaw -= turns; cam.yawT -= turns;
+      cam.yawT = Math.max(-YAW_MAX, Math.min(YAW_MAX, cam.yawT));
+      cam.tiltT = Math.max(-TILT_MAX, Math.min(TILT_MAX, cam.tiltT));
+      cam.zoomT = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, cam.zoomT));
+    },
+    capture(maxSide) {
+      markerMesh.visible = false;
+      post.render(lastNight); // a fresh frame, drawn and copied in the same task so the buffer is still valid
+      const src = renderer.domElement;
+      if (!src.width || !src.height) return null;
+      const k = Math.min(1, maxSide / Math.max(src.width, src.height));
+      const out = document.createElement('canvas');
+      out.width = Math.max(1, Math.round(src.width * k)); out.height = Math.max(1, Math.round(src.height * k));
+      const g = out.getContext('2d');
+      if (!g) return null;
+      g.drawImage(src, 0, 0, out.width, out.height);
+      return out;
     },
     marker(wx, wy = 0) {
       if (wx === null) { markerT = -1; markerMesh.visible = false; return; }
@@ -232,7 +281,11 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       markerMesh.position.set(ux, heightAtUnits(ux, uz) + 0.08, uz);
       markerT = 0; markerMesh.visible = true;
     },
-    resetCamera() { cam.yawT = 0; cam.tiltT = 0; cam.zoomT = 1; },
+    resetCamera() {
+      const turns = Math.round(cam.yaw / (Math.PI * 2)) * Math.PI * 2; // after a photo-mode spin, take the short way home
+      cam.yaw -= turns;
+      cam.yawT = 0; cam.tiltT = 0; cam.zoomT = 1;
+    },
     yaw: () => cam.yaw,
     scene, camera, playerMesh: player,
     villager: (id) => villagers.get(id),
@@ -250,6 +303,8 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       place(player, f.player.x, f.player.y);
       player.setFacing(f.player.facing, f.dt);
       player.animate(f.t, f.player.moving, !!f.player.running);
+      player.setExpression(f.photo?.expression ?? 'sweet');
+      if (f.photo) player.model.rotation.y = cam.yaw + f.photo.turn; // face the lens (the camera can be anywhere round her)
       acts.update(f.t, f.dt, f.act);
       particles.dust(f.dt, !!f.player.running, player.root.position, f.player.surface ?? 'grass');
       if (f.pet) {
@@ -275,22 +330,27 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       }
       dynamic.update(f.t);
       eventLayer.update(f.t);
+      merchantLayer.update(f.t, f.dt, f.player.x, f.player.y);
       nature.update(f.t, target.x, target.z);
       terrain.update(f.t);
 
       director?.stage?.(f);
 
       // follow cam (smoothed, clamped to the island)
-      const tx = Math.max(6, Math.min(MAP_W - 6, f.player.x / TS)), tz = Math.max(6, Math.min(MAP_H - 6, f.player.y / TS - 1.2)); // look a touch ahead (north) of the player
+      const ahead = photoCam ? 0 : 1.2; // the follow cam looks a touch ahead (north) of the player; photo mode centres on her
+      const tx = Math.max(6, Math.min(MAP_W - 6, f.player.x / TS)), tz = Math.max(6, Math.min(MAP_H - 6, f.player.y / TS - ahead));
       const k = 1 - Math.pow(0.001, f.dt);
       const ck = 1 - Math.pow(0.0005, f.dt);
+      cam.lift += ((photoCam ? 0.75 : 0) - cam.lift) * ck;
       cam.yaw += (cam.yawT - cam.yaw) * ck; cam.tilt += (cam.tiltT - cam.tilt) * ck; cam.zoom += (cam.zoomT - cam.zoom) * ck;
       if (director) director.shoot(camera, target, f);
       else { target.x += (tx - target.x) * k; target.z += (tz - target.z) * k; placeCamera(); }
       // continuous (not bucketed) so dawn/dusk blend smoothly and the shadow frustum follows the camera
       rig.update(f.hour, target);
+      weather.group.visible = !!f.weather;
+      if (f.weather) { weather.update(f.t, target); weather.grade(rig, scene); }
       const pxScale = renderer.getDrawingBufferSize(bufSize).y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
-      particles.update(f.t, rig.night, target, pxScale, heightAtUnits);
+      particles.update(f.t, rig.night, target, pxScale, heightAtUnits, f.weather ? view.rain + view.snow * 0.5 : 0);
       if (trickle.left > 0) {
         trickle.left -= f.dt; trickle.acc += f.dt;
         while (trickle.acc >= 0.3) { trickle.acc -= 0.3; welcomeTrickle(trickle.at); }
@@ -311,6 +371,7 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       if (!mailFlag) mailFlag = structures.getObjectByName('mailFlag');
       if (mailFlag) { const want = mailUnread > 0 ? 0 : -Math.PI / 2 + 0.2; mailFlag.rotation.z += (want - mailFlag.rotation.z) * Math.min(1, f.dt * 5); }
       celebrate.update(f.dt, pxScale);
+      lastNight = rig.night;
       post.render(rig.night);
     },
     pick(sx, sy, npcs) {

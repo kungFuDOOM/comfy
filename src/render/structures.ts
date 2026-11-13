@@ -437,6 +437,20 @@ export function createStation(s: Station): THREE.Group {
       g.add(contactShadow(1.7, 1.0, 'rect', 0.22));
       break;
     }
+    case 'home': {
+      // Front Door: a plush welcome mat with a pink border, twin potted blooms and a little heart sign on a post
+      k.v.add(G.box(1.1, 0.06, 0.6), '#ff9ec0', { y: 0.03 });
+      k.v.add(G.box(0.96, 0.08, 0.46), '#fff3e6', { y: 0.04 });
+      k.v.add(G.ball(0.09, 10), '#ff8fb6', { x: -0.06, y: 0.1, s: [1, 0.5, 0.7] }).add(G.ball(0.09, 10), '#ff8fb6', { x: 0.06, y: 0.1, s: [1, 0.5, 0.7] });
+      for (const sx of [-1, 1]) {
+        k.v.add(G.cyl(0.17, 0.12, 0.26, 12), '#ffd0e2', { x: sx * 0.78, y: 0.13, z: -0.05 });
+        k.v.add(G.ball(0.2, 10), '#9fe0b8', { x: sx * 0.78, y: 0.4, z: -0.05 });
+        for (const [dx, dy, c] of [[-0.08, 0.5, '#ff8fb6'], [0.1, 0.46, '#fff3a8'], [0, 0.58, '#ffffff']] as [number, number, string][]) k.v.add(G.ball(0.06, 8), c, { x: sx * 0.78 + dx, y: dy, z: 0.05 });
+      }
+      const l = makeLabel('Home ♡', 1.1); l.position.set(0, 1.0, 0.1); g.add(l);
+      g.add(contactShadow(1.4, 0.9, 'rect', 0.18));
+      break;
+    }
     case 'petbed': {
       // Pet Nook: a woven basket with a pink cushion, a little heart pillow and a ball of yarn
       k.v.add(G.cyl(0.58, 0.5, 0.26, 20), '#e8c79a', { y: 0.13 });

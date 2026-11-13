@@ -11,7 +11,8 @@ export type ActKind =
   | 'pick' | 'mine' | 'chop' // gathering nodes: berries, flowers, coffee / shell beds / sugarwood stumps
   | 'till' | 'plant' | 'water' | 'harvest' // the garden plot
   | 'brew' | 'bake' | 'craft' // benches (café counter, oven, Crafting Table) and the event bake games
-  | 'wave' | 'give' | 'place' | 'reach' | 'sip' | 'ponder'; // friends, decor, the event tree, cocoa, locked barriers
+  | 'wave' | 'give' | 'place' | 'reach' | 'sip' | 'ponder' // friends, decor, the event tree, cocoa, locked barriers
+  | 'cheer' | 'sway' | 'shy'; // photo-mode poses (photo.ts)
 
 export interface Act {
   kind: ActKind;

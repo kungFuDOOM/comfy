@@ -1,5 +1,6 @@
 // Item and UI icons, drawn in code onto small canvases.
 import { ITEMS } from '../data';
+import { drawCollectIcon } from './collectIcons';
 import { drawDecor } from './decor';
 import { cheetahPattern } from './cheetah';
 import { circle, ellipse, rr, star, heart } from './draw';
@@ -20,8 +21,8 @@ export function drawItem(ctx: CanvasRenderingContext2D, id: string) {
       ctx.beginPath(); ctx.arc(11, 11, 5, Math.PI, 0); ctx.lineWidth = 2; ctx.stroke();
       circle(ctx, 29, 14, 1.4, '#a8d8ee'); circle(ctx, 27, 18, 1.2, '#a8d8ee');
       break;
-    case 'seed_puffberry': case 'seed_cottonbloom': {
-      const c = id === 'seed_puffberry' ? '#ff9ec0' : '#ffffff';
+    case 'seed_puffberry': case 'seed_cottonbloom': case 'seed_glowberry': case 'seed_moonpetal': {
+      const c = ({ seed_puffberry: '#ff9ec0', seed_cottonbloom: '#ffffff', seed_glowberry: '#ffc65e', seed_moonpetal: '#c9a8ff' } as Record<string, string>)[id];
       rr(ctx, 8, 5, 16, 22, 3); ctx.fillStyle = '#fff6ea'; ctx.fill(); ctx.strokeStyle = '#e8c9a8'; ctx.lineWidth = 1.2; ctx.stroke();
       circle(ctx, 16, 14, 4.2, c); if (id !== 'seed_puffberry') { ctx.strokeStyle = '#e0c6d6'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(16, 14, 4.2, 0, 7); ctx.stroke(); }
       ctx.strokeStyle = '#7fcf8e'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(16, 24); ctx.lineTo(16, 19); ctx.stroke();
@@ -121,13 +122,29 @@ export function drawItem(ctx: CanvasRenderingContext2D, id: string) {
       }
       star(ctx, 8, 8, 3, '#fff3a8'); star(ctx, 26, 25, 2.4, '#fff3a8');
       break;
-    case 'minnow': case 'perch': case 'koi': {
-      const body = id === 'minnow' ? '#bfe6f2' : id === 'perch' ? '#9ad6b0' : '#fffaf5';
-      const fin = id === 'minnow' ? '#8fcde4' : id === 'perch' ? '#5fae78' : '#ffb3cf';
+    case 'frog':
+      ellipse(ctx, 16, 21, 11, 7.5, '#9fe3a4'); ellipse(ctx, 16, 23, 7, 4, '#eaffe6');
+      circle(ctx, 9.5, 12.5, 4.6, '#9fe3a4'); circle(ctx, 22.5, 12.5, 4.6, '#9fe3a4');
+      circle(ctx, 9.5, 12.5, 3, '#fff'); circle(ctx, 22.5, 12.5, 3, '#fff'); circle(ctx, 10, 12.8, 1.6, '#4a3a4a'); circle(ctx, 22, 12.8, 1.6, '#4a3a4a');
+      circle(ctx, 8, 22, 1.7, 'rgba(255,143,182,0.55)'); circle(ctx, 24, 22, 1.7, 'rgba(255,143,182,0.55)');
+      ctx.strokeStyle = '#5fae78'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(16, 20, 4, 0.2, Math.PI - 0.2); ctx.stroke();
+      break;
+    case 'snail':
+      ellipse(ctx, 14, 25, 12, 3.6, '#ffd9c2'); circle(ctx, 26, 20, 3.4, '#ffd9c2');
+      ctx.strokeStyle = '#ffd9c2'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(25, 18); ctx.lineTo(24, 12); ctx.moveTo(28, 18); ctx.lineTo(29, 12); ctx.stroke();
+      circle(ctx, 24, 11.5, 1.3, '#ffb3cf'); circle(ctx, 29, 11.5, 1.3, '#ffb3cf'); circle(ctx, 26.6, 20.2, 0.8, '#4a3a4a');
+      circle(ctx, 13, 17, 9, '#ffb3cf'); circle(ctx, 13, 17, 9, 'rgba(0,0,0,0)');
+      ctx.strokeStyle = '#fff3f8'; ctx.lineWidth = 1.8; ctx.beginPath(); ctx.arc(13, 17, 5.6, 0.4, 5.6); ctx.arc(13.6, 16.6, 2.6, 0.2, 5); ctx.stroke();
+      break;
+    case 'minnow': case 'perch': case 'koi': case 'drizzle': case 'cloudcarp': {
+      const body = { minnow: '#bfe6f2', perch: '#9ad6b0', koi: '#fffaf5', drizzle: '#b9c8f0', cloudcarp: '#f1ecff' }[id]!;
+      const fin = { minnow: '#8fcde4', perch: '#5fae78', koi: '#ffb3cf', drizzle: '#7f94d8', cloudcarp: '#c8b6f2' }[id]!;
       ctx.fillStyle = fin; ctx.beginPath(); ctx.moveTo(23, 16); ctx.lineTo(30, 9); ctx.lineTo(30, 23); ctx.closePath(); ctx.fill();
       ellipse(ctx, 14, 16, 11, 7.5, body); ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(14, 16, 11, 7.5, 0, 0, 7); ctx.stroke();
       if (id === 'perch') { ctx.strokeStyle = '#5fae78'; ctx.lineWidth = 1.6; for (const x of [11, 15, 19]) { ctx.beginPath(); ctx.moveTo(x, 10); ctx.lineTo(x, 22); ctx.stroke(); } }
       if (id === 'koi') { circle(ctx, 12, 12, 3, '#ff8fb6'); circle(ctx, 18, 19, 2.4, '#ffd0e2'); }
+      if (id === 'drizzle') { for (const [x, y] of [[13, 12], [18, 14], [15, 20]]) { ellipse(ctx, x, y, 1.1, 2, '#e8f1ff'); } }
+      if (id === 'cloudcarp') { circle(ctx, 13, 11.5, 3.2, '#fff'); circle(ctx, 17, 11, 3.8, '#fff'); circle(ctx, 21, 12, 2.8, '#fff'); }
       circle(ctx, 8, 14.5, 1.6, '#4a3a4a'); circle(ctx, 8.4, 14.1, 0.5, '#fff'); circle(ctx, 6, 19, 1.4, 'rgba(255,143,182,0.6)');
       break;
     }
@@ -305,6 +322,7 @@ export function drawItem(ctx: CanvasRenderingContext2D, id: string) {
       break;
     }
     default:
+      if (drawCollectIcon(ctx, id)) break;
       if (ITEMS[id]?.kind === 'decor') { drawDecor(ctx, id, 16, 30, 0.95); break; }
       circle(ctx, 16, 16, 8, '#ffb3cf');
   }

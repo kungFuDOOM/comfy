@@ -10,7 +10,9 @@ canvas#game { position: fixed; inset: 0; display: block; touch-action: none; }
 
 .hud-top { position: absolute; top: 10px; left: 10px; display: flex; flex-wrap: wrap; gap: 8px; max-width: calc(100% - 20px); }
 .chip { background: rgba(255, 248, 243, 0.92); border: 2px solid #ffc3da; border-radius: 16px; padding: 6px 12px; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; box-shadow: 0 3px 0 rgba(224, 112, 154, 0.25); color: var(--ink); font-family: var(--font); }
-.chip.time { flex-direction: column; align-items: flex-start; gap: 0; }
+.chip.time { gap: 8px; }
+.time-text { display: flex; flex-direction: column; align-items: flex-start; }
+.weather-ico { width: 32px; height: 32px; flex: none; margin: -3px 0; }
 .clock { font-size: 15px; } .season { font-size: 11px; font-weight: 600; color: var(--ink-l); }
 button.chip { cursor: pointer; }
 .hud-quick { position: absolute; top: 10px; right: 10px; display: flex; gap: 6px; }
@@ -254,3 +256,11 @@ body.input-touch .help-menu-row { display: none; }
 .map-leg { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
 .map-leg.locked { color: var(--ink-l); }
 .map-dot { width: 12px; height: 12px; border-radius: 50%; background: #ff5f9e; border: 2px solid #fff; box-shadow: 0 0 0 2px #ffc3da; align-self: center; animation: pfpulse 0.8s ease-in-out infinite alternate; }
+
+/* Rainbow after the rain: a soft arc across the top of the screen, behind the HUD. Opacity is driven from weatherUi.ts. */
+.rainbow { position: fixed; left: 50%; top: 0; width: 170vmin; height: 85vmin; transform: translateX(-50%); pointer-events: none !important; opacity: 0; transition: opacity 0.4s linear;
+  background: radial-gradient(circle 85vmin at 50% 100%, transparent 0 56%, rgba(255,143,168,0.85) 58%, rgba(255,195,138,0.85) 62%, rgba(255,232,138,0.85) 66%, rgba(168,230,160,0.85) 70%, rgba(156,207,255,0.85) 74%, rgba(200,168,255,0.85) 78%, transparent 80%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 45%, transparent 92%); mask-image: linear-gradient(to bottom, #000 0, #000 45%, transparent 92%);
+  filter: blur(1.2px); animation: rainbow-glow 5s ease-in-out infinite alternate; }
+@keyframes rainbow-glow { from { filter: blur(1.2px) saturate(0.95); } to { filter: blur(2px) saturate(1.25); } }
+@media (prefers-reduced-motion: reduce) { .rainbow { animation: none; } }

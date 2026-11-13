@@ -8,6 +8,11 @@ import { defaultErrands } from './errandData';
 export type LanternKind = 'serve' | 'gift' | 'decor' | 'collect' | 'outfit' | 'garden';
 
 export interface PlacedDecor { id: string; x: number; y: number }
+/** A piece placed inside the home. `rot` is quarter turns (0..3), `x`/`y` a cell of the room grid (see homeData.ts). */
+export interface HomeItem { id: string; x: number; y: number; rot: number }
+/** The home interior: wallpaper + floor ids (homeData.ts) and the furniture on its grid. */
+export interface HomeSave { wall: string; floor: string; items: HomeItem[] }
+export const defaultHome = (): HomeSave => ({ wall: 'blush', floor: 'checker', items: [] });
 export interface Plot { crop: string; progress: number; wetUntil: number; lastTick: number; need: number }
 export interface Lantern { id: number; kind: LanternKind; at: number }
 export interface Spawn { item: string; x: number; y: number }
@@ -61,6 +66,66 @@ export interface Bonds {
   attended: string[];
 }
 export const defaultBonds = (): Bonds => ({ known: {}, letters: [], sent: [], wished: [], attended: [] });
+/** Collection Log progress (see collection.ts). Optional in old saves: loadGame() fills in safe defaults. */
+export interface CollectionSave {
+  /** Entry id -> time (ms) it was first obtained. Stays even if the item is later sold, gifted or used. */
+  got: Record<string, number>;
+  /** Set ids already completed (and rewarded, so a reward can never be paid twice). */
+  done: string[];
+  /** Entries found since the player last looked at their page (they get a NEW sticker). */
+  fresh: string[];
+  /** Titles earned from sets, and the one being shown (or null). */
+  titles: string[];
+  title: string | null;
+}
+export const emptyCollection = (): CollectionSave => ({ got: {}, done: [], fresh: [], titles: [], title: null });
+
+/** One thing on the traveling merchant's table. */
+export interface MerchantStock {
+  /** 'item' = a bag item (data.ts), 'cloth' = a wardrobe piece (clothes/). */
+  kind: 'item' | 'cloth';
+  ref: string;
+  /** How many you get per purchase (seed bundles). */
+  qty: number;
+  price: number;
+  /** Purchases still available on this visit. */
+  left: number;
+}
+/** The traveling merchant (merchant.ts). The stock is rolled once per visit day and kept, so reloading never re-rolls it. */
+export interface MerchantSave {
+  /** Day key of the visit the stock belongs to ('' = she has never come). */
+  visit: string;
+  stock: MerchantStock[];
+  /** Visits you have said hello on, and pips spent at her stall (lifetime). */
+  met: number;
+  spent: number;
+  /** Day key of the last arrival notice shown, so it greets once per visit. */
+  seen: string;
+  /** Day key of the last visit you stopped to chat on (counts toward `met`). */
+  talked: string;
+}
+export const defaultMerchant = (): MerchantSave => ({ visit: '', stock: [], met: 0, spent: 0, seen: '', talked: '' });
+
+/** Styling contest progress (see contest.ts). Created with safe defaults, so older saves load untouched. */
+export interface StyleSave {
+  /** Best ribbon tier (0-3) won per theme id. Missing = never entered. */
+  ribbons: Record<string, number>;
+  /** Host id -> day key of the contest they last ran (one per host per day). */
+  hosted: Record<string, string>;
+  /** Contests entered, ever. */
+  entries: number;
+}
+export const defaultStyle = (): StyleSave => ({ ribbons: {}, hosted: {}, entries: 0 });
+
+/** A keepsake in the photo album: only a small JPEG thumbnail is stored (the full photo is saved as a PNG download). */
+export interface Photo {
+  /** Timestamp (ms) the photo was taken; also its id. */
+  at: number;
+  /** data:image/jpeg thumbnail. */
+  thumb: string;
+  /** Filter name, shown as a caption. */
+  note: string;
+}
 
 export interface SaveData {
   v: number;
@@ -82,6 +147,8 @@ export interface SaveData {
   /** Handmade accessory worn on the model (an item id of kind 'accessory'), or null. Hidden if no longer owned. */
   accessory: string | null;
   decor: PlacedDecor[];
+  /** Home interior decorating. Older saves get an empty, default-styled room. */
+  home: HomeSave;
   plots: Record<string, Plot>;
   /** Friendship points per villager id: 20 per heart, up to 10 hearts (200). Old saves topped out at 100 (5 hearts). */
   friend: Record<string, number>;
@@ -116,10 +183,18 @@ export interface SaveData {
   petCare: PetCare;
   /** Bulletin board errands (see errands.ts). */
   errands: ErrandsSave;
+  /** Collection Log: everything ever obtained, completed sets and titles. */
+  collection: CollectionSave;
   /** Map layout version the saved positions belong to (1 = the original small island). */
   mapV: number;
   /** Café shift totals; older saves get zeros. */
   cafe: CafeProgress;
+  /** Photo album thumbnails, newest first, capped (see photo.ts). Older saves have none. */
+  photos: Photo[];
+  /** Styling contest ribbons and daily hosting (older saves get an empty one). */
+  style: StyleSave;
+  /** Traveling merchant visit + stock; older saves get a fresh one. */
+  merchant: MerchantSave;
 }
 
 export function defaultState(): SaveData {
@@ -138,6 +213,7 @@ export function defaultState(): SaveData {
     partyHats: [],
     accessory: null,
     decor: [],
+    home: defaultHome(),
     plots: {},
     friend: {},
     bonds: defaultBonds(),
@@ -160,8 +236,12 @@ export function defaultState(): SaveData {
     pet: null,
     petCare: defaultPetCare(),
     errands: defaultErrands(),
+    collection: emptyCollection(),
     mapV: 2,
     cafe: defaultCafe(),
+    photos: [],
+    style: defaultStyle(),
+    merchant: defaultMerchant(),
   };
 }
 

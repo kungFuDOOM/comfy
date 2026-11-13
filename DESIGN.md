@@ -35,7 +35,7 @@ with a café, a boutique, a little yard of your own, a tiny garden, shorelines t
 | --- | --- | --- |
 | **Café** | Buy ingredients, brew drinks (Pink Puff Latte, Honey Cloud Cappuccino, Spotted Mocha), serve them to villagers | Friendship, Steam Lanterns, quests, pips (selling) |
 | **Boutique & outfits** | Try on for free; mix and match 400+ pieces across hat / top / bottom / dress / shoes / bag / face slots in 29 styles; the boutique restocks 10–16 pieces daily; buy decor | Spotted Lanterns, pips sink, identity |
-| **Decorating** | Place/pick up decor in your fenced yard (a 10×4 lawn) | Hearth Lanterns, self-expression |
+| **Decorating** | Step through the Front Door into your home and arrange decor on an 8×6 grid (place, drag, turn, pick up), pick wallpaper and floors; or place/pick up decor in your fenced yard (a 10×4 lawn) | Hearth Lanterns, self-expression |
 | **Friends & gifting** | Talk once a day, give gifts, serve drinks; each villager has liked items | Hearts, new dialogue tiers, Ribbon Lanterns |
 | **Collecting** | Pick up Dewdrop Shells, Ribbon Blossoms, Steam-Moths, Starlit Buttons; fill the collection log | Sparkle Lanterns, gifts, pips |
 | **Exploring** | Wander paths, beaches, the meadow and the grove hillside; spawns depend on place, time of day and season | Everything above |
@@ -47,9 +47,11 @@ Currency is **pips** (the little star coin). Pips come from selling at the Tuppe
 
 Three equal input paths funnel into one action layer (`src/input`): interact, tool, cancel/run, bag, journal, hotbar.
 
-- **Keyboard & mouse:** WASD / arrows walk (smooth, camera-relative), Shift runs, `E`/Space interacts, `F` uses the selected item, `1–9` / `Q R` / wheel pick a hotbar slot, `B` bag, `J` journal, `L` lantern grove, `H` help, `Esc` closes windows. Click to walk or interact.
-- **Controller:** left stick walks, A interact, B run/cancel, X use item, Y bag, LB/RB hotbar, Start journal, View bag, D-pad menu focus. Hot-pluggable.
-- **Touch:** a floating joystick plus an A/B/X/Y diamond, nothing else; tap the hotbar to switch tools. Only shown while touch is in use.
+- **Keyboard & mouse:** WASD / arrows walk (smooth, camera-relative), Shift runs (also the rest of a click-to-walk), `E`/Space interacts, `F` uses the selected item, `1–9` / `Q R` / wheel pick a hotbar slot, `B` bag, `J` journal, `L` lantern grove, `H` help, `Esc` closes windows. Click to walk or interact.
+- **Controller:** left stick walks (a full tilt is still a walk), A interact, B hold-to-run (also a tap-walk) and closes windows, X use item, Y bag, LB/RB hotbar, Start journal, View bag, D-pad menu focus. Hot-pluggable.
+- **Touch:** a floating joystick plus an A/B/X/Y diamond, nothing else. B hold-to-run also covers a tap-walk. Tap the hotbar to switch tools. Only shown while touch is in use.
+
+**Photo mode** (`P`, or the 📷 HUD button): hides the HUD, frees the camera (drag / pinch / wheel / arrows / right stick: full orbit, low angles, close-ups), and opens a soft tool sheet: seven poses (reusing the activity animator, `render/playerActs.ts`), four faces (`Expression` in `render/actors.ts`) and a turn, six filters (warm, pastel, film, dreamy bloom, rosy), six frames and ten draggable stickers (all drawn in code, `art/photoArt.ts`). The shutter bakes filter + frame + stickers into a PNG (`photo.ts` → `composeShot`) shown on a review card with *Save PNG* and *Keep in album*. The album stores only small JPEG thumbnails in `state.photos` (capped at 12, optional in older saves, sanitized in `save.ts`). Esc / B / P leave; input is locked to photo mode meanwhile (`setInputLock` in `input/dispatch.ts`).
 
 Prompt glyphs follow the last device used. The game opens on a main menu (New Game / Continue / Settings / Credits); New Game plays a skippable arrival intro once per save.
 
@@ -129,6 +131,8 @@ The clock and phase are shown in the HUD. Steam-Moths only appear in the evening
 
 For testing you can add `?hour=21.5&month=12` to the URL to override the clock and month.
 
+**Weather** (`src/weather.ts`, `render/weatherLayer.ts`, `ui/hud.ts`). Each real (or `?date=`) day gets a seeded roll: sunny, cloudy, or a wet day with a rain window (snow when the island looks wintry, including Twinkle Season, which keeps drawing its own snowfall). Wet days run roughly 18–32% by season; after a shower a rainbow lingers for ~2.5 daylight hours about half the time. Nothing is saved; it is a pure function of the date and clock, so no save fields were added. Visuals are all GPU-friendly: instanced puddles with ripples, point-sprite rain streaks and snow (fewer on touch screens), drifting cloud shadows, an overcast sky/fog/sun grade plus a wet rim-light sheen, and a CSS rainbow arc (the camera looks down at the island, so a 3D rainbow would never be in view). Petals and fireflies hush in the rain, and a soft filtered-noise rain loop follows the SFX volume. The HUD clock chip shows a drawn weather icon (moon at night). Gameplay: rain waters every planted crop; 30% of rain-time catches become a Drizzle Darter / Cloudcap Carp; Bellyflop Frogs (near water) and Dewdrop Snails spawn while it rains or the rainbow is up and wander off when it clears. Test with `?weather=sunny|cloudy|rain|snow|rainbow`.
+
 ## 6. Progression
 
 v0.1 has a gentle, open-ended ladder instead of levels:
@@ -147,15 +151,31 @@ v0.1 has a gentle, open-ended ladder instead of levels:
 - No backend, no external assets.
 - Player activity animations: game code calls `startAct()` (`src/actions.ts`); fishing casts and bench brewing are mirrored from their timers. `render/playerActs.ts` blends procedural poses over idle/walk, hangs cached tool props on the hands only while needed, and plays splashes, chips, drops and sparkles through the pooled celebration particles. Moving (keys, stick, joystick or tap-to-walk) cancels an act; held acts (the bake games) end with their window. Visual only, nothing saved.
 
+## 7a. Home decorating
+
+The **Front Door** station (south face of the house) opens decorate mode: a fade into a dollhouse-style room (`render/homeRoom.ts`, a `home` scene on the shared renderer, floating far above the island so nothing else is in shot) and a tray UI (`ui/homeUi.ts`, `ui/home.css`). Rules live in `home.ts`, data (8×6 grid, 5 wallpapers, 5 floors, patterns painted in `art/homePatterns.ts`) in `homeData.ts`. The yard keeps its own tile decorating.
+
+- Items come from the bag (any `kind: 'decor'` item); placing consumes one, picking up returns it. One standing piece per cell; flat pieces (rugs) share a cell with a standing piece. Pieces rotate in quarter turns.
+- Mouse: hover shows a ghost, click places / selects, drag moves. Touch: tap to place or select, drag to move, big Turn / Pick up buttons; the tray docks to the right on short landscape screens. Keyboard: arrows move a cursor, E/Space confirm, `R` turn, `X` pick up, `[ ]` flip through pieces, `Tab` next tab, Esc back. Gamepad: D-pad / stick cursor, A confirm, X turn, Y pick up, LB/RB flip, Start next tab, B back (deselect, then leave). Extra scene buttons arrive on the bus as `sceneAction`.
+- Save: `state.home = { wall, floor, items: [{ id, x, y, rot }] }`, normalized on load (`normalizeHome`), so older saves get an empty blush-and-checker room. Saved after every change and on leaving.
+
+## 7a-2. The traveling merchant
+
+**Tansy Packlewick**, a lilac-cream Wandering Alpaca with a stuffed travel pack, visits on **Wednesdays and Saturdays, 9 AM to 8 PM** (real calendar and clock; `?merchant=1` keeps her open all day for QA, `?date=` and `?hour=` work too). She sets up a striped stall on a cobbled pitch east of Sugarlily Square (counter tiles are solid while she is there) and sells a rotating handful of rare things for pips: two outfit pieces (`clothes/catalogMerchant.ts`, source `merchant`, never in the boutique), two decor pieces (`d_m_*`), and two seed bundles (rare Lanternberry and Moonpetal seeds, plus discounted regulars). Arrival toast, a HUD chip ("Tansy is in town") and a poof of sparkles announce her; a toast says when she packs up and when she is next back (also in Help).
+
+Data: `merchantData.ts` (schedule, offer pools, lines, save sanitiser), `merchantLayout.ts` (stall tiles), logic `merchant.ts`, UI `ui/merchantUi.ts`, 3D `render/merchant3d.ts` (+ the `alpaca` actor in `render/actors.ts`). Save field `merchant` (`visit` day key, `stock` with per-item `left`, `met`, `spent`, `seen`, `talked`) is optional: the stock is rolled once per visit from a seeded shuffle and stored, so reloading never re-rolls it or refills sold items. Older saves get defaults in `save.ts`.
+
 ## 7b. Soft Skills
 
 Skills *wrap* the existing cozy loops; they never replace them. Gardening, gifting, brewing, decorating and lanterns stay equal-weight ways to play. Everything here is original to Hushbell — there is **no combat, no stamina, no energy bar and nothing to lose**.
 
-- **Six skills:** Foraging, Fishing, Gardening, Baking, Brewing, Crafting (level cap 25, XP to next level = 40 × level^1.6). Total XP is saved; the level is derived. The Journal's *Skills* tab (or `K`, or the HUD "✧ Skills" button) shows each level and XP bar.
+- **Seven skills:** Foraging, Fishing, Gardening, Baking, Brewing, Crafting and Style (below) (level cap 25, XP to next level = 40 × level^1.6). Total XP is saved; the level is derived. The Journal's *Skills* tab (or `K`, or the HUD "✧ Skills" button) shows each level and XP bar.
 - **Gathering nodes (~90):** placed by the map generator on valid ground from `NODE_SPECS` — starter tier in and near town (Ribbon Meadow, sugarwood stumps, the south shore), higher tiers (lanternberries, moonpetals, starfreckle shrubs, rosepearl beds, deeper fish) in the farther areas. Gather with the interact button; a spot rests for a while (timestamps persist) and looks bare until it blooms back. Higher tiers need a skill level; the deeper fishing spots also need the Dew-line Rod.
 - **Softkeep Chest:** a 48-slot chest in the yard by home. The bag holds 24 stacks; when it is full a new kind of item goes to the chest with a gentle toast, so nothing is ever lost. Tools stay in the bag.
 - **Recipes with levels:** the café counter (*Brew*), café oven (*Bake*) and standalone Crafting Table by the boutique (*Craft*) share one short timer. Locked recipes stay visible, greyed, with the skill and level they need — e.g. Lanternberry Latte (Brewing 5), Cloud Cake (Baking 8), Moonpetal Pin (Crafting 8).
 - **Mimsy's Soft Errand:** the starter quest. Mimsy asks for 3 puffberries from the bushes in Ribbon Meadow (next to town) and rewards 60 pips and the Dew-line Rod, teaching gathering and opening up fishing.
+
+- **Style (seventh skill) and styling contests:** friends who host (Mimsy, Dottie, Bramble, Nimbus, Brioche, Oolie, Tuppi, Marlo) offer one themed contest a day from their dialogue: Goth Picnic, Rodeo Date, Cozy Café Morning, Beach Day, Fairy Garden Tea, Snowfluff Stroll, Glitter Runway, Frosting Fête. She picks an outfit from her wardrobe; three judges (the host plus two neighbours) score it 1-5 stars against the theme. Every wardrobe piece carries contest *tags* (`clothes/tags.ts`), derived from its style, print, shape, extras and colour, plus optional per-item `tags`. Cheetah print is only a *small accent* bonus (one or two spotted pieces) in the Rodeo Date and Glitter Runway themes. Everybody earns a ribbon (Sprinkle, Blush, Berry, Golden Bow) plus pips, friendship and Style XP; nothing is ever lost. Golden Bows and Style levels 2/4/6/8/10/13/16/20/25 unlock outfit pieces (`clothes/catalogStyle.ts`); buying clothes gives a little Style XP too. Journal › Skills shows the Ribbon shelf. Rules: `contest.ts`; window: `ui/contestUi.ts`. Saved in `state.style` (`ribbons`, `hosted`, `entries`), defaulted and sanitized in `save.ts`, so older saves load untouched.
 
 ## 7c. A bigger island (gated areas)
 

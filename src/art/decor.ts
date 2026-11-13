@@ -146,6 +146,73 @@ export function drawDecor(ctx: CanvasRenderingContext2D, id: string, x: number, 
       for (const sx of [-1, 1]) { ellipse(ctx, sx * 3.6, -28, 3.6, 2.2, '#ffb3cf'); }
       circle(ctx, 0, -28, 1.8, '#ff8fb6');
       break;
+    case 'd_m_musicbox':
+      ellipse(ctx, 0, -1, 11, 3, 'rgba(120,70,100,0.18)');
+      rr(ctx, -9, -11, 18, 10, 3); ctx.fillStyle = '#ffb3cf'; ctx.fill(); rr(ctx, -10, -14, 20, 4, 2); ctx.fillStyle = '#fff6ea'; ctx.fill();
+      ctx.fillStyle = '#ffd36e'; ctx.fillRect(10, -9, 4, 1.6); circle(ctx, 15, -8.2, 1.6, '#ffd36e');
+      ctx.fillStyle = '#fff'; ctx.fillRect(-0.8, -24, 1.6, 10); circle(ctx, 0, -26, 2.6, '#ffe3ee'); ctx.fillStyle = '#ff9ec0'; ctx.beginPath(); ctx.moveTo(-6, -17); ctx.lineTo(6, -17); ctx.lineTo(0, -22); ctx.fill();
+      break;
+    case 'd_m_cloudlamp':
+      ellipse(ctx, 0, -1, 11, 3, 'rgba(120,70,100,0.18)');
+      circle(ctx, 0, -20, 15, 'rgba(255,240,248,0.45)');
+      rr(ctx, -8, -5, 16, 4, 2); ctx.fillStyle = '#ffe3ee'; ctx.fill();
+      for (const [x, y, r] of [[0, -14, 9], [-8, -11, 6], [8, -12, 7], [2, -22, 6], [-4, -19, 5]] as number[][]) circle(ctx, x, y, r, '#ffffff');
+      circle(ctx, -3, -16, 1.2, '#ffd0e0'); circle(ctx, 4, -15, 1.2, '#ffd0e0');
+      break;
+    case 'd_m_teapot':
+      ellipse(ctx, 0, -1, 13, 3, 'rgba(120,70,100,0.18)');
+      ellipse(ctx, 0, -13, 13, 11, '#ffd0e0'); ctx.fillStyle = '#fff6ea'; ctx.fillRect(-9, -8, 18, 2.4);
+      ellipse(ctx, 0, -25, 7, 3.4, '#fff6ea'); circle(ctx, 0, -29, 2.4, '#ff8fb6');
+      ctx.strokeStyle = '#ffd0e0'; ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(11, -11); ctx.quadraticCurveTo(19, -14, 17, -22); ctx.stroke();
+      ctx.beginPath(); ctx.arc(-13, -14, 5, -1.2, 1.6); ctx.stroke();
+      rr(ctx, -3.5, -12, 7, 9, 3.5); ctx.fillStyle = '#c98f5f'; ctx.fill(); circle(ctx, 1.4, -8, 0.9, '#ffd36e');
+      break;
+    case 'd_m_globe':
+      ellipse(ctx, 0, -1, 10, 2.6, 'rgba(120,70,100,0.18)');
+      rr(ctx, -6, -4, 12, 3, 1.5); ctx.fillStyle = '#ffd36e'; ctx.fill(); ctx.fillRect(-1, -14, 2, 10);
+      circle(ctx, 0, -20, 10, '#bfe8f5'); circle(ctx, 3, -23, 3.4, '#ffd0e0'); circle(ctx, -4, -17, 2.8, '#c8f0dc'); circle(ctx, 5, -15, 2, '#fff0a8');
+      ctx.strokeStyle = '#ffd36e'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(0, -20, 12, 4, -0.6, 0, 7); ctx.stroke();
+      break;
+    case 'd_m_moonswing':
+      ellipse(ctx, 0, -1, 14, 3, 'rgba(120,70,100,0.18)');
+      ctx.fillStyle = '#b98763'; ctx.fillRect(-12, -30, 2.4, 29); ctx.fillRect(10, -30, 2.4, 29); ctx.fillRect(-12, -31, 25, 2.4);
+      ctx.strokeStyle = '#fff6ea'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(-6, -29); ctx.lineTo(-6, -13); ctx.moveTo(6, -29); ctx.lineTo(6, -13); ctx.stroke();
+      ctx.strokeStyle = '#fff0a8'; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(0, -17, 9, 0.35, Math.PI - 0.35); ctx.stroke();
+      star(ctx, 0, -9, 2.4, '#ffd36e');
+      break;
+    case 'd_fishbowl':
+      ellipse(ctx, 0, -1, 11, 3, 'rgba(120,70,100,0.18)');
+      rr(ctx, -6, -5, 12, 4, 2); ctx.fillStyle = '#e8b98a'; ctx.fill();
+      circle(ctx, 0, -14, 11, 'rgba(190,230,248,0.75)'); ctx.strokeStyle = '#8fcde4'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(0, -14, 11, 0, 7); ctx.stroke();
+      ellipse(ctx, 0, -9, 9, 4, 'rgba(255,224,238,0.75)');
+      ellipse(ctx, -1, -14, 4.6, 3.2, '#fffaf5'); circle(ctx, -2, -17, 1.6, '#ff8fb6'); ctx.fillStyle = '#ffb3cf'; ctx.beginPath(); ctx.moveTo(3, -14); ctx.lineTo(7, -17); ctx.lineTo(7, -11); ctx.fill();
+      circle(ctx, -4, -14.6, 0.9, '#4a3a4a'); circle(ctx, 5, -20, 1.3, 'rgba(255,255,255,0.8)'); circle(ctx, 7, -23, 0.9, 'rgba(255,255,255,0.8)');
+      ellipse(ctx, -4, -20, 3, 1.4, 'rgba(255,255,255,0.7)', -0.6);
+      break;
+    case 'd_forage_basket':
+      ellipse(ctx, 0, -1, 13, 3.2, 'rgba(120,70,100,0.18)');
+      circle(ctx, -5, -16, 4.4, '#ff8fb6'); circle(ctx, 3, -18, 4, '#ffd0e2'); circle(ctx, 8, -14, 3.4, '#c79bff'); circle(ctx, -1, -13, 3.4, '#ff9ec0');
+      ctx.fillStyle = '#ff9ec0'; ctx.beginPath(); ctx.arc(-9, -15, 3.4, Math.PI, 0); ctx.fill(); circle(ctx, -9.6, -17, 0.9, '#fff'); circle(ctx, -7.6, -16.4, 0.7, '#fff');
+      rr(ctx, -12, -15, 24, 13, 4); ctx.fillStyle = '#e6b98a'; ctx.fill(); ctx.strokeStyle = '#c98f5f'; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.strokeStyle = '#c98f5f'; ctx.lineWidth = 1; for (const x of [-6, 0, 6]) { ctx.beginPath(); ctx.moveTo(x, -14); ctx.lineTo(x, -3); ctx.stroke(); }
+      ctx.beginPath(); ctx.moveTo(-12, -9); ctx.lineTo(12, -9); ctx.stroke();
+      break;
+    case 'd_gem_stand':
+      ellipse(ctx, 0, -1, 11, 3, 'rgba(120,70,100,0.18)');
+      rr(ctx, -9, -8, 18, 7, 2.5); ctx.fillStyle = '#ffd6e6'; ctx.fill(); ctx.strokeStyle = '#ffa6c6'; ctx.lineWidth = 1.2; ctx.stroke();
+      for (const [x, y, w, c, e] of [[-6, -8, 3.6, '#b8f0d8', '#7fd4b0'], [-1.5, -8, 4, '#ffc94d', '#e8a52a'], [3.5, -8, 3.6, '#ffc2da', '#e07aa5'], [7, -8, 2.6, '#d4b8ff', '#a98ad8']] as [number, number, number, string, string][]) {
+        ctx.beginPath(); ctx.moveTo(x - w, y); ctx.lineTo(x - w * 0.6, y - w * 1.6); ctx.lineTo(x, y - w * 2.1); ctx.lineTo(x + w * 0.6, y - w * 1.6); ctx.lineTo(x + w, y); ctx.closePath(); ctx.fillStyle = c; ctx.fill(); ctx.strokeStyle = e; ctx.lineWidth = 1; ctx.stroke();
+      }
+      star(ctx, 0, -22, 2.8, '#fff3a8');
+      break;
+    case 'd_cafe_sign':
+      ellipse(ctx, 0, -1, 10, 2.8, 'rgba(120,70,100,0.18)');
+      ctx.strokeStyle = '#c98f5f'; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(-8, -1); ctx.lineTo(-5, -22); ctx.moveTo(8, -1); ctx.lineTo(5, -22); ctx.stroke();
+      rr(ctx, -9, -30, 18, 17, 3); ctx.fillStyle = '#6a4a58'; ctx.fill(); ctx.strokeStyle = '#ffb3cf'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = '#fff0f6'; ctx.beginPath(); ctx.moveTo(-5, -23); ctx.lineTo(3, -23); ctx.quadraticCurveTo(3, -17, -1, -17); ctx.quadraticCurveTo(-5, -17, -5, -23); ctx.fill();
+      heart(ctx, -1, -21, 1.6, '#ff8fb6'); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(4, -20.5, 1.8, -1.4, 1.4); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-6, -15); ctx.lineTo(6, -15); ctx.stroke();
+      break;
     default:
       circle(ctx, 0, -8, 6, '#ffb3cf');
   }
