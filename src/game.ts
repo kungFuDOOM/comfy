@@ -21,6 +21,7 @@ import { getPetPose, hasPet, petName, petNear, petThePet, petWorldPos, resetPet,
 import { initPetUi, openAdopt, openPetPanel } from './ui/petUi';
 import { tickAwards, checkRegions } from './regions';
 import { refreshEarned } from './wardrobe';
+import { syncCollection } from './collection';
 import { sceneActive } from './render/stage';
 import { sharedWorld3D, type World3D } from './render/world3d';
 import { saveGame } from './save';
@@ -330,6 +331,7 @@ export function startGame() {
   if (!state.spawns.length) for (let i = 0; i < 10; i++) spawnOne(player.x, player.y);
   lastX = player.x; lastY = player.y; stepDist = 0;
   setMood('town');
+  syncCollection(false); // Collection Log: backfill from what the player already owns (old saves), quietly
   refreshEarned(false); // pieces earned before this update, and any party hat already deserved (queued for the ceremony)
   checkRegions();
   syncFriendship(); // letters for hearts earned before the mailbox existed

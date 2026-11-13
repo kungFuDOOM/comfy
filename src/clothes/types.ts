@@ -70,7 +70,9 @@ export type Source =
   /** Café shift milestone: worked this many shifts at Puddle & Pip (shift.ts). */
   | { k: 'shift'; n: number }
   /** Exclusive to a seasonal event (events.ts): handed out by its activities while it is on, kept forever. */
-  | { k: 'event'; event: string };
+  | { k: 'event'; event: string }
+  /** Reward for completing a Collection Log set (collection.ts); `set` is the set id. */
+  | { k: 'set'; set: string };
 
 export interface ClothDef {
   id: string;

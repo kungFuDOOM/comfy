@@ -190,6 +190,7 @@ export function howToGet(c: ClothDef): string {
     case 'event': return eventHowTo(s.event);
     case 'friend': return `Reach 10 hearts with ${villagerById(s.friend)?.name.split(' ')[0] ?? 'a friend'} (Journal › Friends)`;
     case 'shift': return `Work ${s.n} shift${s.n === 1 ? '' : 's'} at Puddle & Pip Café`;
+    case 'set': return 'Complete a set in your Collection Log (Journal › Collection)';
     case 'region': return s.area === 'all' ? 'Complete all six regions' : `Complete ${areaById(s.area).name} (Journal › Island)`;
   }
 }
