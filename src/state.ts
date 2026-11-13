@@ -114,6 +114,16 @@ export interface StyleSave {
 }
 export const defaultStyle = (): StyleSave => ({ ribbons: {}, hosted: {}, entries: 0 });
 
+/** A keepsake in the photo album: only a small JPEG thumbnail is stored (the full photo is saved as a PNG download). */
+export interface Photo {
+  /** Timestamp (ms) the photo was taken; also its id. */
+  at: number;
+  /** data:image/jpeg thumbnail. */
+  thumb: string;
+  /** Filter name, shown as a caption. */
+  note: string;
+}
+
 export interface SaveData {
   v: number;
   px: number;
@@ -172,6 +182,8 @@ export interface SaveData {
   mapV: number;
   /** Café shift totals; older saves get zeros. */
   cafe: CafeProgress;
+  /** Photo album thumbnails, newest first, capped (see photo.ts). Older saves have none. */
+  photos: Photo[];
   /** Styling contest ribbons and daily hosting (older saves get an empty one). */
   style: StyleSave;
   /** Traveling merchant visit + stock; older saves get a fresh one. */
@@ -218,6 +230,7 @@ export function defaultState(): SaveData {
     collection: emptyCollection(),
     mapV: 2,
     cafe: defaultCafe(),
+    photos: [],
     style: defaultStyle(),
     merchant: defaultMerchant(),
   };

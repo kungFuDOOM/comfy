@@ -392,10 +392,11 @@ function build(sp: Spec) {
   marker.visible = false;
   root.add(marker);
 
+  let expr: Expression = 'sweet';
   let ang = 0, last = -1, walk = 0, phase = 0, runK = 0, hasPrev = false, prevX = 0, prevZ = 0;
   model.rotation.order = 'YXZ'; // yaw first, so the lean tips along the facing direction
   const off = Math.random() * 10;
-  const api: ActorMesh & { model: THREE.Group; dressMat: THREE.MeshToonMaterial; bandMat: THREE.MeshToonMaterial; head: THREE.Group; body: THREE.Group; dress: THREE.Mesh; band: THREE.Mesh; arms: typeof arms; legs: typeof legs } = {
+  const api: ActorMesh & { model: THREE.Group; dressMat: THREE.MeshToonMaterial; bandMat: THREE.MeshToonMaterial; head: THREE.Group; body: THREE.Group; dress: THREE.Mesh; band: THREE.Mesh; arms: typeof arms; legs: typeof legs; setExpression(e: Expression): void } = {
     root, model, dressMat, bandMat, head, body, dress, band, arms, legs,
     setFacing(f, dt) { ang = lerpAngle(ang, FACE_ANGLE[f], Math.min(1, dt * 14)); model.rotation.y = ang; },
     animate(t, moving, run = false) {
@@ -455,11 +456,14 @@ function build(sp: Spec) {
       legPivots[1].position.y = LEG_Y + Math.max(0, -swing) * lift + air;
       legPivots[0].position.z = s * plant * w;
       legPivots[1].position.z = -s * plant * w;
-      eyes.scale.y = ((t + off * 3) % 3.7 < 0.12 ? 0.12 : 1) * eyeK; // blink
+      const ex = EXPR[expr];
+      eyes.scale.x = eyeK * ex.x;
+      eyes.scale.y = Math.min(ex.y, (t + off * 3) % 3.7 < 0.12 ? 0.12 : 1) * eyeK; // blink
       marker.position.y = 2.0 * sp.scale + Math.sin(t * 3) * 0.06;
       tick?.(t, w);
     },
     setAlert(on) { marker.visible = on; },
+    setExpression(e) { expr = e; },
   };
   api.animate(0, false);
   last = -1;
@@ -495,7 +499,14 @@ function buildAccessories(): Record<string, THREE.Object3D> {
 }
 
 /** The player's toy rig: the activity animator (playerActs.ts) poses these joints on top of idle / walk. */
+/** Photo-mode faces: how the shared eye mesh is stretched (x wide, y tall; a thin y reads as closed, smiling eyes). */
+export type Expression = 'sweet' | 'happy' | 'dreamy' | 'wow';
+const EXPR: Record<Expression, { x: number; y: number }> = {
+  sweet: { x: 1, y: 1 }, happy: { x: 1.12, y: 0.26 }, dreamy: { x: 1.02, y: 0.55 }, wow: { x: 1.16, y: 1.2 },
+};
+
 export interface PlayerRig {
+  setExpression(e: Expression): void;
   root: THREE.Group; model: THREE.Group; body: THREE.Group; head: THREE.Group;
   arms: { pivot: THREE.Group; sx: number }[];
   legs: { pivot: THREE.Group }[];

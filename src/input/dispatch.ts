@@ -5,7 +5,7 @@ import { closePanel, isPanelOpen } from '../ui/dom';
 import { dismissLevelUp } from '../ui/levelUp';
 import { confirmFocus, cycleTab, moveFocus, type Dir } from '../ui/focus';
 
-export type Action = 'interact' | 'tool' | 'cancel' | 'bag' | 'journal' | 'skills' | 'collection' | 'lantern' | 'help' | 'map' | 'menu' | 'hotbarPrev' | 'hotbarNext' | 'camReset';
+export type Action = 'interact' | 'tool' | 'cancel' | 'bag' | 'journal' | 'skills' | 'collection' | 'lantern' | 'help' | 'map' | 'menu' | 'hotbarPrev' | 'hotbarNext' | 'camReset' | 'photo';
 
 export interface Handlers {
   interact(): void;
@@ -21,6 +21,8 @@ export interface Handlers {
   hotbarSet(i: number): void;
   click(sx: number, sy: number): void;
   camReset(): void;
+  /** P / the HUD button: open photo mode. */
+  photo(): void;
 }
 
 let H: Handlers | null = null;
@@ -36,7 +38,19 @@ export function setSceneHandler(fn: (k: SceneKey) => void): () => void {
 }
 export const sceneInputActive = () => scene !== null;
 
+/**
+ * Photo mode owns the keyboard / pad while it is open: every action goes to its handler (A = shutter, B / Esc = leave)
+ * and nothing in the world reacts behind the camera. Returns a release function.
+ */
+let lock: ((a: Action) => void) | null = null;
+export function setInputLock(onAction: (a: Action) => void): () => void {
+  lock = onAction;
+  return () => { if (lock === onAction) lock = null; };
+}
+export const inputLocked = () => lock !== null;
+
 export function trigger(a: Action) {
+  if (lock) { lock(a); return; }
   // A / B / Esc tuck away a level-up sticker. B / Esc stop there (so Esc doesn't also close the journal);
   // A carries on, so the next gather / talk press is never swallowed.
   if (a === 'cancel' || a === 'menu') { if (dismissLevelUp()) return; }
@@ -70,11 +84,12 @@ export function trigger(a: Action) {
     case 'hotbarPrev': H.hotbarStep(-1); break;
     case 'hotbarNext': H.hotbarStep(1); break;
     case 'camReset': H.camReset(); break;
+    case 'photo': H.photo(); break;
   }
 }
 
-export function hotbar(i: number) { if (!isPanelOpen() && !scene) H?.hotbarSet(i); }
-export function click(sx: number, sy: number) { if (!isPanelOpen() && !scene) H?.click(sx, sy); }
+export function hotbar(i: number) { if (!isPanelOpen() && !scene && !lock) H?.hotbarSet(i); }
+export function click(sx: number, sy: number) { if (!isPanelOpen() && !scene && !lock) H?.click(sx, sy); }
 export function navigate(d: Dir) {
   if (isPanelOpen()) moveFocus(d);
   else scene?.(d);

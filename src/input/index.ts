@@ -1,12 +1,13 @@
 // Input façade: merges keyboard, touch joystick and gamepad into one movement/camera reading.
 import { isPanelOpen } from '../ui/dom';
-import { sceneInputActive, setHandlers, type Handlers } from './dispatch';
+import { inputLocked, sceneInputActive, setHandlers, type Handlers } from './dispatch';
 import { initGamepad, padCamera, padMove, padSpin, pollGamepad } from './gamepad';
 import { initKeyboard, keyCamera, keyMove } from './keyboard';
 import { initPrompts, markInput } from './prompts';
 import { initTouch, touchMove } from './touch';
 
 export { glyph, glyphEl, currentMode } from './prompts';
+export { setInputLock } from './dispatch';
 
 export interface Move {
   /** screen-space direction: x right, y down (so forward = -y), length <= 1 */
@@ -18,7 +19,7 @@ export interface Move {
 
 /** Strongest source wins: analog stick/joystick if tilted, else the keyboard. */
 export function readMove(): Move {
-  if (isPanelOpen() || sceneInputActive()) return { x: 0, y: 0, run: false, analog: false };
+  if (isPanelOpen() || sceneInputActive() || inputLocked()) return { x: 0, y: 0, run: false, analog: false };
   const t = touchMove(), p = padMove(), k = keyMove();
   const mt = Math.hypot(t.x, t.y), mp = Math.hypot(p.x, p.y);
   const run = k.run || t.run || p.run;
