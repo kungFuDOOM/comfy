@@ -14,7 +14,7 @@ export function keyMove() {
   if (down.has('arrowup') || down.has('w')) y -= 1;
   if (down.has('arrowdown') || down.has('s')) y += 1;
   const l = Math.hypot(x, y) || 1;
-  return { x: x / l, y: y / l, run: down.has('shift') };
+  return { x: x / l, y: y / l, run: down.has('shift') || codes.has('ShiftLeft') || codes.has('ShiftRight') };
 }
 
 export function keyCamera() {

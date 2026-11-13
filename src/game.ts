@@ -286,8 +286,8 @@ function footsteps(run: boolean) {
   lastX = player.x; lastY = player.y;
   if (!player.moving || d > 20) { if (!player.moving) stepDist = Math.max(0, stepDist - 2); return; } // (big jumps are teleports)
   stepDist += d;
-  // One step, in px, in step with the walk/run stride on the character (actors.ts).
-  if (stepDist < (run ? 17 : 12)) return;
+  // One step, in px, in step with the walk/run stride on the character (actors.ts). Run steps are longer.
+  if (stepDist < (run ? 18 : 12)) return;
   stepDist = 0; stepAlt = !stepAlt;
   const t = tileOf(), ter = terrainAt(t.x, t.y);
   sfx.step(ter === T.Sand ? 'sand' : ter === T.Path || ter === T.Plaza || ter === T.Bridge ? 'path' : 'grass', stepAlt, run);
