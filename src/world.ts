@@ -3,6 +3,7 @@ import { AREA_LIST, BARRIERS, barrierById, type AreaId, type BarrierId } from '.
 import { hash } from './art/draw';
 import { isAreaOpen } from './state';
 import { NODES, NODE_SPECS, VILLAGERS, type NodeDef } from './data';
+import { PITCH } from './merchantLayout';
 
 export const TS = 32;
 export const MAP_W = 96;
@@ -152,6 +153,7 @@ export function buildWorld() {
   fill(53, 36, 54, 37, T.Path);
   fill(47, 37, 48, 37, T.Path);
   fill(45, 40, 51, 44, T.Plaza);
+  fill(PITCH.x0, PITCH.y0, PITCH.x1, PITCH.y1, T.Plaza); // the traveling merchant's cobbled pitch (merchant.ts)
   fill(30, 39, 39, 40, T.Path);
   fill(32, 41, 33, 50, T.Path);
   fill(57, 38, 62, 39, T.Path);
