@@ -1,0 +1,14 @@
+/* Traveling merchant: shop window and the HUD chip. */
+.mer-sec { font-size: 13px; font-weight: 700; color: var(--pink-ink); padding: 2px 4px 0; }
+.mer-row .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.mer-tag { font-size: 11px; font-weight: 700; color: var(--ink-l); background: #fff0f6; border: 1.5px solid #ffd6e6; border-radius: 10px; padding: 0 8px; }
+.mer-tag.left { color: #b8512c; background: #fff1e4; border-color: #ffd3b5; }
+.mer-row.sold { opacity: 0.6; }
+.mer-row canvas { flex: none; border-radius: 12px; border: 2px solid #ffe0ec; }
+.mer-note { text-align: center; }
+.mer-foot { justify-content: space-between; }
+.chip.merchant { cursor: pointer; background: linear-gradient(135deg, #fff1fa, #ffe8f4); border-color: #e3b8f0; color: var(--ink); font-family: var(--font); animation: pop 0.3s ease-out; }
+.chip.merchant .mer-ico { font-size: 18px; line-height: 1; }
+.chip.merchant .mer-text { display: flex; flex-direction: column; line-height: 1.1; text-align: left; font-size: 13px; }
+.chip.merchant .mer-sub { font-size: 11px; font-weight: 600; color: var(--ink-l); }
+.chip.merchant[hidden] { display: none; }

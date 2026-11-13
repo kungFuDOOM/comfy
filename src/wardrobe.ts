@@ -10,11 +10,12 @@ import { moment } from './lanterns';
 import { player } from './player';
 import { bump } from './quests';
 import { LOG_QUESTS } from './questlog';
-import { skillLevel, skillName } from './skills';
+import { grantXp, skillLevel, skillName } from './skills';
 import { state } from './state';
 import { getClock } from './time';
 import { areaById } from './areas';
 import { isMaxed, villagerById } from './friends';
+import { RIBBONS, themeById } from './contest';
 import { dateRange, eventById, eventPhase } from './events';
 
 export { lookKey };
@@ -100,6 +101,14 @@ export function wearItem(id: string) {
   twirl();
   changed();
 }
+/** Wear a whole outfit at once (the styling contest keeps her in what she entered with). Pieces she does not own are ignored. */
+export function wearOutfit(w: Worn) {
+  const next = { ...state.worn };
+  for (const s of SLOT_IDS) if (!w[s] || owns(w[s]!)) next[s] = w[s];
+  state.worn = tidy(next);
+  preview.look = null;
+  changed();
+}
 const OPTIONAL: Slot[] = ['hat', 'shoes', 'bag', 'face'];
 export const canTakeOff = (s: Slot) => OPTIONAL.includes(s);
 export function takeOff(slot: Slot) {
@@ -129,6 +138,7 @@ export function buyCloth(id: string): boolean {
   state.worn = tidy(equipOn(state.worn, c));
   preview.look = null; preview.sel = id;
   toast(`You bought the ${c.name}! ✿`);
+  grantXp('style', 4); // building a wardrobe is Style practice too (it is pips-gated, so it cannot be farmed)
   twirl();
   moment('outfit', player.x, player.y);
   changed();
@@ -136,10 +146,10 @@ export function buyCloth(id: string): boolean {
 }
 
 // ---------- the boutique's daily stock ----------
-function rng(seed: number) {
+export function rng(seed: number) {
   return () => { seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 }
-const hash = (s: string) => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619); return h >>> 0; };
+export const hash = (s: string) => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619); return h >>> 0; };
 const STOCK_SLOTS: Slot[] = ['dress', 'top', 'bottom', 'hat', 'dress', 'shoes', 'top', 'bag', 'hat', 'bottom', 'face', 'dress'];
 let stockDay = '', stockCache: ClothDef[] = [];
 
@@ -190,6 +200,9 @@ export function howToGet(c: ClothDef): string {
     case 'event': return eventHowTo(s.event);
     case 'friend': return `Reach 10 hearts with ${villagerById(s.friend)?.name.split(' ')[0] ?? 'a friend'} (Journal › Friends)`;
     case 'shift': return `Work ${s.n} shift${s.n === 1 ? '' : 's'} at Puddle & Pip Café`;
+    case 'ribbon': return `Win the ${RIBBONS[s.tier]?.name ?? 'top ribbon'} at a ${themeById(s.theme)?.name ?? 'styling'} contest (ask a friend about it)`;
+    case 'merchant': return 'Sold by Tansy, the traveling merchant, when she visits the island';
+    case 'set': return 'Complete a set in your Collection Log (Journal › Collection)';
     case 'region': return s.area === 'all' ? 'Complete all six regions' : `Complete ${areaById(s.area).name} (Journal › Island)`;
   }
 }
@@ -208,6 +221,7 @@ function earned(c: ClothDef): boolean {
     case 'craft': return count(s.recipe) > 0;
     case 'friend': return isMaxed(s.friend);
     case 'shift': return (state.cafe?.shifts ?? 0) >= s.n;
+    case 'ribbon': return (state.style.ribbons[s.theme] ?? -1) >= s.tier;
     default: return false;
   }
 }

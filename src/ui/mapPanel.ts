@@ -21,6 +21,7 @@ const STATION_LABEL: Record<StationId, { icon: string; name: string; sub: string
   crafting: { icon: '🔨', name: 'Crafting Table', sub: 'Bows, charms & planks' },
   market: { icon: '🛒', name: 'Market', sub: 'Tuppence Cart' },
   grove: { icon: '🏮', name: 'Afterglow Grove', sub: 'Lantern grove' },
+  home: { icon: '🏠', name: 'Front Door', sub: 'Decorate your home' },
   wardrobe: { icon: '👗', name: 'Home Wardrobe', sub: 'Change outfits' },
   petbed: { icon: '🐾', name: 'Pet Nook', sub: 'Adopt & dress a pet' },
   chest: { icon: '📦', name: 'Softkeep Chest', sub: 'Keep your things safe' },
