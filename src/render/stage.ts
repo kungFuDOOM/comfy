@@ -22,7 +22,7 @@ export function getWorld(): World3D {
   return (world = w);
 }
 
-export type SceneKind = 'menu' | 'cutscene';
+export type SceneKind = 'menu' | 'cutscene' | 'home';
 interface Running { kind: SceneKind; tick(t: number, dt: number): void; raf: number }
 let running: Running | null = null;
 

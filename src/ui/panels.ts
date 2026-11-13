@@ -33,8 +33,12 @@ import { glyphEl } from '../input/prompts';
 import { btn, h, openPanel, type PanelApi } from './dom';
 import { renderEventsTab } from './eventsUi';
 import { clearPetTrial, renderPetBody } from './petUi';
+import { renderCollectionLog } from './collectionUi';
+import { currentTitle } from '../collection';
 import { eventItemOpen, getActiveEvents } from '../events';
 import { openShift } from './shiftUi';
+import { openContest } from './contestUi';
+import { RIBBONS, THEMES, hostedToday, ribbonOf, themeFor } from '../contest';
 import { SHIFTS_PER_DAY, orderable, shiftsLeft } from '../shift';
 import { openCookieBake } from '../events/cookieBake';
 import { canBakePie, openPieBake } from '../events/pieBake';
@@ -42,10 +46,11 @@ import { openPause } from './menuPanels';
 import { npcs } from '../npc';
 import { GROVE } from '../world';
 import { renderMap } from './mapPanel';
+import { visitDaysText } from '../merchant';
 
-const price = (n: number) => h('span', 'price', coinIcon(14), String(n));
+export const price = (n: number) => h('span', 'price', coinIcon(14), String(n));
 
-function canvasEl(w: number, h2: number, draw: (g: CanvasRenderingContext2D) => void, cls = '') {
+export function canvasEl(w: number, h2: number, draw: (g: CanvasRenderingContext2D) => void, cls = '') {
   const c = document.createElement('canvas');
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   c.width = w * dpr; c.height = h2 * dpr; c.style.width = w + 'px'; c.style.height = h2 + 'px'; c.className = cls;
@@ -56,7 +61,7 @@ function canvasEl(w: number, h2: number, draw: (g: CanvasRenderingContext2D) => 
 // ---------- Dialogue ----------
 const TYPE_CPS = 46;
 /** Speech bubble that types out its text with a per-speaker blip; tap it to show the whole line at once. */
-function typedBubble(text: string, speaker: string, api: PanelApi): HTMLElement {
+export function typedBubble(text: string, speaker: string, api: PanelApi): HTMLElement {
   const shownEl = h('span', ''), restEl = h('span', 'cs-rest');
   restEl.style.visibility = 'hidden'; // reserves the bubble's final size so it does not reflow
   restEl.textContent = text;
@@ -103,6 +108,7 @@ export function openDialogue(def: VillagerDef) {
         ),
       ),
       isBirthday(def.id) ? h('div', 'card fr-banner', h('div', 'grow', `🎂 It is ${def.name.split(' ')[0]}'s birthday! Gifts count double.`), btn(birthdayDone(def.id) ? '✓ Wished' : 'Wish happy birthday', () => { if (celebrateBirthday(def.id)) { addPoints(def.id, 20); line = infoOf(def.id)?.bdayThanks ?? 'Thank you!'; note = '+20 friendship ♥'; api.rerender(); } }, 'small', birthdayDone(def.id))) : null,
+      contestCard(def),
       ...questsFrom(def.id).map((q) => questBlock(q, (t) => { line = t; note = ''; api.rerender(); })).filter((e): e is HTMLElement => !!e),
       h('div', 'sub', (() => { const k = knownTastes(def.id).love; return `Give or serve something (${k.length ? `${def.name.split(' ')[0]} loves: ${k.map((l) => ITEMS[l].name).join(', ')}` : 'you are still learning what they love'})`; })()),
       giftable.length ? h('div', 'chips', ...giftable.map((id) => {
@@ -114,6 +120,17 @@ export function openDialogue(def: VillagerDef) {
       h('div', 'row', btn('Chat again', () => { const r = talk(def); line = r.text; note = ''; api.rerender(); }), btn('Bye!', () => api.close(), 'ghost')),
     ].filter((e): e is HTMLElement => !!e));
   }, () => { if (npc) npc.busy = false; });
+}
+
+/** The styling-contest invitation a hosting villager adds to their dialogue (one contest per host per day). */
+function contestCard(def: VillagerDef): HTMLElement | null {
+  const theme = themeFor(def.id);
+  if (!theme) return null;
+  const done = hostedToday(def.id);
+  return h('div', 'card quest-offer contest-offer',
+    h('b', '', `${theme.icon} Styling contest: ${theme.name}`),
+    h('div', 'muted', done ? 'You already dressed up for this one today. Come back tomorrow for a new theme!' : theme.blurb),
+    btn(done ? 'All done for today ☾' : 'Enter the contest 🎀', () => openContest(def, theme, clothThumb), 'small', done));
 }
 
 /** A quest offer / reminder / turn-in card inside a giver's dialogue. */
@@ -276,7 +293,7 @@ interface DressUi { slot: Slot | 'all'; style: StyleId | 'all' }
 const newDressUi = (): DressUi => ({ slot: 'all', style: 'all' });
 
 /** A small picture of an item on the default look. Hats / glasses zoom to the head, shoes to the feet. Locked items are silhouettes. */
-function clothThumb(c: ClothDef, locked: boolean) {
+export function clothThumb(c: ClothDef, locked: boolean) {
   return canvasEl(46, 52, (g) => {
     g.fillStyle = locked ? '#f3e9ef' : '#fff0f6'; g.fillRect(0, 0, 46, 52);
     const look = resolveLook(equipOn({ ...START_WORN }, c));
@@ -389,7 +406,7 @@ export function openBoutique() {
     } else if (tab === 'pets') {
       renderPetBody(body, api, true);
     } else {
-      body.append(h('div', 'muted', 'Decor for your yard. Select it on the hotbar and face a yard tile.'));
+      body.append(h('div', 'muted', 'Decor for your home and yard. Step through the front door to arrange your rooms, or select a piece on the hotbar and face a yard tile.'));
       for (const id of SHOP_DECOR) body.append(shopRow(id, ITEMS[id].buy!, () => { if (buyDecor(id)) api.rerender(); }));
     }
   }, () => { stopDressingRoom(); endPreview(); clearPetTrial(); leavePlace(); }, true);
@@ -488,10 +505,12 @@ export function openJournal(start = 'quests') {
   let tab = start;
   openPanel('Journal', (body, api) => {
     const t = (id: string, label: string) => tabBtn(label, tab === id, () => { tab = id; api.rerender(); });
-    body.append(h('div', 'tabs', t('quests', 'Quests'), t('skills', 'Skills'), t('collection', 'Collection'), t('friends', 'Friends'), t('island', 'Island'), t('map', 'Map'), t('lanterns', 'Lanterns'), t('events', getActiveEvents().length ? `Events ${getActiveEvents()[0].icon}` : 'Events')));
+    body.append(h('div', 'tabs', t('quests', 'Quests'), t('skills', 'Skills'), t('collection', '✿ Collection'), t('friends', 'Friends'), t('island', 'Island'), t('map', 'Map'), t('lanterns', 'Lanterns'), t('events', getActiveEvents().length ? `Events ${getActiveEvents()[0].icon}` : 'Events')));
     // the card widens / goes two-column for skills on phones (scenes.css); other tabs keep their usual size
     body.parentElement?.classList.toggle('skills-open', tab === 'skills');
+    body.parentElement?.classList.toggle('collection-open', tab === 'collection');
     if (tab === 'skills') {
+      if (currentTitle()) body.append(h('div', 'cl-kicker skills-title', `✿ ${currentTitle()} ✿`));
       body.append(h('div', 'muted skills-intro', 'Everything you do around the island quietly grows a skill. No rush — there is no losing here.'));
       const list = h('div', 'skills-list');
       for (const sk of SKILLS) {
@@ -506,6 +525,17 @@ export function openJournal(start = 'quests') {
             h('div', 'muted small skill-xp', p.maxed ? 'Fully bloomed ✿' : `${p.into} / ${p.need} XP to Lv ${p.level + 1}`))));
       }
       body.append(list);
+      const shelf = h('div', 'card ribbon-shelf', h('b', '', '🎀 Ribbon shelf'),
+        h('div', 'muted small', 'Win ribbons at styling contests. Ask a friend who is hosting one! Each Golden Bow also earns a prize outfit piece.'));
+      const row = h('div', 'ribbon-row');
+      for (const th of THEMES) {
+        const r = ribbonOf(th.id);
+        const chip = h('span', 'ribbon-chip' + (r === undefined ? ' none' : ''), h('span', 'rc-icon', r === undefined ? '？' : RIBBONS[r].icon), h('span', 'rc-name', th.name));
+        chip.title = r === undefined ? `${th.name}: not entered yet` : `${th.name}: ${RIBBONS[r].name}`;
+        row.append(chip);
+      }
+      shelf.append(row);
+      body.append(shelf);
     } else if (tab === 'quests') {
       for (const q of LOG_QUESTS.filter(questVisible)) {
         const st = questStatus(q);
@@ -520,17 +550,7 @@ export function openJournal(start = 'quests') {
           h('span', 'tag', q.loop), h('span', 'prog', `${progress(q)}/${q.goal}`), h('span', 'price', coinIcon(14), String(q.reward))));
       }
     } else if (tab === 'collection') {
-      body.append(h('div', 'muted', 'Everything you have found around the island.'));
-      const grid = h('div', 'bag');
-      for (const id of ['shell', 'blossom', 'moth', 'button']) {
-        const n = state.found[id] ?? 0;
-        const cell = h('div', 'bagcell' + (n ? '' : ' locked'), itemIcon(id, 40), h('span', 'qty', n ? `×${n}` : ''), h('span', 'nm', n ? ITEMS[id].name : '???'));
-        cell.title = n ? ITEMS[id].desc : 'Not found yet';
-        grid.append(cell);
-      }
-      const hint = { shell: 'Beaches', blossom: 'Meadows & the grove', moth: 'Dusk & night', button: 'The grove hillside' };
-      body.append(grid, h('div', 'muted small', `Where to look — ${Object.entries(hint).map(([k, v]) => `${ITEMS[k].name}: ${v}`).join(' · ')}.`));
-      body.append(h('div', 'muted small', `Season (${getClock().season.name}): ${getClock().season.blurb}`));
+      renderCollectionLog(body, api, clothThumb);
     } else if (tab === 'friends') {
       renderFriendsTab(body, api);
     } else if (tab === 'events') {
@@ -608,24 +628,24 @@ type HelpRow = [string, string];
 /** One card per device. CSS floats the card for the device used last to the top (body.input-*). */
 export const HELP: { mode: 'keyboard' | 'gamepad' | 'touch'; title: string; rows: HelpRow[] }[] = [
   { mode: 'keyboard', title: 'Keyboard & mouse', rows: [
-    ['WASD / Arrows', 'Walk, smoothly and relative to the camera'], ['Shift', 'Hold to run'],
+    ['WASD / Arrows', 'Walk, smoothly and relative to the camera'], ['Shift', 'Hold to run, including the rest of a click-to-walk'],
     ['E / Space', 'Talk, shop, and use what you are facing'], ['F', 'Use the selected hotbar item on the tile in front'],
     ['Click', 'Walk there, or interact with what you click'], ['1–9 / Q R / Wheel', 'Choose a hotbar slot'],
-    ['B', 'Bag & wardrobe'], ['J', 'Journal'], ['K', 'Skills'], ['L', 'Lantern grove'], ['P', 'Photo mode'], ['H', 'This help'], ['Esc', 'Pause menu (settings, back to title) · closes a window'],
+    ['B', 'Bag & wardrobe'], ['J', 'Journal'], ['K', 'Skills'], ['C', 'Collection Log'], ['L', 'Lantern grove'], ['P', 'Photo mode'], ['H', 'This help'], ['Esc', 'Pause menu (settings, back to title) · closes a window'],
     ['[ ]  ·  - =', 'Orbit camera  ·  zoom (Backspace resets)'],
   ] },
   { mode: 'gamepad', title: 'Controller', rows: [
     ['Left stick', 'Walk — tilt sets the pace, and a full tilt is a normal walk'], ['A', 'Talk, shop, interact'],
-    ['B', 'Hold to run · cancel · close a window'], ['X', 'Use the selected hotbar item on the tile in front'],
+    ['B', 'Hold to run, including a tap-walk · close a window'], ['X', 'Use the selected hotbar item on the tile in front'],
     ['Y', 'Bag & wardrobe'], ['LB / RB', 'Previous / next hotbar slot'], ['Start', 'Pause menu (settings, back to title)'], ['View', 'Bag'],
     ['D-pad', 'Move the focus ring in windows (◀ ▶ also steps the hotbar)'],
     ['Right stick', 'Orbit and tilt the camera (click it to reset)'], ['LT / RT', 'Zoom out / zoom in'],
   ] },
   { mode: 'touch', title: 'Touch', rows: [
     ['Drag the left side', 'A joystick appears under your thumb — tilt sets the pace, and a full drag is a normal walk'],
-    ['A', 'Talk, shop, interact'], ['B', 'Hold to run · cancel'], ['X', 'Use the selected hotbar item on the tile in front'],
+    ['A', 'Talk, shop, interact'], ['B', 'Hold to run, including a tap-walk · close a window'], ['X', 'Use the selected hotbar item on the tile in front'],
     ['Y', 'Bag & wardrobe'], ['Hotbar', 'Tap a slot to switch tools'], ['Tap the island', 'Walk there, or talk to who you tap'],
-    ['Top buttons', 'Journal, skills, bag, map, photo and this help'], ['Journal › Pause', 'Resume, settings, or back to the title'],
+    ['Top buttons', 'Journal, skills, collection log, bag, map, photo and this help'], ['Journal › Pause', 'Resume, settings, or back to the title'],
   ] },
 ];
 
@@ -658,6 +678,7 @@ export function openHelp() {
       h('p', 'muted', 'Hushbell: the Long Frost put Sugarlily Isle to sleep when the Hush Bell in the lighthouse wound down. Wake it one small kindness at a time — brew, gift, decorate, and light lanterns — until the Bell rings again. Somewhere soft is waking up.'),
       h('p', 'muted small', 'Gather berries, blossoms, shells, coffee cherries and fish from the glimmering spots around the island — they grow back after a while. Everything you do grows a skill (see the Skills tab, or press K). Spare things keep safe in the Softkeep Chest by your home.'),
       h('p', 'muted small', 'Play with a keyboard, a controller or your fingers — the button hints on screen follow whichever you touched last, and its card hops to the top here.'),
+      h('p', 'muted small', `Tansy, a traveling merchant, sets up a stall east of Sugarlily Square on ${visitDaysText()} (9 AM to 8 PM). She sells rare outfits, decor and seeds, and her stock changes every visit.`),
       ...helpCards(),
       h('p', 'muted small help-tip', 'Tip: the café, boutique, cart, and grove altar open when you stand close and press the interact button. Time and season follow your real clock. Progress saves automatically.'),
       h('div', 'row end', btn('Let\'s go!', () => api.close())),

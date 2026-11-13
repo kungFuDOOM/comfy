@@ -21,6 +21,6 @@ export function buyDecor(id: string): boolean {
   const price = ITEMS[id].buy ?? 0;
   if (!spend(price)) { toast('Not enough pips yet.'); return false; }
   addItem(id);
-  toast(`Bought ${ITEMS[id].name}. Place it in your yard!`);
+  toast(`Bought ${ITEMS[id].name}. Decorate your home or yard with it!`);
   return true;
 }

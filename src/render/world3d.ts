@@ -7,6 +7,7 @@ import { bus } from '../bus';
 import { VILLAGERS } from '../data';
 import { npcs, type Npc } from '../npc';
 import type { Season } from '../time';
+import type { FootSurface } from '../audio';
 import { MAP_H, MAP_W, TS } from '../world';
 import { createPlayerMesh, createVillagerMesh, type ActorMesh, type Expression } from './actors';
 import { createPetMesh } from './petMesh';
@@ -14,10 +15,11 @@ import type { PetPose } from '../pet';
 import { createDynamic } from './dynamic';
 import { visualSeason } from '../events';
 import { createEventLayer } from './eventLayer';
+import { createMerchantLayer } from './merchant3d';
 import { createLightRig } from './lighting';
 import { PALETTE } from './materials';
 import { createBeach } from './beach';
-import { celebrate, confettiAt, heartsPopAt, petHeartsAt, poofAt, Shape, welcomeAt, welcomeTrickle } from './celebrate';
+import { celebrate, confettiAt, heartsPopAt, petHeartsAt, poofAt, Shape, twinkleAt, welcomeAt, welcomeTrickle } from './celebrate';
 import { birthdayFriends, unreadLetters } from '../friends';
 import { createNature } from './nature';
 import { createParticles } from './particles';
@@ -31,7 +33,7 @@ export interface FrameInput {
   dt: number;
   hour: number;
   season: Season;
-  player: { x: number; y: number; facing: Facing; moving: boolean; running?: boolean; surface?: 'sand' | 'path' | 'grass' };
+  player: { x: number; y: number; facing: Facing; moving: boolean; running?: boolean; surface?: FootSurface };
   /** What the player is wearing (or trying on). */
   look: Look;
   /** Worn accessory item id (see boutique.currentAccessory). Omitted = none. */
@@ -116,7 +118,8 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   const dynamic = createDynamic();
   const particles = createParticles(); // after structures: reads the café steam vents
   const eventLayer = createEventLayer(); // seasonal event decorations (events.ts)
-  scene.add(terrain.group, nature.group, beach, structures, dynamic.group, eventLayer.group, particles.group, celebrate.group);
+  const merchantLayer = createMerchantLayer(); // the traveling merchant's stall (merchant.ts)
+  scene.add(terrain.group, nature.group, beach, structures, dynamic.group, eventLayer.group, merchantLayer.group, particles.group, celebrate.group);
 
   // A friend moving in (bus 'friendArrived', only from a live unlock, never a save restore): a burst of hearts at
   // their spot, then a gentle trickle for a few seconds so the welcome is still there if the camera is elsewhere.
@@ -154,6 +157,12 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   bus.on('partyHat', () => {
     const p = player.root.position;
     confettiAt(new THREE.Vector3(p.x, p.y + 0.8, p.z));
+  });
+
+  // A Collection Log set was completed: confetti and twinkles over the player.
+  bus.on('setComplete', () => {
+    const p = player.root.position, at = new THREE.Vector3(p.x, p.y + 0.8, p.z);
+    confettiAt(at); twinkleAt(at);
   });
 
   const player = createPlayerMesh();
@@ -316,6 +325,7 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       }
       dynamic.update(f.t);
       eventLayer.update(f.t);
+      merchantLayer.update(f.t, f.dt, f.player.x, f.player.y);
       nature.update(f.t, target.x, target.z);
       terrain.update(f.t);
 

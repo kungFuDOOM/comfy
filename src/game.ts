@@ -1,6 +1,6 @@
 // Game orchestration: loop, interaction, and hooking simulation up to the Three.js renderer.
 import { cheetahDataUrl } from './art/cheetah';
-import { setMood, sfx, updateDirector } from './audio';
+import { setMood, sfx, updateDirector, type FootSurface } from './audio';
 import { currentAccessory } from './boutique';
 import { currentLook } from './wardrobe';
 import { brewing, recipeById, updateBrew } from './cafe';
@@ -21,10 +21,11 @@ import { getPetPose, hasPet, petName, petNear, petThePet, petWorldPos, resetPet,
 import { initPetUi, openAdopt, openPetPanel } from './ui/petUi';
 import { tickAwards, checkRegions } from './regions';
 import { refreshEarned } from './wardrobe';
+import { syncCollection } from './collection';
 import { sceneActive } from './render/stage';
 import { sharedWorld3D, type World3D } from './render/world3d';
 import { saveGame } from './save';
-import { activeEventSpots, eventSpotAtTile, tickEvents, type EventSpot } from './events';
+import { activeEventSpots, eventSpotAtTile, tickEvents, visualSeason, type EventSpot } from './events';
 import './events/index';
 import { state } from './state';
 import { getClock } from './time';
@@ -33,7 +34,12 @@ import { buildHud, setHint, tickHud } from './ui/hud';
 import { openMap } from './ui/mapPanel';
 import { photoAct, photo, tickPhoto } from './photo';
 import { openPhotoMode } from './ui/photoUi';
+import { openMerchant } from './ui/merchantUi';
+import { merchantPresent, tickMerchant } from './merchant';
+import { MERCHANT } from './merchantData';
+import { MERCHANT_SPOT, STALL_APPROACH, STALL_CENTER, STALL_TAP } from './merchantLayout';
 import { openMailbox } from './ui/friendsUi';
+import { enterHome } from './ui/homeUi';
 import { syncFriendship, tickFriends } from './friends';
 import { openBag, openBoutique, openCafe, openChest, openCrafting, openDialogue, openHelp, openJournal, openMarket } from './ui/panels';
 import { openPause } from './ui/menuPanels';
@@ -79,6 +85,15 @@ function spotNear(): { s: EventSpot; d: number } | null {
   return best;
 }
 
+/** Distance (px) to the traveling merchant's counter while her stall is open, else null when out of reach. */
+function merchantNear(): number | null {
+  if (!merchantPresent()) return null;
+  const d = Math.hypot(STALL_CENTER.x * TS - player.x, STALL_CENTER.z * TS - (player.y - 8));
+  return d < 76 ? d : null;
+}
+const faceMerchant = () => faceToward(MERCHANT_SPOT.x * TS, MERCHANT_SPOT.y * TS);
+const useMerchant = () => { faceMerchant(); openMerchant(); };
+
 function openStation(s: Station) {
   faceToward((s.x + s.w / 2) * TS, s.y * TS + TS / 2); // turn to the bench, so a brew / craft animates facing it
   if (s.id === 'cafe') openCafe();
@@ -86,6 +101,7 @@ function openStation(s: Station) {
   else if (s.id === 'crafting') openCrafting();
   else if (s.id === 'market') openMarket();
   else if (s.id === 'chest') openChest();
+  else if (s.id === 'home') void enterHome();
   else if (s.id === 'wardrobe') openBag('wardrobe');
   else if (s.id === 'mailbox') openMailbox();
   else if (s.id === 'petbed') { if (state.pet) openPetPanel(); else openAdopt(); }
@@ -112,6 +128,8 @@ function currentTarget(): Target {
   const ds = s ? Math.hypot((s.x + s.w / 2) * TS - player.x, s.y * TS + TS / 2 - (player.y - 8)) - 16 : Infinity;
   const dd = nd ? Math.hypot(nodeCenter(nd).x - player.x, nodeCenter(nd).y - (player.y - 8)) : Infinity;
   const dsp = sp ? sp.d : Infinity;
+  const dm = merchantNear() ?? Infinity;
+  if (dm < Infinity && dm <= dn && dm <= ds && dm <= dd && dm <= dsp) return { label: `${MERCHANT.stall} — Browse today's rare finds`, run: useMerchant };
   if (sp && dsp <= dn && dsp <= ds && dsp <= dd) return { label: `${sp.s.label}: ${sp.s.prompt}`, run: () => sp.s.run() };
   if (n && dn <= ds && dn <= dd) return { label: `Chat with ${n.def.name.split(' ')[0]}`, run: () => openDialogue(n.def) };
   if (s && ds <= dd) return { label: stationText(s), run: () => openStation(s) };
@@ -127,6 +145,15 @@ function currentTarget(): Target {
 function interact() {
   if (isPanelOpen()) return;
   currentTarget()?.run();
+}
+
+/**
+ * World handler for B / the on-screen run button. Menus and cutscenes never get here
+ * (dispatch closes them first). While a tap-walk is active that same hold is run, so it must not drop the path.
+ */
+function cancelAction() {
+  if (player.path.length) return;
+  cancelPath();
 }
 
 function handleClick(sx: number, sy: number) {
@@ -167,6 +194,13 @@ function handleClick(sx: number, sy: number) {
     const go = () => evSpot.run();
     if (spotNear()?.s === evSpot) go();
     else if (!goals.length || !walkTo(goals, go)) cancelPath();
+    return;
+  }
+  // the traveling merchant's stall (counter, awning and the one behind it): walk up to the front and open her shop
+  if (merchantPresent() && tx >= STALL_TAP.x0 && tx <= STALL_TAP.x1 && ty >= STALL_TAP.y0 && ty <= STALL_TAP.y1) {
+    const goals = STALL_APPROACH.filter((g) => !isSolidTile(g.x, g.y));
+    if (merchantNear() !== null) useMerchant();
+    else if (!goals.length || !walkTo(goals, () => { if (merchantPresent()) useMerchant(); })) cancelPath();
     return;
   }
   // plot / yard tile
@@ -271,7 +305,7 @@ function update(dt: number) {
   updateLanterns(dt);
   tickGarden();
   eventTimer -= dt;
-  if (eventTimer <= 0) { eventTimer = 0.5; tickEvents(); tickFriends(); }
+  if (eventTimer <= 0) { eventTimer = 0.5; tickEvents(); tickFriends(); tickMerchant(); }
   updateCollect(dt, player.x, player.y);
   tickAwards(dt, panel);
   // hint
@@ -293,13 +327,15 @@ function footsteps(run: boolean) {
   // One step, in px, in step with the walk/run stride on the character (actors.ts). Run steps are longer.
   if (stepDist < (run ? 18 : 12)) return;
   stepDist = 0; stepAlt = !stepAlt;
-  const t = tileOf(), ter = terrainAt(t.x, t.y);
-  sfx.step(ter === T.Sand ? 'sand' : ter === T.Path || ter === T.Plaza || ter === T.Bridge ? 'path' : 'grass', stepAlt, run);
+  sfx.step(surfaceUnder(), stepAlt, run);
 }
 
-function surfaceUnder(): 'sand' | 'path' | 'grass' {
+function surfaceUnder(): FootSurface {
   const t = tileOf(), ter = terrainAt(t.x, t.y);
-  return ter === T.Sand ? 'sand' : ter === T.Path || ter === T.Plaza || ter === T.Bridge ? 'path' : 'grass';
+  if (ter === T.Sand) return 'sand';
+  if (ter === T.Bridge) return 'wood';
+  if (ter === T.Path || ter === T.Plaza) return 'path';
+  return visualSeason(getClock().season).id === 'snowfluff' ? 'snow' : 'grass';
 }
 
 /** Write the player's position and the save now. */
@@ -345,10 +381,12 @@ export function startGame() {
   if (!state.spawns.length) for (let i = 0; i < 10; i++) spawnOne(player.x, player.y);
   lastX = player.x; lastY = player.y; stepDist = 0;
   setMood('town');
+  syncCollection(false); // Collection Log: backfill from what the player already owns (old saves), quietly
   refreshEarned(false); // pieces earned before this update, and any party hat already deserved (queued for the ceremony)
   checkRegions();
   syncFriendship(); // letters for hearts earned before the mailbox existed
   tickEvents(); // seasonal events: greet, build the table's collision (the 3D decorations follow on the first frame)
+  tickMerchant(); // the traveling merchant: open her stall (and its counter's collision) if today is her day
   cancelAct();
   if (booted) {
     cancelPath();
@@ -368,7 +406,7 @@ export function startGame() {
   window.addEventListener('resize', () => world3d.resize());
   buildHud({ mail: () => !isPanelOpen() && openMailbox(), skills: () => !isPanelOpen() && openJournal('skills'), journal: (tab) => !isPanelOpen() && openJournal(tab), bag: () => !isPanelOpen() && openBag(), help: () => !isPanelOpen() && openHelp(), map: () => !isPanelOpen() && openMap(), photo: openPhoto });
   initInput(canvas, {
-    interact, tool: useTool, cancel: cancelPath, pause: openPause,
+    interact, tool: useTool, cancel: cancelAction, pause: openPause,
     bag: openBag, journal: openJournal, help: openHelp, map: openMap,
     hotbarStep: (d) => selectSlot(state.sel + d), hotbarSet: selectSlot,
     click: handleClick, camReset: () => world3d.resetCamera(), photo: openPhoto,
