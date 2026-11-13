@@ -14,16 +14,14 @@ export const player = {
   faceTile: null as null | { x: number; y: number },
 };
 
-// A stroll and a run, in px/s. About one tile per 0.7s on foot. Run is 3× that
-// (Shift, the on-screen / gamepad run button, or a full stick).
-const WALK = 44;
-const RUN = WALK * 3;
-const SPEED = WALK; // tap-to-walk uses the same stroll as the keyboard
+// Walk and run, in px/s. A walk crosses one 32px tile in about 0.55s (32 / 58).
+// Run stays the old 3× stroll and only happens while Shift, the gamepad run button, or the on-screen run button is held.
+const WALK = 58;
+const RUN = 132;
+const SPEED = WALK; // tap-to-walk uses the same pace as the keyboard
 const ACCEL = 12; // 1/s smoothing toward a walk
 const RUN_ACCEL = 20; // 1/s while she breaks into a run
 const DECEL = 18;
-// Stick magnitude after the deadzone. "All the way" starts here; sticks rarely report a perfect 1.
-const FULL_STICK = 0.84;
 const HALF = 7;
 let vx = 0, vy = 0, stuck = 0;
 
@@ -187,7 +185,7 @@ function nudge(dx: number, dy: number) {
 
 /**
  * mx,my: world-space move vector (|v| <= 1). Keyboard gives a unit vector; sticks give analog tilt
- * (small tilt = slow walk, about 3/4 = full walk, the rim = run). Velocity eases in/out for every input type.
+ * (small tilt = slow walk, full tilt = normal walk). Velocity eases in/out for every input type.
  */
 export function updatePlayer(dt: number, axisX: number, axisY: number, run = false, analog = false) {
   let mx = axisX, my = axisY;
@@ -200,10 +198,10 @@ export function updatePlayer(dt: number, axisX: number, axisY: number, run = fal
     if (player.path.length) cancelPath();
     mx /= mag; my /= mag;
     const m = Math.min(1, mag);
-    // Run button at any tilt. A full stick runs too; anything softer stays a walk.
-    wantsRun = run || (analog && m >= FULL_STICK);
+    // The stick only walks. Running is the run button, at any tilt.
+    wantsRun = run;
     if (wantsRun) speed = RUN;
-    else if (analog) speed = WALK * Math.max(0.25, Math.min(1, m / 0.75));
+    else if (analog) speed = WALK * Math.max(0.25, m);
     else speed = WALK;
   } else if (player.path.length) {
     const tgt = player.path[0];
