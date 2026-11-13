@@ -61,7 +61,7 @@ const HOLD = 1e6;
 export function setPose(id: string) {
   photo.pose = id;
   const kind = POSES.find((p) => p.id === id)?.act ?? null;
-  act = kind ? { kind, t: 0, dur: HOLD, hold: true, seq: ++actSeq } : null;
+  act = kind ? { kind, t: 0, dur: HOLD, hold: true, photo: true, seq: ++actSeq } : null;
 }
 
 /** The pose act to render while photo mode is open (null = standing naturally). */
