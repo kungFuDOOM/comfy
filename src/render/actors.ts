@@ -395,12 +395,13 @@ function build(sp: Spec) {
       const travelled = dist > 0.0008;
       const blend = 1 - Math.exp(-dt * 8);
       walk += (((moving && travelled) ? 1 : 0) - walk) * blend;
-      runK += (((moving && run && travelled) ? 1 : 0) - runK) * (1 - Math.exp(-dt * 5));
-      // Swing grows from a clear walk into a jog. Stride is the distance one step of that swing covers,
-      // so the feet keep up with whatever speed she's actually moving.
-      const legAmp = 0.7 + runK * 0.3;
-      const armAmp = 0.72 + runK * 0.42;
-      const plant = 0.04 + runK * 0.04;
+      // Quicker than the walk blend, still eased, so walk and run melt into each other.
+      runK += (((moving && run && travelled) ? 1 : 0) - runK) * (1 - Math.exp(-dt * 16));
+      // Run lengthens the step and the arm pump. Stride is the ground one step covers,
+      // so a faster run is a quicker cadence and the feet still meet the ground.
+      const legAmp = 0.7 + runK * 0.45;
+      const armAmp = 0.72 + runK * 0.78;
+      const plant = 0.04 + runK * 0.045;
       const stride = Math.max(0.2, 2 * (plant + STEP * Math.sin(legAmp)) * sp.scale);
       if (dist > 0.0004) phase = (phase + (dist / stride) * Math.PI) % (Math.PI * 2);
       const w = walk, idle = 1 - w;
@@ -408,29 +409,33 @@ function build(sp: Spec) {
       const legAngle = Math.asin(Math.max(-1, Math.min(1, s * Math.sin(legAmp)))) * w;
       const hop = Math.abs(Math.cos(phase)); // up as the feet pass, down as one lands
       const br = Math.sin(t * 2.3 + off);
-      const lift = (0.034 + runK * 0.04) * w;
-      const sq = (hop - 0.45) * w * (0.65 + runK * 0.25);
-      model.position.y = hop * (0.04 + runK * 0.03) * w * sp.scale + Math.sin(t * 2.1 + off) * 0.006 * idle;
-      model.rotation.x = (0.06 + runK * 0.08) * w; // a little lean, more when running
-      model.scale.set(sp.scale * (1 - sq * 0.05), sp.scale * (1 + sq * 0.09), sp.scale * (1 - sq * 0.05));
-      model.rotation.z = s * (0.04 + runK * 0.015) * w;
-      body.rotation.y = s * (0.06 + runK * 0.03) * w;
+      const lift = (0.034 + runK * 0.07) * w;
+      // Both feet tuck up for a short hop at the top of the bounce. Walking leaves this at zero.
+      const crest = Math.max(0, (hop - 0.93) / 0.07);
+      const air = runK * crest * crest * 0.09 * w;
+      const sq = (hop - 0.45) * w * (0.65 + runK * 0.45);
+      model.position.y = (hop * (0.04 + runK * 0.1) + air) * w * sp.scale + Math.sin(t * 2.1 + off) * 0.006 * idle;
+      model.rotation.x = (0.06 + runK * 0.24) * w; // a little lean on a walk, a clear tip forward while running
+      model.scale.set(sp.scale * (1 - sq * 0.05), sp.scale * (1 + sq * (0.09 + runK * 0.04)), sp.scale * (1 - sq * 0.05));
+      model.rotation.z = s * (0.04 + runK * 0.04) * w;
+      body.rotation.y = s * (0.06 + runK * 0.08) * w;
       // breathing fades out as the stride fades in
       body.scale.set(1 - br * 0.014 * idle, 1 + br * 0.035 * idle, 1 - br * 0.014 * idle);
-      head.position.y = HEAD_Y + br * 0.016 * idle - (1 - hop) * 0.016 * w;
-      head.rotation.y = s * (0.045 + runK * 0.02) * w;
-      head.rotation.z = Math.sin(t * 1.1 + off) * 0.035 * idle - s * 0.045 * w;
-      // Arms oppose the same-side leg: positive X swings the limb backward.
+      head.position.y = HEAD_Y + br * 0.016 * idle - (1 - hop) * (0.016 + runK * 0.018) * w;
+      head.rotation.y = s * (0.045 + runK * 0.06) * w;
+      head.rotation.z = Math.sin(t * 1.1 + off) * 0.035 * idle - s * (0.045 + runK * 0.03) * w;
+      // Arms oppose the same-side leg: positive X swings the limb backward. Run carries both arms forward.
       for (const a of arms) {
-        a.pivot.rotation.x = -a.sx * s * armAmp * w + br * 0.045 * idle;
-        a.pivot.rotation.z = a.sx * (0.62 - (0.08 + runK * 0.14) * w);
+        a.pivot.rotation.x = -a.sx * s * armAmp * w - runK * 0.3 * w + br * 0.045 * idle;
+        a.pivot.rotation.z = a.sx * (0.62 - (0.08 + runK * 0.22) * w);
       }
       // Left foot is forward when s > 0, and lifts while it swings forward (cos > 0).
+      // `air` tucks both feet at the crest, a short moment with nothing on the ground.
       const swing = Math.cos(phase);
       legPivots[0].rotation.x = -legAngle;
       legPivots[1].rotation.x = legAngle;
-      legPivots[0].position.y = LEG_Y + Math.max(0, swing) * lift;
-      legPivots[1].position.y = LEG_Y + Math.max(0, -swing) * lift;
+      legPivots[0].position.y = LEG_Y + Math.max(0, swing) * lift + air;
+      legPivots[1].position.y = LEG_Y + Math.max(0, -swing) * lift + air;
       legPivots[0].position.z = s * plant * w;
       legPivots[1].position.z = -s * plant * w;
       eyes.scale.y = ((t + off * 3) % 3.7 < 0.12 ? 0.12 : 1) * eyeK; // blink

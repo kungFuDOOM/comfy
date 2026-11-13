@@ -14,13 +14,16 @@ export const player = {
   faceTile: null as null | { x: number; y: number },
 };
 
-// A stroll and a light jog, in px/s. About one tile per 0.7s on foot, twice that while running:
-// unhurried, like crossing the square in Animal Crossing, and still a clear 2x when you hold run.
+// A stroll and a run, in px/s. About one tile per 0.7s on foot. Run is 3× that
+// (Shift, the on-screen / gamepad run button, or a full stick).
 const WALK = 44;
-const RUN = 88;
+const RUN = WALK * 3;
 const SPEED = WALK; // tap-to-walk uses the same stroll as the keyboard
-const ACCEL = 12; // 1/s smoothing toward the target velocity
+const ACCEL = 12; // 1/s smoothing toward a walk
+const RUN_ACCEL = 20; // 1/s while she breaks into a run
 const DECEL = 18;
+// Stick magnitude after the deadzone. "All the way" starts here; sticks rarely report a perfect 1.
+const FULL_STICK = 0.84;
 const HALF = 7;
 let vx = 0, vy = 0, stuck = 0;
 
@@ -184,22 +187,24 @@ function nudge(dx: number, dy: number) {
 
 /**
  * mx,my: world-space move vector (|v| <= 1). Keyboard gives a unit vector; sticks give analog tilt
- * (small tilt = slow walk, full tilt = run). Velocity eases in/out for every input type.
+ * (small tilt = slow walk, about 3/4 = full walk, the rim = run). Velocity eases in/out for every input type.
  */
 export function updatePlayer(dt: number, axisX: number, axisY: number, run = false, analog = false) {
   let mx = axisX, my = axisY;
   let speed = 0;
+  let wantsRun = false;
   const mag = Math.hypot(mx, my);
   const input = mag > 0.001;
   if (input) {
     // any manual input takes over from a click path
     if (player.path.length) cancelPath();
     mx /= mag; my /= mag;
-    if (analog) {
-      // small push = slow walk, ~3/4 push = full walk, full push ramps up to a run
-      const m = Math.min(1, mag);
-      speed = run ? RUN : m <= 0.75 ? WALK * Math.max(0.25, m / 0.75) : WALK + (RUN - WALK) * ((m - 0.75) / 0.25);
-    } else speed = run ? RUN : WALK;
+    const m = Math.min(1, mag);
+    // Run button at any tilt. A full stick runs too; anything softer stays a walk.
+    wantsRun = run || (analog && m >= FULL_STICK);
+    if (wantsRun) speed = RUN;
+    else if (analog) speed = WALK * Math.max(0.25, Math.min(1, m / 0.75));
+    else speed = WALK;
   } else if (player.path.length) {
     const tgt = player.path[0];
     const dx = tgt.x - player.x, dy = tgt.y - player.y;
@@ -221,13 +226,16 @@ export function updatePlayer(dt: number, axisX: number, axisY: number, run = fal
       return;
     }
   }
-  const k = 1 - Math.exp(-(input ? ACCEL : DECEL) * dt);
+  const vel0 = Math.hypot(vx, vy);
+  const rate = !input ? DECEL : wantsRun || vel0 > WALK * 1.3 ? RUN_ACCEL : ACCEL;
+  const k = 1 - Math.exp(-rate * dt);
   vx += (mx * speed - vx) * k;
   vy += (my * speed - vy) * k;
   let vel = Math.hypot(vx, vy);
   if (!input && vel < 3) { vx = vy = 0; vel = 0; }
   player.moving = vel > 3;
-  player.running = input && (analog || run) && vel > WALK * 1.15;
+  // Pose follows the run input once she's actually moving.
+  player.running = input && wantsRun && vel > 6;
   if (input) faceMove(mx, my);
   if (vx || vy) tryMove(vx * dt, vy * dt);
 }
