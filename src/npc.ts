@@ -120,5 +120,19 @@ export function give(def: VillagerDef, itemId: string): Reply | null {
   if (loved) return { text: pieReply(def.id), gain };
   return { text: liked ? (isDrink ? def.loved : def.liked) : def.meh, gain };
 }
+/**
+ * A drink served during a café shift (shift.ts). Unlike give(), it is NOT limited by daily.served: a shift has several
+ * customers. Still earns friendship and counts as a served drink for quests. `perfects` is 0-3 (how pretty the cup is).
+ */
+export function shiftServe(def: VillagerDef, drinkId: string, perfects: number): Reply {
+  const liked = def.likes.includes(drinkId);
+  const gain = (liked ? 12 : 5) + perfects * 2;
+  const npc = npcs.find((n) => n.def.id === def.id);
+  addFriend(def.id, gain);
+  bump('served');
+  moment('serve', npc?.x ?? 0, npc?.y ?? 0);
+  sfx.gift();
+  return { text: liked ? def.loved : def.liked, gain };
+}
 export const drawNpc = (ctx: CanvasRenderingContext2D, n: Npc, t: number) =>
   drawVillager(ctx, n.def, n.x, n.y, t, n.facing, n.moving, 1, !talkedToday(n.def.id));

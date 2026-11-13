@@ -48,3 +48,9 @@ def('hat', 'party', 'party_meadow', 'Sprinkle Meadow Party Hat', 'party', '#fff6
 def('hat', 'party', 'party_lighthouse', 'Hush Bell Party Hat', 'party', '#cdb8ff', '#ffd36e', 0, 'Lavender stripes, a golden pom, and a tiny bell that does not ring (the Hush Bell is asleep).', { tint: 'Lavender', pattern: 'stripes', ink: '#ffd36e', deco: ['sparkle', 'bell'], src: R('lighthouse') });
 def('hat', 'party', 'party_farbeach', 'Pearl Shore Party Hat', 'party', '#f7eefc', '#ffffff', 0, 'Pearly and iridescent, with a shimmering pom.', { tint: 'Pearl', pattern: 'bubbles', ink: '#ffffff', deco: ['sparkle', 'pearls'], src: R('farbeach') });
 def('hat', 'party', 'party_star', 'Island Star Party Hat', 'party', '#ffe27a', '#ff9ec0', 0, 'Golden stars and rainbow ribbons: for befriending the whole island.', { tint: 'Gold', pattern: 'stars', ink: '#ffffff', deco: ['sparkle', 'star', 'rainbowpom'], src: R('all') });
+
+// ---- café shift milestones (worked at Puddle & Pip; see shift.ts) ----
+const S = (n: number) => ({ k: 'shift' as const, n });
+def('dress', 'cafe', 'pip_pocket_apron', 'Pip Pocket Apron Dress', 'pinafore', '#ffc9dc', '#ffffff', 0, 'A rosy server apron with a heart pocket for order pads.', { tint: 'Rosy', deco: ['apron', 'pocket', 'bow'], src: S(3) });
+def('hat', 'cafe', 'foam_headband', 'Cloud-Foam Headband', 'headband', '#fff6fb', '#ff9ec0', 0, 'A fluffy white band that looks like a swirl of foam.', { tint: 'Foam', deco: ['bow'], src: S(5) });
+def('bottom', 'cafe', 'puddle_cafe_skirt', 'Puddle Café Skirt', 'pleated', '#f7d4e2', '#ffffff', 0, 'A pleated skirt with a cream hem, made for busy counters.', { tint: 'Blush', src: S(12) });

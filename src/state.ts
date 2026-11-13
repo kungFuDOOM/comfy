@@ -13,7 +13,13 @@ export interface Daily {
   gifted: string[];
   served: string[];
   lanternKinds: Record<string, number>;
+  /** Café shifts worked today (see shift.ts). */
+  shifts: number;
 }
+
+/** Lifetime café shift progress. */
+export interface CafeProgress { shifts: number; tips: number; customers: number; perfectCups: number }
+export const defaultCafe = (): CafeProgress => ({ shifts: 0, tips: 0, customers: 0, perfectCups: 0 });
 
 /** Per-event progress (see events.ts). Created on demand, so saves from before events existed need no migration. */
 export interface EventProgress {
@@ -74,6 +80,8 @@ export interface SaveData {
   events: Record<string, EventProgress>;
   /** Map layout version the saved positions belong to (1 = the original small island). */
   mapV: number;
+  /** Café shift totals; older saves get zeros. */
+  cafe: CafeProgress;
 }
 
 export function defaultState(): SaveData {
@@ -94,7 +102,7 @@ export function defaultState(): SaveData {
     decor: [],
     plots: {},
     friend: {},
-    daily: { date: '', talked: [], gifted: [], served: [], lanternKinds: {} },
+    daily: { date: '', talked: [], gifted: [], served: [], lanternKinds: {}, shifts: 0 },
     lanterns: [],
     lanternSeq: 1,
     setsDone: [],
@@ -111,6 +119,7 @@ export function defaultState(): SaveData {
     unlocked: {},
     events: {},
     mapV: 2,
+    cafe: defaultCafe(),
   };
 }
 
@@ -123,6 +132,6 @@ import { getClock } from './time';
 /** Rolls the per-day counters over when the (real) date changes. */
 export function ensureDaily(): Daily {
   const day = getClock().dayKey;
-  if (state.daily.date !== day) state.daily = { date: day, talked: [], gifted: [], served: [], lanternKinds: {} };
+  if (state.daily.date !== day) state.daily = { date: day, talked: [], gifted: [], served: [], lanternKinds: {}, shifts: 0 };
   return state.daily;
 }
