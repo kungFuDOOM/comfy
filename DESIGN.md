@@ -51,6 +51,8 @@ Three equal input paths funnel into one action layer (`src/input`): interact, to
 - **Controller:** left stick walks (a full tilt is still a walk), A interact, B hold-to-run (also a tap-walk) and closes windows, X use item, Y bag, LB/RB hotbar, Start journal, View bag, D-pad menu focus. Hot-pluggable.
 - **Touch:** a floating joystick plus an A/B/X/Y diamond, nothing else. B hold-to-run also covers a tap-walk. Tap the hotbar to switch tools. Only shown while touch is in use.
 
+**Photo mode** (`P`, or the 📷 HUD button): hides the HUD, frees the camera (drag / pinch / wheel / arrows / right stick: full orbit, low angles, close-ups), and opens a soft tool sheet: seven poses (reusing the activity animator, `render/playerActs.ts`), four faces (`Expression` in `render/actors.ts`) and a turn, six filters (warm, pastel, film, dreamy bloom, rosy), six frames and ten draggable stickers (all drawn in code, `art/photoArt.ts`). The shutter bakes filter + frame + stickers into a PNG (`photo.ts` → `composeShot`) shown on a review card with *Save PNG* and *Keep in album*. The album stores only small JPEG thumbnails in `state.photos` (capped at 12, optional in older saves, sanitized in `save.ts`). Esc / B / P leave; input is locked to photo mode meanwhile (`setInputLock` in `input/dispatch.ts`).
+
 Prompt glyphs follow the last device used. The game opens on a main menu (New Game / Continue / Settings / Credits); New Game plays a skippable arrival intro once per save.
 
 ## 3. The hook: Afterglow Lanterns

@@ -67,6 +67,14 @@ export const sfx = {
     tone(g, t, M(79), 0.1, { type: 'sine', peak: 0.16 });
     tone(g, t + 0.06, M(86), 0.16, { type: 'sine', peak: 0.15 });
   },
+  /** Photo mode shutter: a soft click and a little chime. */
+  shutter() {
+    const g = live(); if (!g || !gate('shutter', 150)) return;
+    const t = g.ctx.currentTime;
+    puff(g, t, 3200, 1.2, 0.3, 0.06);
+    puff(g, t + 0.07, 1800, 1.2, 0.22, 0.08);
+    tone(g, t + 0.1, M(91), 0.2, { type: 'sine', peak: 0.12 });
+  },
   /** Panel opens. */
   open() {
     const g = live(); if (!g || !gate('open', 80)) return;

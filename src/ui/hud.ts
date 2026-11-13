@@ -15,7 +15,7 @@ import { buildMerchantChip, refreshMerchantChip } from './merchantUi';
 let mailEl: HTMLButtonElement, mailCount: HTMLElement;
 let clockEl: HTMLElement, seasonEl: HTMLElement, coinEl: HTMLElement, lanternEl: HTMLElement, hotbarEl: HTMLElement, hintEl: HTMLElement, lanternCanvas: HTMLCanvasElement;
 
-export function buildHud(actions: { mail(): void; skills(): void; journal(tab: string): void; bag(): void; help(): void; map(): void }) {
+export function buildHud(actions: { mail(): void; skills(): void; journal(tab: string): void; bag(): void; help(): void; map(): void; photo(): void }) {
   const ui = document.getElementById('ui')!;
   clockEl = h('div', 'clock');
   seasonEl = h('div', 'season');
@@ -35,7 +35,7 @@ export function buildHud(actions: { mail(): void; skills(): void; journal(tab: s
   );
   buildMerchantChip(top);
   const quick = h('div', 'hud-quick',
-    ...([['✿ Journal', () => actions.journal('quests'), 'journal'], ['✧ Skills', actions.skills, 'skills'], ['❀ Log', () => actions.journal('collection'), 'collection'], ['❖ Bag', actions.bag, 'bag'], ['🗺 Map', actions.map, 'map'], ['? Help', actions.help, 'help']] as [string, () => void, PromptKey][])
+    ...([['✿ Journal', () => actions.journal('quests'), 'journal'], ['✧ Skills', actions.skills, 'skills'], ['❀ Log', () => actions.journal('collection'), 'collection'], ['❖ Bag', actions.bag, 'bag'], ['🗺 Map', actions.map, 'map'], ['📷 Photo', actions.photo, 'photo'], ['? Help', actions.help, 'help']] as [string, () => void, PromptKey][])
       .map(([t, f, k]) => { const b = h('button', 'btn small', t, glyphEl(k)); b.onclick = f; return b; }),
   );
   hotbarEl = h('div', 'hotbar');

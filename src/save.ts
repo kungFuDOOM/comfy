@@ -36,6 +36,7 @@ export function loadGame(): boolean {
     state.merchant = sanitizeMerchant(data.merchant, defaultMerchant()); // saves from before the merchant: nobody has visited yet
     if (!state.regionSeen || typeof state.regionSeen !== 'object' || Array.isArray(state.regionSeen)) state.regionSeen = {};
     if (!Array.isArray(state.partyHats)) state.partyHats = [];
+    state.photos = sanitizePhotos(data.photos); // saves from before photo mode have no album
     state.style = sanitizeStyle(data.style);
     state.home = normalizeHome(data.home); // saves from before home decorating: an empty, default-styled room
     state.pet = sanitizePet(data.pet); // saves from before pets: no pet yet; anything malformed is dropped
@@ -46,6 +47,22 @@ export function loadGame(): boolean {
   } catch {
     return false;
   }
+}
+
+export const MAX_PHOTOS = 12;
+const MAX_THUMB_CHARS = 60000; // a ~160px JPEG is ~8-15k chars; anything much bigger is not one of ours
+
+/** Keep only well-formed album entries (a data:image thumbnail of sane size), newest first, within the cap. */
+function sanitizePhotos(v: unknown): SaveData['photos'] {
+  if (!Array.isArray(v)) return [];
+  const out: SaveData['photos'] = [];
+  for (const p of v) {
+    if (!p || typeof p !== 'object') continue;
+    const { at, thumb, note } = p as Record<string, unknown>;
+    if (typeof thumb !== 'string' || !thumb.startsWith('data:image/') || thumb.length > MAX_THUMB_CHARS) continue;
+    out.push({ at: Number.isFinite(Number(at)) ? Number(at) : 0, thumb, note: typeof note === 'string' ? note.slice(0, 30) : '' });
+  }
+  return out.slice(0, MAX_PHOTOS);
 }
 
 /** Styling contests came later: a missing or damaged record becomes an empty one; only valid tiers and day keys are kept. */
