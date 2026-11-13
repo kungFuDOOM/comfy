@@ -63,7 +63,7 @@ Play with a keyboard and mouse, a controller, or touch. On-screen button hints f
 
 | Input | Action |
 | --- | --- |
-| Left stick | Walk; a small tilt strolls, a full tilt runs (radial deadzone) |
+| Left stick | Walk; tilt sets the pace, and a full tilt is a normal walk (radial deadzone) |
 | A | Talk, shop, interact |
 | B | Hold to run · cancel · close a window |
 | X | Use the selected hotbar item on the tile in front |
@@ -82,7 +82,7 @@ The touch overlay appears only when touch is in use, and is just two things:
 
 | Input | Action |
 | --- | --- |
-| Drag on the left half | Floating joystick, appears under your thumb; a gentle drag walks, a full drag runs |
+| Drag on the left half | Floating joystick, appears under your thumb; tilt sets the pace, and a full drag is a normal walk |
 | **A** (bottom, green) | Talk, shop, interact |
 | **B** (right, red) | Hold to run · cancel |
 | **X** (left, blue) | Use the selected hotbar item |

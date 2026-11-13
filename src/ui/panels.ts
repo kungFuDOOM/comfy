@@ -615,14 +615,14 @@ export const HELP: { mode: 'keyboard' | 'gamepad' | 'touch'; title: string; rows
     ['[ ]  ·  - =', 'Orbit camera  ·  zoom (Backspace resets)'],
   ] },
   { mode: 'gamepad', title: 'Controller', rows: [
-    ['Left stick', 'Walk — a small tilt strolls, a full tilt runs'], ['A', 'Talk, shop, interact'],
+    ['Left stick', 'Walk — tilt sets the pace, and a full tilt is a normal walk'], ['A', 'Talk, shop, interact'],
     ['B', 'Hold to run · cancel · close a window'], ['X', 'Use the selected hotbar item on the tile in front'],
     ['Y', 'Bag & wardrobe'], ['LB / RB', 'Previous / next hotbar slot'], ['Start', 'Pause menu (settings, back to title)'], ['View', 'Bag'],
     ['D-pad', 'Move the focus ring in windows (◀ ▶ also steps the hotbar)'],
     ['Right stick', 'Orbit and tilt the camera (click it to reset)'], ['LT / RT', 'Zoom out / zoom in'],
   ] },
   { mode: 'touch', title: 'Touch', rows: [
-    ['Drag the left side', 'A joystick appears under your thumb — a gentle drag walks, a full drag runs'],
+    ['Drag the left side', 'A joystick appears under your thumb — tilt sets the pace, and a full drag is a normal walk'],
     ['A', 'Talk, shop, interact'], ['B', 'Hold to run · cancel'], ['X', 'Use the selected hotbar item on the tile in front'],
     ['Y', 'Bag & wardrobe'], ['Hotbar', 'Tap a slot to switch tools'], ['Tap the island', 'Walk there, or talk to who you tap'],
     ['Top buttons', 'Journal, skills, bag and this help'], ['Journal › Pause', 'Resume, settings, or back to the title'],
