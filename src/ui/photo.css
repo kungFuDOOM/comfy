@@ -14,9 +14,9 @@ body.photo-on #game { touch-action: none; }
 @keyframes ph-flash { 0% { opacity: 0.9; } 100% { opacity: 0; } }
 
 /* top bar */
-.ph-top { position: absolute; top: calc(10px + env(safe-area-inset-top)); left: calc(10px + env(safe-area-inset-left)); right: calc(10px + env(safe-area-inset-right)); display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; pointer-events: none; }
+.ph-top { z-index: 3; position: absolute; top: calc(10px + env(safe-area-inset-top)); left: calc(10px + env(safe-area-inset-left)); right: calc(10px + env(safe-area-inset-right)); display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; pointer-events: none; }
 .ph-top-mid, .ph-top-end { display: flex; gap: 6px; pointer-events: none; }
-.ph-top-btn { pointer-events: auto; background: rgba(255, 248, 243, 0.92); color: var(--ink); border-color: #ffc3da; box-shadow: 0 3px 0 rgba(224, 112, 154, 0.25); text-shadow: none; min-height: 38px; padding: 6px 12px; }
+.ph-top-btn { pointer-events: auto; background: rgba(255, 248, 243, 0.92); color: var(--ink); border-color: #ffc3da; box-shadow: 0 3px 0 rgba(224, 112, 154, 0.25); text-shadow: none; min-height: 44px; min-width: 44px; padding: 6px 12px; }
 .ph-top-btn:hover:not(:disabled) { background: #fff; }
 .ph-hint { position: absolute; top: calc(62px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); background: rgba(110, 51, 80, 0.82); color: #fff; padding: 6px 14px; border-radius: 14px; font-weight: 700; font-size: 13px; pointer-events: none; white-space: nowrap; max-width: 94vw; overflow: hidden; text-overflow: ellipsis; transition: opacity 0.6s; }
 .ph-hint.off { opacity: 0; }
@@ -31,12 +31,12 @@ body.photo-on #game { touch-action: none; }
 .ph-shutter:active .ph-shutter-in { transform: scale(0.88); }
 .ph-shutter:focus-visible { outline: 4px solid #ff7fb0; outline-offset: 3px; }
 .ph-sheet { pointer-events: auto; width: min(680px, 100%); background: rgba(255, 248, 243, 0.94); border: 2px solid #ffc3da; border-radius: 20px; padding: 8px 10px 10px; box-shadow: 0 4px 0 rgba(224, 112, 154, 0.25); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display: flex; flex-direction: column; gap: 8px; }
-.ph-tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.ph-tabs { touch-action: pan-x; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
 .ph-tabs::-webkit-scrollbar { display: none; }
 .ph-tab { flex: 1 0 auto; justify-content: center; background: #fff; color: var(--pink-ink); text-shadow: none; box-shadow: 0 2px 0 #ffc3da; border-color: #ffc3da; padding: 5px 10px; font-size: 13px; min-height: 34px; }
 .ph-tab.on { background: var(--pink); color: #fff; border-color: var(--pink-d); text-shadow: 0 1px 0 rgba(160, 50, 100, 0.35); }
-.ph-sheet-body { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 6px; align-items: center; scrollbar-width: thin; }
-.ph-chip { flex: 0 0 auto; background: #fff; color: var(--ink); text-shadow: none; border-color: #ffc3da; box-shadow: 0 2px 0 #ffc3da; padding: 6px 12px; font-size: 13px; min-height: 38px; }
+.ph-sheet-body { touch-action: pan-x; display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 6px; align-items: center; scrollbar-width: thin; }
+.ph-chip { flex: 0 0 auto; background: #fff; color: var(--ink); text-shadow: none; border-color: #ffc3da; box-shadow: 0 2px 0 #ffc3da; padding: 6px 12px; font-size: 13px; min-height: 44px; }
 .ph-chip.on { background: var(--pink-l); border-color: var(--pink-d); box-shadow: 0 0 0 3px rgba(255, 158, 192, 0.5); }
 .ph-chip-in { display: inline-flex; align-items: center; gap: 6px; }
 .ph-swatch { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px #ffc3da; display: inline-block; }
@@ -51,21 +51,26 @@ body.photo-on #game { touch-action: none; }
 .ph-clean .ph-sheet, .ph-clean .ph-hint, .ph-clean .ph-top-mid, .ph-clean .ph-top-end > .btn:first-child { display: none; }
 
 /* review card + album */
-.ph-overlay { position: absolute; inset: 0; background: rgba(122, 59, 88, 0.45); display: grid; place-items: center; padding: 12px; cursor: default; overflow: auto; }
-.ph-card { background: var(--cream); border: 3px solid #ffc3da; border-radius: 22px; padding: 14px; box-shadow: 0 6px 0 rgba(224, 112, 154, 0.3); display: flex; flex-direction: column; gap: 10px; align-items: center; max-width: min(94vw, 720px); max-height: 94vh; text-align: center; animation: pop 0.25s ease-out; }
+.ph-overlay { position: absolute; inset: 0; z-index: 2; background: rgba(122, 59, 88, 0.45); display: flex; padding: calc(60px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left)); cursor: pointer; overflow: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
+.ph-overlay .btn, .ph-overlay .ph-card { cursor: default; }
+/* while the review/album is up only ✕ Done stays on top; the rest of the chrome steps aside */
+.ph-modal .ph-top-mid, .ph-modal .ph-top-end, .ph-modal .ph-bottom, .ph-modal .ph-hint { visibility: hidden; pointer-events: none; }
+.ph-modal .ph-bottom * { pointer-events: none; }
+.ph-card-x { position: absolute; top: 6px; right: 6px; min-width: 44px; min-height: 44px; padding: 0; justify-content: center; font-size: 18px; border-radius: 50%; background: #fff; color: var(--pink-ink); text-shadow: none; border-color: #ffc3da; box-shadow: 0 3px 0 #ffc3da; }
+.ph-card { background: var(--cream); border: 3px solid #ffc3da; border-radius: 22px; padding: 14px; box-shadow: 0 6px 0 rgba(224, 112, 154, 0.3); display: flex; flex-direction: column; gap: 10px; align-items: center; position: relative; margin: auto; max-width: min(94vw, 720px); text-align: center; padding-top: 18px; animation: pop 0.25s ease-out; }
 .ph-card.wide { width: min(94vw, 720px); }
-.ph-card-title { font-weight: 700; font-size: 18px; color: var(--pink-ink); }
-.ph-review-img { display: block; max-width: 100%; max-height: min(58vh, 520px); border-radius: 12px; border: 6px solid #fff; box-shadow: 0 4px 14px rgba(110, 51, 80, 0.3); -webkit-touch-callout: default; user-select: auto; -webkit-user-select: auto; }
+.ph-card-title { padding: 0 40px; font-weight: 700; font-size: 18px; color: var(--pink-ink); }
+.ph-review-img { display: block; max-width: 100%; max-height: min(52vh, 520px); max-height: min(52dvh, 520px); border-radius: 12px; border: 6px solid #fff; box-shadow: 0 4px 14px rgba(110, 51, 80, 0.3); -webkit-touch-callout: default; user-select: auto; -webkit-user-select: auto; }
 .ph-card-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-.ph-act { padding: 8px 14px; min-height: 40px; }
+.ph-act { padding: 8px 14px; min-height: 44px; }
 .ph-act.ghost { background: #fff; color: var(--pink-ink); text-shadow: none; border-color: #ffc3da; box-shadow: 0 3px 0 #ffc3da; }
-.ph-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; width: 100%; overflow-y: auto; max-height: 56vh; padding: 4px; }
+.ph-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; width: 100%; overflow-y: auto; max-height: 50vh; max-height: 50dvh; padding: 4px; touch-action: pan-y; }
 .ph-polaroid { position: relative; background: #fffaf6; border-radius: 6px; padding: 6px 6px 4px; box-shadow: 0 2px 8px rgba(110, 51, 80, 0.25); display: flex; flex-direction: column; gap: 3px; }
 .ph-polaroid:nth-child(odd) { transform: rotate(-1.2deg); }
 .ph-polaroid:nth-child(even) { transform: rotate(1deg); }
 .ph-thumb { width: 100%; display: block; border-radius: 3px; }
 .ph-cap { font-size: 11px; font-weight: 700; color: var(--pink-ink); }
-.ph-del { position: absolute; top: -8px; right: -8px; border-radius: 50%; min-width: 28px; min-height: 28px; width: 28px; height: 28px; padding: 0; font-size: 12px; }
+.ph-del { position: absolute; top: -8px; right: -8px; border-radius: 50%; min-width: 36px; min-height: 36px; width: 36px; height: 36px; padding: 0; font-size: 13px; }
 .ph-empty { grid-column: 1 / -1; padding: 20px 8px; font-weight: 700; color: var(--ink-l); }
 
 @media (max-width: 640px), (max-height: 520px) {

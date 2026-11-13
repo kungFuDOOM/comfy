@@ -1,12 +1,11 @@
 /* Seasonal events: HUD banner, journal tab, pie baking. */
-.event-banner { position: absolute; top: 58px; left: 10px; max-width: min(92vw, 380px); display: flex; align-items: center; gap: 8px; padding: 5px 12px 5px 8px; background: linear-gradient(135deg, #fff1e4, #ffe0ea); border: 2px solid #ffb48a; border-radius: 16px; box-shadow: 0 3px 0 rgba(224, 112, 80, 0.28); font-family: var(--font); font-weight: 700; font-size: 13px; color: var(--ink); cursor: pointer; text-align: left; animation: pop 0.3s ease-out; }
+.event-banner { position: relative; flex: 0 0 auto; margin-top: 2px; max-width: min(92vw, 380px); display: flex; align-items: center; gap: 8px; padding: 5px 12px 5px 8px; background: linear-gradient(135deg, #fff1e4, #ffe0ea); border: 2px solid #ffb48a; border-radius: 16px; box-shadow: 0 3px 0 rgba(224, 112, 80, 0.28); font-family: var(--font); font-weight: 700; font-size: 13px; color: var(--ink); cursor: pointer; text-align: left; animation: pop 0.3s ease-out; }
 .event-banner:hover { background: linear-gradient(135deg, #fff7ee, #ffe8f0); }
 .event-banner .ev-icon { font-size: 20px; line-height: 1; }
 .event-banner .ev-text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
 .event-banner .ev-sub { font-size: 11px; font-weight: 600; color: var(--ink-l); }
 .event-banner.peak { border-color: #ff8fb6; background: linear-gradient(135deg, #ffe3ee, #ffedd9); animation: pop 0.3s ease-out, ev-glow 2.4s ease-in-out infinite; }
 @keyframes ev-glow { 0%, 100% { box-shadow: 0 3px 0 rgba(224, 112, 154, 0.3), 0 0 0 0 rgba(255, 158, 192, 0); } 50% { box-shadow: 0 3px 0 rgba(224, 112, 154, 0.3), 0 0 14px 3px rgba(255, 158, 192, 0.55); } }
-@media (max-width: 640px) { .event-banner { top: 96px; font-size: 12px; } }
 body.scene .event-banner { display: none; }
 .event-banner[hidden] { display: none; } /* display:flex above would otherwise override the hidden attribute */
 

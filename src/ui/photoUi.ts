@@ -51,11 +51,38 @@ export function openPhotoMode(world: World3D, canvas: HTMLCanvasElement, onExit:
     toastT = window.setTimeout(() => toastEl.classList.remove('on'), 2200);
   };
   cleanups.push(() => clearTimeout(toastT));
+  // Taps fire on pointerup for touch/pen (a slightly wobbly finger still counts, and iOS can swallow `click`
+  // after a touch that moved); mouse and keyboard use `click`. `clickGuard` drops the synthetic click that
+  // follows a handled touch, or one that lands on a control after a backdrop tap closed the overlay.
+  let clickGuard = 0;
+  const onTap = (b: HTMLElement, fn: () => void) => {
+    let down: { id: number; x: number; y: number } | null = null;
+    b.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse') return;
+      e.stopPropagation();
+      down = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    });
+    b.addEventListener('pointerup', (e) => {
+      if (!down || e.pointerId !== down.id) return;
+      const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y) > 18;
+      down = null;
+      e.stopPropagation();
+      if (moved || (b as HTMLButtonElement).disabled) return;
+      clickGuard = performance.now() + 600;
+      fn();
+    });
+    b.addEventListener('pointercancel', () => { down = null; });
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (performance.now() < clickGuard) return;
+      fn();
+    });
+  };
   const pbtn = (cls: string, label: string | Node, onClick: () => void, title = '') => {
     const b = h('button', 'btn ' + cls, label);
     b.type = 'button';
     if (title) { b.title = title; b.setAttribute('aria-label', title); }
-    b.addEventListener('click', (e) => { e.stopPropagation(); onClick(); });
+    onTap(b, onClick);
     return b;
   };
   const chip = (label: string | Node, on: boolean, onClick: () => void) => {
@@ -197,11 +224,27 @@ export function openPhotoMode(world: World3D, canvas: HTMLCanvasElement, onExit:
   let reviewUrl: string | null = null; // object URL of the review picture
   function closeOverlay() {
     overlay?.remove(); overlay = null;
+    root.classList.remove('ph-modal');
     if (reviewUrl) { URL.revokeObjectURL(reviewUrl); reviewUrl = null; }
   }
 
   function mountOverlay(el: HTMLElement) {
-    el.addEventListener('pointerdown', (e) => { if (e.target === el) closeOverlay(); }); // tap outside the card
+    // tap anywhere outside the card closes it (the target can be the overlay or a wrapper, so test containment)
+    let outside: number | null = null;
+    el.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      outside = (e.target as Element).closest('.ph-card') ? null : e.pointerId;
+    });
+    el.addEventListener('pointerup', (e) => {
+      const hit = outside === e.pointerId && !(e.target as Element).closest('.ph-card');
+      outside = null;
+      if (!hit) return;
+      clickGuard = performance.now() + 600;
+      closeOverlay();
+    });
+    el.addEventListener('pointercancel', () => { outside = null; });
+    el.addEventListener('click', (e) => e.stopPropagation());
+    root.classList.add('ph-modal'); // chrome hides, only ✕ Done stays above the overlay
     root.append(el);
   }
 
@@ -233,7 +276,8 @@ export function openPhotoMode(world: World3D, canvas: HTMLCanvasElement, onExit:
     });
     const save = pbtn('ph-act primary', '⬇ Save PNG', () => { downloadBlob(blob); sfx.confirm(); say('Saved! Check your downloads ♡'); });
     const again = pbtn('ph-act ghost', 'Take another', closeOverlay);
-    overlay = h('div', 'ph-overlay', h('div', 'ph-card', h('div', 'ph-card-title', 'Say cheese! ✿'), img, h('div', 'ph-card-row', save, keep, again), h('div', 'ph-note', 'On a phone, press and hold the picture to save it too.')));
+    const x = pbtn('ph-card-x', '✕', closeOverlay, 'Close');
+    overlay = h('div', 'ph-overlay', h('div', 'ph-card', x, h('div', 'ph-card-title', 'Say cheese! ✿'), img, h('div', 'ph-card-row', save, keep, again), h('div', 'ph-note', 'On a phone, press and hold the picture to save it too.')));
     mountOverlay(overlay);
   }
 
@@ -252,7 +296,7 @@ export function openPhotoMode(world: World3D, canvas: HTMLCanvasElement, onExit:
     };
     const title = h('div', 'ph-card-title', `Photo album · ${state.photos.length}/${MAX_PHOTOS}`);
     fill();
-    overlay = h('div', 'ph-overlay', h('div', 'ph-card wide', title, grid,
+    overlay = h('div', 'ph-overlay', h('div', 'ph-card wide', pbtn('ph-card-x', '✕', closeOverlay, 'Close album'), title, grid,
       h('div', 'ph-note', 'The album keeps small keepsake thumbnails. Use “Save PNG” to keep the full-size photo.'),
       h('div', 'ph-card-row', pbtn('ph-act ghost', 'Close', closeOverlay))));
     mountOverlay(overlay);
@@ -283,7 +327,11 @@ export function openPhotoMode(world: World3D, canvas: HTMLCanvasElement, onExit:
   root.addEventListener('pointercancel', lift);
   root.addEventListener('wheel', (e) => { e.preventDefault(); if (!overlay) world.orbit(0, 0, e.deltaY * 0.0014); }, { passive: false });
   root.addEventListener('contextmenu', (e) => e.preventDefault());
-  root.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+  // block page scroll/bounce over the camera only; buttons, sheet and the review/album must keep native touch behaviour
+  root.addEventListener('touchmove', (e) => {
+    if ((e.target as Element).closest('.btn, button, .ph-overlay, .ph-sheet')) return;
+    e.preventDefault();
+  }, { passive: false });
 
   // keyboard: arrows / WASD orbit and tilt (the game's [ ] and - = keys keep working too); Space / E = shutter, Esc = leave
   const onKey = (e: KeyboardEvent) => {
@@ -310,7 +358,7 @@ export function openPhotoMode(world: World3D, canvas: HTMLCanvasElement, onExit:
   const shutter = h('button', 'ph-shutter');
   shutter.type = 'button'; shutter.title = 'Take photo'; shutter.setAttribute('aria-label', 'Take photo');
   shutter.append(h('span', 'ph-shutter-in'));
-  shutter.addEventListener('click', (e) => { e.stopPropagation(); void snap(); });
+  onTap(shutter, () => { void snap(); });
   const sheet = h('div', 'ph-sheet', tabsEl, stickerTools, sheetBody);
   const hint = h('div', 'ph-hint', document.body.classList.contains('input-touch')
     ? 'Drag to turn the camera · pinch to zoom'
