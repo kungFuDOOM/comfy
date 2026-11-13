@@ -1,7 +1,10 @@
 // The single mutable game state. Everything in here is persisted.
 import { START_WORN, startClothes } from './clothes/start';
 import type { Slot } from './clothes/types';
-import type { PetSave } from './petData';
+import type { PetSave, PetCare } from './petData';
+import { defaultPetCare } from './petData';
+import type { ErrandsSave } from './errandData';
+import { defaultErrands } from './errandData';
 export type LanternKind = 'serve' | 'gift' | 'decor' | 'collect' | 'outfit' | 'garden';
 
 export interface PlacedDecor { id: string; x: number; y: number }
@@ -176,6 +179,10 @@ export interface SaveData {
   events: Record<string, EventProgress>;
   /** The adopted pet companion (kind, name, coat, owned/worn pet accessories). null = not adopted yet. */
   pet: PetSave | null;
+  /** Daily Pet Care counters (the Pet Care skill itself lives in `skills`). */
+  petCare: PetCare;
+  /** Bulletin board errands (see errands.ts). */
+  errands: ErrandsSave;
   /** Collection Log: everything ever obtained, completed sets and titles. */
   collection: CollectionSave;
   /** Map layout version the saved positions belong to (1 = the original small island). */
@@ -227,6 +234,8 @@ export function defaultState(): SaveData {
     unlocked: {},
     events: {},
     pet: null,
+    petCare: defaultPetCare(),
+    errands: defaultErrands(),
     collection: emptyCollection(),
     mapV: 2,
     cafe: defaultCafe(),

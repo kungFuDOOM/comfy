@@ -2,7 +2,9 @@ import { defaultBonds, defaultMerchant, defaultState, defaultStyle, emptyCollect
 import { normalizeHome } from './home';
 import { TOWN_OFFSET, MAP_VERSION } from './world';
 import { migrateWardrobe } from './clothes/migrate';
-import { sanitizePet } from './petData';
+import { sanitizePet, sanitizePetCare } from './petData';
+import { sanitizeErrands } from './errandData';
+import { ITEMS, SKILLS, VILLAGERS } from './data';
 import { sanitizeMerchant } from './merchantData';
 
 const KEY = 'comfy.save.v1';
@@ -40,6 +42,8 @@ export function loadGame(): boolean {
     state.style = sanitizeStyle(data.style);
     state.home = normalizeHome(data.home); // saves from before home decorating: an empty, default-styled room
     state.pet = sanitizePet(data.pet); // saves from before pets: no pet yet; anything malformed is dropped
+    state.petCare = sanitizePetCare(data.petCare); // saves from before Pet Care: fresh counters
+    state.errands = sanitizeErrands(data.errands, { item: (id) => !!ITEMS[id], skill: (id) => SKILLS.some((k) => k.id === id), giver: (id) => VILLAGERS.some((v) => v.id === id) }); // saves from before the bulletin board: empty, it posts on the first tick
     state.collection = sanitizeCollection(data.collection);
     if ((data.mapV ?? 1) < MAP_VERSION) migrateMap();
     state.mapV = MAP_VERSION;

@@ -2,6 +2,8 @@
 // and the little "pet card" that pops up after a pat. All pet-only: nothing here touches the player's wardrobe.
 import { petPortrait } from '../art/petArt';
 import { bus } from '../bus';
+import { canSniff, careLeft, careUnlocks, CARE, feedPet, playWithPet, sniffOut, snackOnHand, SNIFF_LEVEL } from '../petcare';
+import { skillProgress } from '../skills';
 import { adoptPet, buyPetItem, getPetPose, hasPet, petNear, petOwns, petThePet, renamePet, takeOffPetItem, wearPetItem } from '../pet';
 import { cleanPetName, PET_COATS, PET_ITEMS, PET_KINDS, PET_NAME_MAX, petItemById, type PetKind, type PetSlot } from '../petData';
 import { state } from '../state';
@@ -120,6 +122,8 @@ export function renderPetBody(body: HTMLElement, api: PanelApi, shop: boolean) {
     body.append(f.wrap, err, h('div', 'pet-actions', btn('Save name', save)));
   }
 
+  if (!shop) body.append(careCard(api));
+
   // what is worn now
   for (const slot of ['head', 'body'] as PetSlot[]) {
     const worn = petItemById(p.worn[slot]);
@@ -127,7 +131,7 @@ export function renderPetBody(body: HTMLElement, api: PanelApi, shop: boolean) {
       worn ? btn('Take off', () => { takeOffPetItem(slot); api.rerender(); }, 'small ghost') : null));
   }
 
-  const list = shop ? PET_ITEMS : PET_ITEMS.filter((i) => petOwns(i.id));
+  const list = shop ? PET_ITEMS.filter((i) => !i.care) : PET_ITEMS.filter((i) => petOwns(i.id));
   body.append(h('div', 'muted', shop ? 'Pet accessories — only for your little friend. Tap Try to preview.' : list.length ? 'Tap to put something on, or take it off.' : 'No pet clothes yet. The Pet rack at Spot & Bow Boutique has bows, hats and sweaters.'));
   for (const it of list) {
     const owned = petOwns(it.id), on = p.worn[it.slot] === it.id;
@@ -143,6 +147,23 @@ export function renderPetBody(body: HTMLElement, api: PanelApi, shop: boolean) {
   }
 }
 
+/** Pet Care: level bar, Play / Snack / Sniff buttons and what the next levels unlock. */
+function careCard(api: PanelApi): HTMLElement {
+  const pr = skillProgress('petcare');
+  const bar = h('div', 'bar', h('div', 'fill'));
+  (bar.firstChild as HTMLElement).style.width = `${pr.maxed ? 100 : Math.round((pr.into / pr.need) * 100)}%`;
+  const left = (k: 'play' | 'snack') => (careLeft(k) > 0 ? `+${CARE[k].xp} XP` : 'just for fun');
+  const actions = h('div', 'care-actions',
+    btn(h('span', '', 'Play ♡', h('br'), h('small', '', left('play'))), () => { playWithPet(); api.rerender(); }),
+    btn(h('span', '', 'Snack', h('br'), h('small', '', snackOnHand() ? left('snack') : 'needs a berry or tart')), () => { feedPet(); api.rerender(); }, snackOnHand() ? '' : 'ghost'),
+    pr.level >= SNIFF_LEVEL ? btn(h('span', '', 'Sniff', h('br'), h('small', '', canSniff() ? 'daily surprise' : 'back tomorrow')), () => { sniffOut(); api.rerender(); }, canSniff() ? '' : 'ghost', !canSniff()) : null);
+  return h('div', 'care-card',
+    h('div', 'care-head', h('span', '', '🐾 Pet Care'), h('span', '', `Lv ${pr.level}`)), bar,
+    h('div', 'muted small', pr.maxed ? 'Fully bloomed ✿' : `${pr.into} / ${pr.need} XP to Lv ${pr.level + 1} · pats and playtime grow it`),
+    actions,
+    h('div', 'care-unlocks', ...careUnlocks().map((u) => h('span', pr.level >= u.level ? 'got' : '', `${pr.level >= u.level ? '✓' : '🔒'} Lv ${u.level}: ${u.text}`))));
+}
+
 // ---------- the pet card (after a pat) ----------
 let card: HTMLElement | null = null, cardTimer = 0;
 export function showPetCard() {
@@ -153,6 +174,10 @@ export function showPetCard() {
     btn('Pet ♡', () => {
       if (isPanelOpen() || sceneActive()) { hidePetCard(); return; } // never pat through a window or a cutscene
       if (petNear(60)) petThePet(); else bus.emit('toast', `${p.name} is a little too far away.`);
+    }, 'small'),
+    btn('Play', () => {
+      if (isPanelOpen() || sceneActive()) { hidePetCard(); return; }
+      if (petNear(60)) { playWithPet(); showPetCard(); } else bus.emit('toast', `${p.name} is a little too far away.`);
     }, 'small'),
     btn('Dress up', () => { hidePetCard(); if (!isPanelOpen()) openPetPanel(); }, 'small ghost'));
   document.getElementById('ui')!.append(c);
