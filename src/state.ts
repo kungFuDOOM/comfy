@@ -59,6 +59,17 @@ export interface Bonds {
 }
 export const defaultBonds = (): Bonds => ({ known: {}, letters: [], sent: [], wished: [], attended: [] });
 
+/** Styling contest progress (see contest.ts). Created with safe defaults, so older saves load untouched. */
+export interface StyleSave {
+  /** Best ribbon tier (0-3) won per theme id. Missing = never entered. */
+  ribbons: Record<string, number>;
+  /** Host id -> day key of the contest they last ran (one per host per day). */
+  hosted: Record<string, string>;
+  /** Contests entered, ever. */
+  entries: number;
+}
+export const defaultStyle = (): StyleSave => ({ ribbons: {}, hosted: {}, entries: 0 });
+
 export interface SaveData {
   v: number;
   px: number;
@@ -113,6 +124,8 @@ export interface SaveData {
   mapV: number;
   /** Café shift totals; older saves get zeros. */
   cafe: CafeProgress;
+  /** Styling contest ribbons and daily hosting (older saves get an empty one). */
+  style: StyleSave;
 }
 
 export function defaultState(): SaveData {
@@ -153,6 +166,7 @@ export function defaultState(): SaveData {
     pet: null,
     mapV: 2,
     cafe: defaultCafe(),
+    style: defaultStyle(),
   };
 }
 
