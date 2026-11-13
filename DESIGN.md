@@ -131,6 +131,8 @@ The clock and phase are shown in the HUD. Steam-Moths only appear in the evening
 
 For testing you can add `?hour=21.5&month=12` to the URL to override the clock and month.
 
+**Weather** (`src/weather.ts`, `render/weatherLayer.ts`, `ui/hud.ts`). Each real (or `?date=`) day gets a seeded roll: sunny, cloudy, or a wet day with a rain window (snow when the island looks wintry, including Twinkle Season, which keeps drawing its own snowfall). Wet days run roughly 18–32% by season; after a shower a rainbow lingers for ~2.5 daylight hours about half the time. Nothing is saved; it is a pure function of the date and clock, so no save fields were added. Visuals are all GPU-friendly: instanced puddles with ripples, point-sprite rain streaks and snow (fewer on touch screens), drifting cloud shadows, an overcast sky/fog/sun grade plus a wet rim-light sheen, and a CSS rainbow arc (the camera looks down at the island, so a 3D rainbow would never be in view). Petals and fireflies hush in the rain, and a soft filtered-noise rain loop follows the SFX volume. The HUD clock chip shows a drawn weather icon (moon at night). Gameplay: rain waters every planted crop; 30% of rain-time catches become a Drizzle Darter / Cloudcap Carp; Bellyflop Frogs (near water) and Dewdrop Snails spawn while it rains or the rainbow is up and wander off when it clears. Test with `?weather=sunny|cloudy|rain|snow|rainbow`.
+
 ## 6. Progression
 
 v0.1 has a gentle, open-ended ladder instead of levels:

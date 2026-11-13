@@ -27,6 +27,8 @@ import { createPlayerActs } from './playerActs';
 import { createPost } from './post';
 import { createStructures } from './structures';
 import { createTerrain, heightAtUnits } from './terrain';
+import { createWeatherLayer } from './weatherLayer';
+import { view } from '../weather';
 
 export interface FrameInput {
   t: number;
@@ -38,6 +40,8 @@ export interface FrameInput {
   look: Look;
   /** Worn accessory item id (see boutique.currentAccessory). Omitted = none. */
   accessory?: string | null;
+  /** Show the weather (rain, snow, puddles, grey sky). Omitted = clear skies, for the title screen and cutscenes. */
+  weather?: boolean;
   /** What the player is busy doing (fishing, watering...); omitted = nothing, so menus and cutscenes ease back to idle. */
   act?: Act | null;
   /** The pet companion this frame (omitted / null = not adopted, or a scene that should not show her). */
@@ -118,8 +122,9 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   const dynamic = createDynamic();
   const particles = createParticles(); // after structures: reads the café steam vents
   const eventLayer = createEventLayer(); // seasonal event decorations (events.ts)
+  const weather = createWeatherLayer(); // rain / snow, puddles, cloud shadows (driven by the weather view)
   const merchantLayer = createMerchantLayer(); // the traveling merchant's stall (merchant.ts)
-  scene.add(terrain.group, nature.group, beach, structures, dynamic.group, eventLayer.group, merchantLayer.group, particles.group, celebrate.group);
+  scene.add(terrain.group, nature.group, beach, structures, dynamic.group, eventLayer.group, merchantLayer.group, particles.group, weather.group, celebrate.group);
 
   // A friend moving in (bus 'friendArrived', only from a live unlock, never a save restore): a burst of hearts at
   // their spot, then a gentle trickle for a few seconds so the welcome is still there if the camera is elsewhere.
@@ -342,8 +347,10 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       else { target.x += (tx - target.x) * k; target.z += (tz - target.z) * k; placeCamera(); }
       // continuous (not bucketed) so dawn/dusk blend smoothly and the shadow frustum follows the camera
       rig.update(f.hour, target);
+      weather.group.visible = !!f.weather;
+      if (f.weather) { weather.update(f.t, target); weather.grade(rig, scene); }
       const pxScale = renderer.getDrawingBufferSize(bufSize).y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
-      particles.update(f.t, rig.night, target, pxScale, heightAtUnits);
+      particles.update(f.t, rig.night, target, pxScale, heightAtUnits, f.weather ? view.rain + view.snow * 0.5 : 0);
       if (trickle.left > 0) {
         trickle.left -= f.dt; trickle.acc += f.dt;
         while (trickle.acc >= 0.3) { trickle.acc -= 0.3; welcomeTrickle(trickle.at); }

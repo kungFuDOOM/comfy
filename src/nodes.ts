@@ -12,6 +12,7 @@ import { state } from './state';
 import { noteGathered } from './regions';
 import { getClock } from './time';
 import { TS, areaAt } from './world';
+import { isRaining } from './weather';
 
 export const tierOf = (n: NodeDef): NodeTier => NODE_KINDS[n.kind][n.tier];
 export const isReady = (n: NodeDef, now = Date.now()) => (state.nodes[n.id] ?? 0) <= now;
@@ -40,6 +41,7 @@ export function nodeHint(n: NodeDef): string {
 }
 
 export const casting = { id: '', left: 0, total: 0 };
+const RAIN_FISH_CHANCE = 0.3;
 const CAST_SECONDS = 3.2; // cast, a little wait, the bite, then reel in (the animation follows these beats)
 
 /** Gathering animation per node kind. Gathering itself is instant; the act just plays it out. */
@@ -108,13 +110,16 @@ function rollBonus(n: NodeDef) {
 function harvest(n: NodeDef) {
   const t = tierOf(n);
   const qty = n.kind === 'fish' ? 1 : 1 + (Math.random() < 0.25 ? 1 : 0);
-  const item = n.kind === 'fish' ? pickFish(n.tier, t.item) : t.item;
+  const rainCatch = n.kind === 'fish' && isRaining() && Math.random() < RAIN_FISH_CHANCE;
+  // in the rain the fish rise: sometimes a rare rainy-day fish takes the bait instead
+  const item = rainCatch ? (n.tier >= 1 ? 'cloudcarp' : 'drizzle') : n.kind === 'fish' ? pickFish(n.tier, t.item) : t.item;
   state.nodes[n.id] = Date.now() + t.respawn * 1000;
   addItem(item, qty);
-  grantXp(t.skill, t.xp);
+  grantXp(t.skill, rainCatch ? Math.round(t.xp * 1.5) : t.xp);
   noteGathered(areaAt(n.x, n.y), n.kind);
   const what = ITEMS[item].name;
-  if (n.kind === 'fish') { toast(`You caught a ${what}! ✿`); startAct('catch', 1.7, { item }); }
+  if (rainCatch) state.found[item] = (state.found[item] ?? 0) + 1;
+  if (n.kind === 'fish') { toast(rainCatch ? `A rainy-day catch! You got a ${what} ☔✿` : `You caught a ${what}! ✿`); startAct('catch', 1.7, { item }); }
   else toast(`Gathered ${qty > 1 ? qty + ' ' : ''}${what}${qty > 1 ? ' (a lucky bonus!)' : ''} +${t.xp} ${skillName(t.skill)} XP`);
   const bonus = rollBonus(n);
   if (bonus) { addItem(bonus.item); toast(`${bonus.msg}! ✿`); }

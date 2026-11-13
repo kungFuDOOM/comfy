@@ -12,7 +12,7 @@ import { createNodeLayer } from './nodes3d';
 import { createBarriers } from './barriers';
 
 const WOOD_D = '#b98763';
-const SPAWN_COLOR: Record<string, string> = { shell: '#ffe0d0', blossom: '#ff9ec0', moth: '#fff3a8', button: '#ffffff', pumpkin: '#ffa763', apple: '#ff7f93', ornament: '#ff9ec0', sea_glass: '#b8f0d8', candy_copper: '#ffa98a', rose_quartz: '#ffb3d1', twinkle_geode: '#d4b8ff', frost_opal: '#bfe6ff' };
+const SPAWN_COLOR: Record<string, string> = { shell: '#ffe0d0', blossom: '#ff9ec0', moth: '#fff3a8', frog: '#9fe3a4', snail: '#ffc2d8', button: '#ffffff', pumpkin: '#ffa763', apple: '#ff7f93', ornament: '#ff9ec0', sea_glass: '#b8f0d8', candy_copper: '#ffa98a', rose_quartz: '#ffb3d1', twinkle_geode: '#d4b8ff', frost_opal: '#bfe6ff' };
 
 /** A flat heart facing +z, about 2 units wide; scale it down where it is used. */
 const HEART_GEO = (() => {

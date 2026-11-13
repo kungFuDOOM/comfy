@@ -38,8 +38,8 @@ export interface Entry {
   hint: string;
 }
 
-const FISH = ['minnow', 'pebble_guppy', 'tadpole', 'perch', 'peach_carp', 'lace_betta', 'koi', 'lavender_ray', 'sugar_seahorse'];
-const BUGS = ['puff_bee', 'dot_ladybug', 'sugar_snail', 'bean_beetle', 'moth', 'glow_fly', 'wisp_dragonfly'];
+const FISH = ['minnow', 'pebble_guppy', 'tadpole', 'perch', 'peach_carp', 'lace_betta', 'koi', 'lavender_ray', 'sugar_seahorse', 'drizzle', 'cloudcarp'];
+const BUGS = ['puff_bee', 'dot_ladybug', 'sugar_snail', 'bean_beetle', 'moth', 'glow_fly', 'wisp_dragonfly', 'frog', 'snail'];
 const SHELLS = ['shell', 'conch', 'sand_dollar', 'cowrie', 'pearlshell', 'swirl_whelk', 'starfish'];
 const FORAGE = ['blossom', 'puffberry', 'lucky_clover', 'sweet_mushroom', 'glowberry', 'moonpetal', 'beans', 'rare_beans', 'twig', 'button'];
 const GEMS = ['sea_glass', 'honey_amber', 'candy_copper', 'rose_quartz', 'moonstone', 'twinkle_geode', 'frost_opal'];
@@ -87,6 +87,10 @@ const HINTS: Record<string, string> = {
   moonstone: 'Sometimes snagged while fishing at Ribbon and Moonlit Spots.',
   twinkle_geode: 'Glints on the hillside after dark.',
   frost_opal: 'Rare hillside glints, most often in snowy Snowfluff weather.',
+  drizzle: 'Fishing in the rain, at any spot. Only bites while it pours.',
+  cloudcarp: 'Fishing in the rain at Ribbon Spots and deeper.',
+  frog: 'Hops out near water on rainy days.',
+  snail: 'Creeps out on grass and hillsides on rainy days.',
   d_fishbowl: 'Complete the Moonlit Catch set.',
   d_forage_basket: 'Complete the Moonlit Pantry set.',
   d_gem_stand: 'Complete the Sparkle Pebbles set.',
