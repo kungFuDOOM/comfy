@@ -155,6 +155,12 @@ The **Front Door** station (south face of the house) opens decorate mode: a fade
 - Mouse: hover shows a ghost, click places / selects, drag moves. Touch: tap to place or select, drag to move, big Turn / Pick up buttons; the tray docks to the right on short landscape screens. Keyboard: arrows move a cursor, E/Space confirm, `R` turn, `X` pick up, `[ ]` flip through pieces, `Tab` next tab, Esc back. Gamepad: D-pad / stick cursor, A confirm, X turn, Y pick up, LB/RB flip, Start next tab, B back (deselect, then leave). Extra scene buttons arrive on the bus as `sceneAction`.
 - Save: `state.home = { wall, floor, items: [{ id, x, y, rot }] }`, normalized on load (`normalizeHome`), so older saves get an empty blush-and-checker room. Saved after every change and on leaving.
 
+## 7a-2. The traveling merchant
+
+**Tansy Packlewick**, a lilac-cream Wandering Alpaca with a stuffed travel pack, visits on **Wednesdays and Saturdays, 9 AM to 8 PM** (real calendar and clock; `?merchant=1` keeps her open all day for QA, `?date=` and `?hour=` work too). She sets up a striped stall on a cobbled pitch east of Sugarlily Square (counter tiles are solid while she is there) and sells a rotating handful of rare things for pips: two outfit pieces (`clothes/catalogMerchant.ts`, source `merchant`, never in the boutique), two decor pieces (`d_m_*`), and two seed bundles (rare Lanternberry and Moonpetal seeds, plus discounted regulars). Arrival toast, a HUD chip ("Tansy is in town") and a poof of sparkles announce her; a toast says when she packs up and when she is next back (also in Help).
+
+Data: `merchantData.ts` (schedule, offer pools, lines, save sanitiser), `merchantLayout.ts` (stall tiles), logic `merchant.ts`, UI `ui/merchantUi.ts`, 3D `render/merchant3d.ts` (+ the `alpaca` actor in `render/actors.ts`). Save field `merchant` (`visit` day key, `stock` with per-item `left`, `met`, `spent`, `seen`, `talked`) is optional: the stock is rolled once per visit from a seeded shuffle and stored, so reloading never re-rolls it or refills sold items. Older saves get defaults in `save.ts`.
+
 ## 7b. Soft Skills
 
 Skills *wrap* the existing cozy loops; they never replace them. Gardening, gifting, brewing, decorating and lanterns stay equal-weight ways to play. Everything here is original to Hushbell — there is **no combat, no stamina, no energy bar and nothing to lose**.

@@ -15,6 +15,7 @@ import type { PetPose } from '../pet';
 import { createDynamic } from './dynamic';
 import { visualSeason } from '../events';
 import { createEventLayer } from './eventLayer';
+import { createMerchantLayer } from './merchant3d';
 import { createLightRig } from './lighting';
 import { PALETTE } from './materials';
 import { createBeach } from './beach';
@@ -109,7 +110,8 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   const dynamic = createDynamic();
   const particles = createParticles(); // after structures: reads the café steam vents
   const eventLayer = createEventLayer(); // seasonal event decorations (events.ts)
-  scene.add(terrain.group, nature.group, beach, structures, dynamic.group, eventLayer.group, particles.group, celebrate.group);
+  const merchantLayer = createMerchantLayer(); // the traveling merchant's stall (merchant.ts)
+  scene.add(terrain.group, nature.group, beach, structures, dynamic.group, eventLayer.group, merchantLayer.group, particles.group, celebrate.group);
 
   // A friend moving in (bus 'friendArrived', only from a live unlock, never a save restore): a burst of hearts at
   // their spot, then a gentle trickle for a few seconds so the welcome is still there if the camera is elsewhere.
@@ -282,6 +284,7 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       }
       dynamic.update(f.t);
       eventLayer.update(f.t);
+      merchantLayer.update(f.t, f.dt, f.player.x, f.player.y);
       nature.update(f.t, target.x, target.z);
       terrain.update(f.t);
 

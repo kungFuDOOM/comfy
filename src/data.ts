@@ -155,10 +155,20 @@ add({ id: 'd_lamp', name: 'Latte Lamp', kind: 'decor', buy: 90, desc: 'A lamp sh
 add({ id: 'd_shelf', name: 'Bubblegum Bookshelf', kind: 'decor', buy: 140, desc: 'Holds exactly one hundred cozy stories.' });
 add({ id: 'd_teacup', name: 'Teacup Planter', kind: 'decor', buy: 50, desc: 'A giant teacup full of blooms.' });
 add({ id: 'd_chair', name: 'Cheetah Armchair', kind: 'decor', buy: 150, desc: 'Spotted, swoopy, and dangerously comfy.' });
+// Rare finds from Tansy, the traveling merchant (merchant.ts). Never sold in the shops, so there is no `buy`.
+add({ id: 'd_m_musicbox', name: 'Wind-Up Music Box', kind: 'decor', desc: 'A rosy little box with a crank. A tiny dancer spins to a tune only you can hear.' });
+add({ id: 'd_m_cloudlamp', name: 'Cloud Puff Lamp', kind: 'decor', desc: 'A cluster of cloud-soft puffs that glow like the inside of a marshmallow.' });
+add({ id: 'd_m_teapot', name: 'Teapot Cottage', kind: 'decor', desc: 'A teapot big enough to wave from. The little round door actually opens, probably.' });
+add({ id: 'd_m_globe', name: 'Pastel Star Globe', kind: 'decor', desc: 'A globe of the Pastel Sea on a brass stand. Sugarlily Isle has a tiny heart on it.' });
+add({ id: 'd_m_moonswing', name: 'Crescent Moon Swing', kind: 'decor', desc: 'A moon-shaped seat that sways on its own, very slightly, when nobody is looking.' });
+add({ id: 'seed_glowberry', name: 'Lanternberry Seeds', kind: 'seed', desc: 'Rare seeds. They grow a bush of berries that glow after dusk.' });
+add({ id: 'seed_moonpetal', name: 'Moonpetal Seeds', kind: 'seed', desc: 'Rare seeds from far away. The flowers smell like a lullaby.' });
 
 export const SEED_CROP: Record<string, { crop: string; need: number }> = {
   seed_puffberry: { crop: 'puffberry', need: 150 }, // seconds of "wet" time
   seed_cottonbloom: { crop: 'cottonbloom', need: 240 },
+  seed_glowberry: { crop: 'glowberry', need: 300 }, // merchant-only seeds
+  seed_moonpetal: { crop: 'moonpetal', need: 360 },
 };
 
 /** Extra things a gather or catch can turn up. Key: `${node kind}:${tier}`. At most one bonus per gather. */

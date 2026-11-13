@@ -32,6 +32,10 @@ import { getClock } from './time';
 import { isPanelOpen } from './ui/dom';
 import { buildHud, setHint, tickHud } from './ui/hud';
 import { openMap } from './ui/mapPanel';
+import { openMerchant } from './ui/merchantUi';
+import { merchantPresent, tickMerchant } from './merchant';
+import { MERCHANT } from './merchantData';
+import { MERCHANT_SPOT, STALL_APPROACH, STALL_CENTER, STALL_TAP } from './merchantLayout';
 import { openMailbox } from './ui/friendsUi';
 import { enterHome } from './ui/homeUi';
 import { syncFriendship, tickFriends } from './friends';
@@ -79,6 +83,15 @@ function spotNear(): { s: EventSpot; d: number } | null {
   return best;
 }
 
+/** Distance (px) to the traveling merchant's counter while her stall is open, else null when out of reach. */
+function merchantNear(): number | null {
+  if (!merchantPresent()) return null;
+  const d = Math.hypot(STALL_CENTER.x * TS - player.x, STALL_CENTER.z * TS - (player.y - 8));
+  return d < 76 ? d : null;
+}
+const faceMerchant = () => faceToward(MERCHANT_SPOT.x * TS, MERCHANT_SPOT.y * TS);
+const useMerchant = () => { faceMerchant(); openMerchant(); };
+
 function openStation(s: Station) {
   faceToward((s.x + s.w / 2) * TS, s.y * TS + TS / 2); // turn to the bench, so a brew / craft animates facing it
   if (s.id === 'cafe') openCafe();
@@ -113,6 +126,8 @@ function currentTarget(): Target {
   const ds = s ? Math.hypot((s.x + s.w / 2) * TS - player.x, s.y * TS + TS / 2 - (player.y - 8)) - 16 : Infinity;
   const dd = nd ? Math.hypot(nodeCenter(nd).x - player.x, nodeCenter(nd).y - (player.y - 8)) : Infinity;
   const dsp = sp ? sp.d : Infinity;
+  const dm = merchantNear() ?? Infinity;
+  if (dm < Infinity && dm <= dn && dm <= ds && dm <= dd && dm <= dsp) return { label: `${MERCHANT.stall} — Browse today's rare finds`, run: useMerchant };
   if (sp && dsp <= dn && dsp <= ds && dsp <= dd) return { label: `${sp.s.label}: ${sp.s.prompt}`, run: () => sp.s.run() };
   if (n && dn <= ds && dn <= dd) return { label: `Chat with ${n.def.name.split(' ')[0]}`, run: () => openDialogue(n.def) };
   if (s && ds <= dd) return { label: stationText(s), run: () => openStation(s) };
@@ -177,6 +192,13 @@ function handleClick(sx: number, sy: number) {
     const go = () => evSpot.run();
     if (spotNear()?.s === evSpot) go();
     else if (!goals.length || !walkTo(goals, go)) cancelPath();
+    return;
+  }
+  // the traveling merchant's stall (counter, awning and the one behind it): walk up to the front and open her shop
+  if (merchantPresent() && tx >= STALL_TAP.x0 && tx <= STALL_TAP.x1 && ty >= STALL_TAP.y0 && ty <= STALL_TAP.y1) {
+    const goals = STALL_APPROACH.filter((g) => !isSolidTile(g.x, g.y));
+    if (merchantNear() !== null) useMerchant();
+    else if (!goals.length || !walkTo(goals, () => { if (merchantPresent()) useMerchant(); })) cancelPath();
     return;
   }
   // plot / yard tile
@@ -279,7 +301,7 @@ function update(dt: number) {
   updateLanterns(dt);
   tickGarden();
   eventTimer -= dt;
-  if (eventTimer <= 0) { eventTimer = 0.5; tickEvents(); tickFriends(); }
+  if (eventTimer <= 0) { eventTimer = 0.5; tickEvents(); tickFriends(); tickMerchant(); }
   updateCollect(dt, player.x, player.y);
   tickAwards(dt, panel);
   // hint
@@ -349,6 +371,7 @@ export function startGame() {
   checkRegions();
   syncFriendship(); // letters for hearts earned before the mailbox existed
   tickEvents(); // seasonal events: greet, build the table's collision (the 3D decorations follow on the first frame)
+  tickMerchant(); // the traveling merchant: open her stall (and its counter's collision) if today is her day
   cancelAct();
   if (booted) {
     cancelPath();
