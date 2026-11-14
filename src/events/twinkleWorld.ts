@@ -152,6 +152,9 @@ export const TWINKLE_DRIFTS_NAME = 'twinkle-drifts';
 export interface LightWave { x: number; z: number; r: number; soft: number }
 let wave: LightWave | null = null;
 export const setTwinkleLightWave = (w: LightWave | null) => { wave = w; };
+let treeGlow = 1;
+/** How brightly the town tree's own lights burn: 1 = normal, 0 = unlit, up to 2 = the tree-lighting blaze. Cutscenes drive it; always put it back to 1. */
+export const setTwinkleTreeGlow = (k: number) => { treeGlow = Math.max(0, Math.min(2, k)); };
 const waveAt = (x: number, z: number) => {
   if (!wave) return 1;
   const t = Math.max(0, Math.min(1, (wave.r - Math.hypot(x - wave.x, z - wave.z)) / Math.max(0.01, wave.soft)));
@@ -166,7 +169,7 @@ export function createTwinkleWorld(): EventWorld {
   let sparkles: { m: THREE.InstancedMesh; i: number; x: number; y: number; z: number; ph: number; r: number }[] = [];
   let topper: THREE.Object3D | null = null;
   let lastTick = -1, waveWas = false;
-  let snowMat: THREE.ShaderMaterial | null = null, haloMat: THREE.ShaderMaterial | null = null, auraMat: THREE.ShaderMaterial | null = null;
+  let snowMat: THREE.ShaderMaterial | null = null, haloMat: THREE.ShaderMaterial | null = null, treeHaloMat: THREE.ShaderMaterial | null = null, auraMat: THREE.ShaderMaterial | null = null;
   let nightRef: THREE.MeshToonMaterial | null = null; // any 'lamp' material: its emissive strength tells how dark it is
   let auraBase = 0;
 
@@ -183,7 +186,7 @@ export function createTwinkleWorld(): EventWorld {
       root.name = 'event-twinkle';
       const r = rng(1224);
       bulbs = []; bulbMeshes = []; pools = []; sparkles = []; topper = null; lastTick = -1;
-      snowMat = haloMat = auraMat = null; nightRef = null; auraBase = 0;
+      snowMat = haloMat = treeHaloMat = auraMat = null; nightRef = null; auraBase = 0;
       const [garland, baubles, glow] = picks();
       const wk3 = chapterOpen('twinkle', 'wk3'), wk4 = chapterOpen('twinkle', 'wk4');
       const finale = ['eve', 'day'].includes(currentChapter('twinkle')?.id ?? '');
@@ -396,19 +399,20 @@ export function createTwinkleWorld(): EventWorld {
         vertexShader: HALO_VERT, fragmentShader: HALO_FRAG, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
         uniforms: { uTime: { value: 0 }, uScale: { value: 500 }, uGlow: { value: 0 }, uWave: { value: new THREE.Vector4(0, 0, 1e4, 1) } },
       }));
-      const halos = (h: HaloBuf, parent: THREE.Object3D) => {
+      treeHaloMat = markOwned(haloMat.clone()); // the tree's halos get their own copy so the tree can glow on its own
+      const halos = (h: HaloBuf, parent: THREE.Object3D, m: THREE.ShaderMaterial) => {
         if (!h.pos.length) return;
         const g = new THREE.BufferGeometry();
         g.setAttribute('position', new THREE.Float32BufferAttribute(h.pos, 3));
         g.setAttribute('aColor', new THREE.Float32BufferAttribute(h.col, 3));
         g.setAttribute('aSize', new THREE.Float32BufferAttribute(h.size, 1));
         g.setAttribute('aPhase', new THREE.Float32BufferAttribute(h.ph, 1));
-        const pts = new THREE.Points(g, haloMat!);
+        const pts = new THREE.Points(g, m);
         pts.frustumCulled = false; pts.renderOrder = 4; pts.onBeforeRender = pointScale;
         parent.add(pts);
       };
-      halos(worldHalo, root);
-      halos(treeHalo, tree);
+      halos(worldHalo, root, haloMat);
+      halos(treeHalo, tree, treeHaloMat);
 
       // ---------- falling snow: fluffy flakes of many sizes, drifting and swaying on the breeze ----------
       const seed = new Float32Array(SNOW * 3), extra = new Float32Array(SNOW * 4);
@@ -442,13 +446,18 @@ export function createTwinkleWorld(): EventWorld {
         u.uTime.value = t; u.uGlow.value = 0.1 + night * 0.62;
         (u.uWave.value as THREE.Vector4).set(wave?.x ?? 0, wave?.z ?? 0, wave?.r ?? 1e4, wave?.soft ?? 1);
       }
-      if (auraMat) auraMat.uniforms.uGlow.value = auraBase * (0.12 + night * 0.88) * (1 + Math.sin(t * 0.9) * 0.06);
+      if (treeHaloMat) {
+        const u = treeHaloMat.uniforms;
+        u.uTime.value = t; u.uGlow.value = (0.1 + night * 0.62) * treeGlow * (1 + Math.max(0, treeGlow - 1) * 1.2);
+        (u.uWave.value as THREE.Vector4).set(wave?.x ?? 0, wave?.z ?? 0, wave?.r ?? 1e4, wave?.soft ?? 1);
+      }
+      if (auraMat) auraMat.uniforms.uGlow.value = (auraBase * (0.12 + night * 0.88) * Math.min(1, treeGlow) + Math.max(0, treeGlow - 1) * 0.5) * (1 + Math.sin(t * 0.9) * 0.06);
       // bulbs twinkle: each swells and shrinks on its own beat (~15 updates a second is plenty)
       // (every frame while a light wave is running, so the bulbs pop on smoothly)
-      if (wave || waveWas || t - lastTick > 0.066 || t < lastTick) {
-        lastTick = t; waveWas = !!wave;
+      if (wave || waveWas || treeGlow !== 1 || t - lastTick > 0.066 || t < lastTick) {
+        lastTick = t; waveWas = !!wave || treeGlow !== 1;
         for (const b of bulbs) {
-          const k = b.sc * (0.82 + 0.34 * Math.max(0, Math.sin(t * 2.3 + b.ph))) * (b.tree ? 1 : 0.45 + 0.55 * waveAt(b.x, b.z)); // unlit bulbs sit small and dark
+          const k = b.sc * (0.82 + 0.34 * Math.max(0, Math.sin(t * 2.3 + b.ph))) * (b.tree ? (0.45 + 0.55 * Math.min(1, treeGlow)) * (1 + Math.max(0, treeGlow - 1) * 0.7) : 0.45 + 0.55 * waveAt(b.x, b.z)); // unlit bulbs sit small and dark
           dummy.position.set(b.x, b.y, b.z); dummy.rotation.set(0, 0, 0); dummy.scale.setScalar(k); dummy.updateMatrix();
           b.m.setMatrixAt(b.i, dummy.matrix);
         }

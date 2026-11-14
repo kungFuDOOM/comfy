@@ -14,6 +14,7 @@ export const CUTSCENE_PRESETS: Record<string, CutscenePreset> = {
   'harvest-feast': { event: 'harvest', date: '2026-11-26' },
   'christmas-eve': { event: 'twinkle', date: '2026-12-24' },
   'christmas-day': { event: 'twinkle', date: '2026-12-25' },
+  'tree-lighting': { event: 'twinkle', date: '2026-11-30', hour: 19.2 },
   'first-snowfall': { event: 'twinkle', date: '2026-11-27', hour: 17.9 },
 };
 
