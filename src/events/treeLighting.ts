@@ -4,7 +4,8 @@
 // count) and can be previewed any time with ?cutscene=tree-lighting. It pays nothing: the decorating milestones
 // (twinkle.ts) are the rewards. The beat loop, UI and skip handling live in cutscene/runner.ts; the tree is the real one
 // from twinkleWorld.ts, whose lights this scene turns down to "unlit" (setTwinkleTreeGlow) and then up to a blaze.
-// Whatever it changes (tree lights, the count overlay, preview-only tree picks) is handed back in onFinish.
+// Whatever it changes (tree lights, the tree's squash, the count overlay, preview-only stand-in picks) is handed back in
+// onFinish, watched or skipped. The trigger (queueTreeLighting) holds a single pending start, so it can never double-fire.
 import * as THREE from 'three';
 import { sfx } from '../audio';
 import { hourRamp, isRunnerPlaying, playCutscene, type Beat, type RunnerCtx } from '../cutscene/runner';
@@ -13,9 +14,10 @@ import { presentNpcs } from '../npc';
 import { sceneActive } from '../render/stage';
 import { heightAtUnits } from '../render/terrain';
 import { hasSeenCutscene } from '../save';
+import { isPanelOpen } from '../ui/dom';
 import { TS } from '../world';
 import { GATHER_ORDER, PLAYER_SPOT, TREE, TREE_STEPS } from './twinkleLayout';
-import { setTwinkleTreeGlow } from './twinkleWorld';
+import { TWINKLE_TREE_NAME, setTwinkleTreeGlow, setTwinkleTreePickFill } from './twinkleWorld';
 
 export const TREE_LIGHTING_ID = 'tree-lighting';
 let playing = false;
@@ -23,20 +25,39 @@ export const treeLightingPlaying = () => playing;
 
 /** Have all three decorating steps been picked (the saved counters tree1..tree3)? */
 export const treeFullyDecorated = () => { const c = eventProgress('twinkle').counters; return TREE_STEPS.every((s) => (c[s.key] ?? 0) > 0); };
-/** Due right after the last step is done, until it has been watched (or skipped) once. */
-export const treeLightingDue = () => !playing && !isRunnerPlaying() && !sceneActive() && !hasSeenCutscene(TREE_LIGHTING_ID) && treeFullyDecorated();
+/** Owed to this save: the tree is fully dressed and the scene has not been watched (or skipped) yet. */
+const owed = () => !playing && !hasSeenCutscene(TREE_LIGHTING_ID) && treeFullyDecorated();
+/** Due right after the last step is done, until it has been watched (or skipped) once, and nothing else is on screen. */
+export const treeLightingDue = () => owed() && !isRunnerPlaying() && !sceneActive() && !isPanelOpen();
+
+/** One pending start at most. If a panel or another scene is up when it comes round, it checks back a few times. */
+let queued = 0;
+/** Returns true if the scene is (now or already) on its way. */
+export function queueTreeLighting(delayMs = 450): boolean {
+  if (queued) return true;
+  if (!owed()) return false;
+  let tries = 0;
+  const go = () => {
+    queued = 0;
+    if (!owed()) return;
+    if (!treeLightingDue()) { if (++tries < 30) queued = window.setTimeout(go, 1000); return; }
+    startTreeLighting();
+  };
+  queued = window.setTimeout(go, delayMs);
+  return true;
+}
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 const smooth = (x: number) => { const t = clamp01(x); return t * t * (3 - 2 * t); };
 const backOut = (x: number) => { const t = clamp01(x) - 1, k = 2.2; return 1 + t * t * ((k + 1) * t + k); };
 
 /** Where friends gather (a loose arc, the east side is the player's) and where they start (the same angle, further out). */
-const ARC_R = 2.3, START_R = 6.6;
+const ARC_R = 2.3, START_R = 5.4;
 const arcAt = (a: number, r: number) => ({ x: TREE.x + Math.cos(a) * r, z: TREE.z + Math.sin(a) * r });
 const angleOf = (i: number, n: number) => (60 + (i / Math.max(1, n - 1)) * 240) * (Math.PI / 180);
 
-/** Evening deepening into dusk-blue so the lights read well (never pitch dark). */
-const hourAt = hourRamp(19.2, 20.9, 1, 24);
+/** Evening deepening into dusk-blue while everyone gathers, deepest by the countdown so the blaze reads (never pitch dark). */
+const hourAt = hourRamp(19.2, 21.0, 1, 20);
 
 function glowTexture(): THREE.CanvasTexture {
   const cv = document.createElement('canvas'); cv.width = cv.height = 64;
@@ -56,13 +77,16 @@ function countOverlay() {
   document.getElementById('ui')?.append(el);
   let hide = 0;
   return {
-    show(text: string) {
+    /** `tone` = the numeral's candy shadow colours [top, deep]; the finale sparkle gets a warm glow only. */
+    show(text: string, tone: [string, string] | null) {
       window.clearTimeout(hide);
       el.textContent = text;
+      el.style.textShadow = tone ? `0 4px 0 ${tone[0]},0 9px 0 ${tone[1]},0 0 34px rgba(255,214,140,.85)` : '0 0 40px rgba(255,214,140,.95),0 0 12px rgba(255,255,255,.9)';
+      el.style.fontSize = tone ? '' : 'clamp(96px,22vw,240px)';
       el.style.transition = 'none'; el.style.opacity = '0'; el.style.transform = 'translate(-50%,0) scale(.4)';
       void el.offsetWidth;
       el.style.transition = ''; el.style.opacity = '1'; el.style.transform = 'translate(-50%,0) scale(1)';
-      hide = window.setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translate(-50%,-14px) scale(1.15)'; }, 650);
+      hide = window.setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translate(-50%,-14px) scale(1.15)'; }, tone ? 650 : 1100);
     },
     destroy() { window.clearTimeout(hide); el.remove(); },
   };
@@ -82,13 +106,9 @@ export function startTreeLighting(onDone?: () => void, preview = false) {
   const spots = new Map(order.map((id, i) => [id, { from: arcAt(angleOf(i, order.length), START_R), to: arcAt(angleOf(i, order.length), ARC_R) }] as const));
   const playerFrom = { x: PLAYER_SPOT.x + 4.6, z: PLAYER_SPOT.z + 1.4 };
 
-  // The preview has to show a decorated tree even on a save that has not decorated it: borrow picks, hand them back.
-  const borrowed: [string, number][] = [];
-  if (preview) {
-    const counters = eventProgress('twinkle').counters;
-    for (const s of TREE_STEPS) if (!(counters[s.key] ?? 0)) { borrowed.push([s.key, counters[s.key] ?? 0]); counters[s.key] = 1; }
-  }
-  const returnBorrowed = () => { const counters = eventProgress('twinkle').counters; for (const [k, v] of borrowed.splice(0)) { if (v) counters[k] = v; else delete counters[k]; } };
+  // The preview has to show a decorated tree even on a save that has not decorated it: render-only stand-in picks
+  // (the saved counters are never written, so a persist mid-preview can't keep a tree the player never dressed).
+  if (preview) setTwinkleTreePickFill([1, 2, 1]);
 
   // ---- staged pieces: a warm flash glow over the tree and the count numeral (the tree itself is the world's) ----
   const root = new THREE.Group(); root.name = 'tree-lighting';
@@ -101,24 +121,42 @@ export function startTreeLighting(onDone?: () => void, preview = false) {
   root.add(flash, ground);
   let count: ReturnType<typeof countOverlay> | null = null;
   let blazeAt = -1, countAt = -1, lastN = -1;
+  // the world's tree (looked up lazily: the world may rebuild it, e.g. when the preview's stand-in picks land)
+  let tree: THREE.Object3D | null = null;
+  const inScene = (o: THREE.Object3D, sc: THREE.Object3D) => { let p: THREE.Object3D | null = o; while (p && p !== sc) p = p.parent; return p === sc; };
+  const findTree = (sc: THREE.Scene) => {
+    if (!tree || !inScene(tree, sc)) { if (tree) tree.scale.set(1, 1, 1); tree = sc.getObjectByName(TWINKLE_TREE_NAME) ?? null; }
+    return tree;
+  };
 
-  const restore = () => { setTwinkleTreeGlow(1); count?.destroy(); count = null; returnBorrowed(); };
+  const restore = () => {
+    setTwinkleTreeGlow(1); setTwinkleTreePickFill(null);
+    if (tree) tree.scale.set(1, 1, 1); tree = null;
+    count?.destroy(); count = null;
+  };
   const dispose = () => {
     root.removeFromParent();
     root.traverse((o) => { const m = o as THREE.Mesh; m.geometry?.dispose(); (m.material as THREE.Material | undefined)?.dispose(); });
     tex.dispose();
   };
 
+  const TONES: Record<number, [string, string]> = { 3: ['#e56d9d', '#bf4a7c'], 2: ['#5fc9a4', '#3a9c7c'], 1: ['#f0a93c', '#c47f1c'] };
+  /** Everyone shouts the number together: the numeral pops, the friends bob, the tree shivers a notch brighter. */
   const tick = (n: number): Beat[] => [
-    { type: 'call', fn: (c) => { countAt = c.tt; lastN = n; count?.show(String(n)); c.hop(0.5); } },
+    { type: 'call', fn: (c) => { countAt = c.tt; lastN = n; count?.show(String(n), TONES[n]); c.hop(0.45); } },
+    ...cast.map((id): Beat => ({ type: 'emote', who: id, kind: 'talk', dur: 0.45 })),
+    { type: 'emote', who: 'player', kind: 'talk', dur: 0.45 },
     { type: 'sfx', name: 'tick' },
-    { type: 'wait', sec: 1.05 },
+    { type: 'wait', sec: 1.0 },
   ];
-  /** Sparkles popping off the branches at different heights, one after another. */
-  const sparkles = (): Beat[] => [2.6, 1.0, 2.1, 1.5, 2.9, 0.7].flatMap((y, i): Beat[] => [
-    { type: 'call', fn: (c) => { const a = i * 2.1; c.fx('twinkle', { x: TREE.x + Math.cos(a) * 0.9, z: TREE.z + Math.sin(a) * 0.9 }, y); } },
-    { type: 'wait', sec: 0.22 },
-  ]);
+  /** Sparkles spiralling up the branches, hugging the cone, bottom to top. */
+  const sparkles = (): Beat[] => Array.from({ length: 9 }, (_, i) => i).flatMap((i): Beat[] => {
+    const y = 0.45 + i * 0.3, r = 0.2 + 1.0 * Math.max(0, 1 - y / TREE.height), a = i * 2.4;
+    return [
+      { type: 'call', fn: (c) => c.fx('twinkle', { x: TREE.x + Math.cos(a) * r, z: TREE.z + Math.sin(a) * r }, y) },
+      { type: 'wait', sec: 0.16 },
+    ];
+  });
 
   // ---- the script ----
   const beats: Beat[] = [
@@ -130,31 +168,35 @@ export function startTreeLighting(onDone?: () => void, preview = false) {
       { type: 'wait', sec: 0.28 },
     ]),
     { type: 'walk', who: 'player', to: PLAYER_SPOT, speed: 2.2, wait: false },
-    { type: 'wait', sec: 2.8 },
+    { type: 'wait', sec: 2.6 },
     ...cast.map((id): Beat => ({ type: 'face', who: id, at: { x: TREE.x, z: TREE.z } })),
     { type: 'face', who: 'player', at: { x: TREE.x, z: TREE.z } },
-    ...say(['mimsy', 'nimbus'], 'There you are! Come stand with us. The tree looks so pretty all dressed up.'),
-    ...say(['zuzu', 'oolie'], 'But it is just sitting there, all quiet. Can we turn the lights on? Please, please, please?', (c) => c.hop(1.6)),
-    { type: 'shot', look: [TREE.x, 1.5, TREE.z], pos: [TREE.x + 4.6, 2.9, TREE.z + 4.9], dur: 2.4, wait: false },
-    ...say(['bramble', 'brioche'], 'Let us count together, nice and loud. Ready? Three little breaths first.'),
-    { type: 'wait', sec: 0.5 },
+    ...say(['mimsy', 'nimbus'], 'There you are! Come stand with us. Look how pretty the tree is, all dressed up.'),
+    ...say(['zuzu', 'oolie'], 'But it is all quiet and dark. Can we turn the lights on? Please, please, pleeease?', (c) => c.hop(1.2)),
+    // the camera creeps in through the build-up and the count
+    { type: 'shot', look: [TREE.x, 1.55, TREE.z], pos: [TREE.x + 4.8, 3.0, TREE.z + 5.1], dur: 3.2, wait: false },
+    ...say(['bramble', 'brioche'], 'Then we count together, nice and loud. Everybody ready? Deep breath...'),
+    { type: 'shot', look: [TREE.x, 1.7, TREE.z], pos: [TREE.x + 3.4, 2.4, TREE.z + 3.7], dur: 4.2, wait: false },
+    { type: 'wait', sec: 0.7 },
     // 3, 2, 1
     ...tick(3), ...tick(2), ...tick(1),
-    // the blaze
-    { type: 'call', fn: (c) => { blazeAt = c.tt; count?.show('✨'); c.fx('twinkle', TREE, 3.0); c.fx('confetti', TREE, 0.5); c.fx('welcome', 'all'); c.hop(2.6); } },
+    // the blaze: the camera springs back and tilts up to take in the whole tree
+    { type: 'call', fn: (c) => { blazeAt = c.tt; count?.show('✨', null); c.fx('twinkle', TREE, TREE.height); c.fx('confetti', TREE, 0.5); c.hop(2.6); } },
     { type: 'sfx', name: 'unlock' },
-    { type: 'shot', look: [TREE.x, 1.7, TREE.z], pos: [TREE.x + 6.4, 3.4, TREE.z + 6.6], dur: 3.2, wait: false },
-    { type: 'wait', sec: 0.6 },
-    { type: 'sfx', name: 'pickup' },
+    { type: 'shot', look: [TREE.x, 1.9, TREE.z], pos: [TREE.x + 6.2, 3.1, TREE.z + 6.5], dur: 2.6, wait: false },
     ...sparkles(),
+    { type: 'sfx', name: 'pickup' },
+    { type: 'fx', fx: 'welcome', at: 'all' },
     ...cast.flatMap((id, i): Beat[] => [{ type: 'emote', who: id, kind: 'gasp', dur: 0.55 }, { type: 'wait', sec: i % 2 ? 0.09 : 0.13 }]),
     { type: 'emote', who: 'player', kind: 'gasp', dur: 0.6 },
-    { type: 'wait', sec: 0.9 },
-    ...say(['oolie', 'bramble'], 'It is glowing! The whole tree is glowing, right down to the tippy top!'),
+    { type: 'wait', sec: 0.8 },
+    ...say(['oolie', 'zuzu'], 'It is glowing! The whole tree is glowing, right up to the tippy top!', (c) => c.fx('twinkle', TREE, TREE.height + 0.2)),
     ...say(['brioche', 'tuppi', 'marlo'], 'Every little light is shining just for us. It feels like the whole square is smiling.', (c) => c.fx('twinkle', 'player', 1.1)),
-    { type: 'shot', look: [TREE.x, 1.9, TREE.z], pos: [TREE.x + 5.2, 4.2, TREE.z + 5.6], dur: 5, wait: false },
-    ...say(['mimsy', 'nimbus'], 'Thank you for making it so lovely. Happy Twinkle Season, everyone.', (c) => { c.hop(2.8); c.fx('welcome', 'all'); }),
-    { type: 'wait', sec: 1.6 },
+    { type: 'shot', look: [TREE.x, 1.8, TREE.z], pos: [TREE.x + 5.6, 4.0, TREE.z + 6.0], dur: 5, wait: false },
+    ...say(['mimsy', 'nimbus'], 'Thank you for making it so lovely. Happy Twinkle Season, everyone!', (c) => { c.hop(2.8); c.fx('welcome', 'all'); }),
+    { type: 'sfx', name: 'welcome' },
+    { type: 'call', fn: (c) => { c.fx('twinkle', TREE, TREE.height); c.fx('confetti', TREE, 1.6); } },
+    { type: 'wait', sec: 2.0 },
   ];
 
   const ok = playCutscene({
@@ -165,6 +207,7 @@ export function startTreeLighting(onDone?: () => void, preview = false) {
     setup(c) {
       c.world.scene.add(root);
       setTwinkleTreeGlow(0); // the tree waits, unlit
+      findTree(c.world.scene);
       for (const [id, s] of spots) {
         c.point(id); // registers them so the runner puts them back afterwards
         const n = presentNpcs().find((m) => m.def.id === id);
@@ -176,15 +219,19 @@ export function startTreeLighting(onDone?: () => void, preview = false) {
     stage(c) {
       const tt = c.tt;
       // the tree's lights: unlit, a little flutter on every count, then the blaze that settles to a bright glow
-      let g = 0;
+      let g = 0, squash = 0;
       if (blazeAt >= 0) {
         const s = tt - blazeAt;
-        g = 0.2 + 1.8 * smooth(s / 0.35) - 0.55 * smooth((s - 0.9) / 3.2);
+        g = 0.2 + 1.8 * smooth(s / 0.35) - 0.55 * smooth((s - 0.9) / 3.2) + 0.07 * Math.sin(s * 2.1) * smooth((s - 2) / 2); // then it breathes
+        squash = s < 1.6 ? Math.exp(-s * 3.2) * Math.sin(s * 17) * 0.13 : 0; // a happy boing
       } else if (countAt >= 0) {
         const s = tt - countAt;
         g = 0.05 + 0.11 * (4 - lastN) + 0.2 * Math.max(0, 1 - s / 0.45); // each number lights it a notch brighter
+        squash = s < 0.6 ? Math.exp(-s * 6) * Math.sin(s * 22) * 0.035 : 0; // and it shivers in anticipation
       }
       setTwinkleTreeGlow(g);
+      const t3 = findTree(c.world.scene);
+      if (t3) t3.scale.set(1 - squash * 0.5, 1 + squash, 1 - squash * 0.5);
       // a warm flash bloom over the tree at the moment of lighting
       if (blazeAt >= 0) {
         const s = tt - blazeAt, k = Math.exp(-Math.max(0, s - 0.15) * 0.9);

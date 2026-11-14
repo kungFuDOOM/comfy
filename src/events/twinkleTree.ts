@@ -7,7 +7,7 @@ import { changed } from '../bus';
 import { bumpEvent, eventProgress } from '../events';
 import { btn, h, openPanel } from '../ui/dom';
 import { TREE_STEPS } from './twinkleLayout';
-import { startTreeLighting, treeLightingDue } from './treeLighting';
+import { queueTreeLighting } from './treeLighting';
 
 /** `onGather`, on Christmas Eve / Day, adds a big button that starts the gathering from the same window. */
 export function openTreePanel(onGather?: { label: string; run: () => void }) {
@@ -32,7 +32,8 @@ export function openTreePanel(onGather?: { label: string; run: () => void }) {
           if (first) bumpEvent('twinkle', 'treeSteps', 1); else changed();
           api.rerender();
           // the last step is in: close the window and let the friends light the tree (once per save)
-          if (treeLightingDue()) { api.close(); window.setTimeout(() => { if (treeLightingDue()) startTreeLighting(); }, 350); }
+          // (queueTreeLighting holds one pending start, and waits out any panel reopened in the meantime)
+          if (queueTreeLighting()) api.close();
         }, picked === k + 1 ? 'small on' : 'small', !ready));
       });
       body.append(h('div', 'card tw-step' + (picked ? ' done' : ''), h('b', '', `${i + 1}. ${st.title}${picked ? ' ✓' : ''}`), h('div', 'muted small', ready ? st.hint : 'Finish the step before this one first.'), row));

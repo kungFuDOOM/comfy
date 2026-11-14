@@ -7,5 +7,5 @@ export { startFeast, feastPlaying } from './feast';
 export { openPieBake, canBakePie } from './pieBake';
 export { startGathering, gatheringPlaying } from './gathering';
 export { openCookieBake } from './cookieBake';
-export { startTreeLighting, treeLightingDue, treeLightingPlaying } from './treeLighting';
+export { queueTreeLighting, startTreeLighting, treeLightingDue, treeLightingPlaying } from './treeLighting';
 export { startFirstSnowfall, firstSnowfallDue, firstSnowfallPlaying, maybeStartFirstSnowfall } from './firstSnowfall';
