@@ -12,7 +12,7 @@ import { bump } from '../quests';
 import { grantXp } from '../skills';
 import { firstPieDue, startFirstPie } from './firstPie';
 import { queueGoldenPie } from './goldenPie';
-import { btn, h, openPanel, type PanelApi } from '../ui/dom';
+import { btn, closePanel, h, openPanel, type PanelApi } from '../ui/dom';
 
 const STEPS = [
   { name: 'Roll the crust', hint: 'Press when the heart is in the pink zone', width: 0.3, speed: 0.75 },
@@ -30,7 +30,9 @@ const pieRecipes = () => RECIPES.filter((r) => r.event === 'harvest' && r.bench 
 export function openPieBake(recipeId: string) {
   const found = RECIPES.find((x) => x.id === recipeId);
   if (!found || !canBakePie(found)) { toast('Bring the ingredients to bake this pie.'); return; }
-  if (firstPieDue() && startFirstPie(() => openPieBake(recipeId))) return; // the very first pie: Brioche shows the way, then the window opens
+  // the very first pie: Brioche shows the way, then the window opens. The recipe list is closed first so it can't sit
+  // under the scene (and the window it would reopen into is opened fresh afterwards).
+  if (firstPieDue()) { closePanel(true); if (startFirstPie(() => openPieBake(recipeId))) return; }
   const r: Recipe = found;
   let step = 0, ratings: Rating[] = [], made: number | null = null, locked = false, closed = false;
   let zoneC = 0.5, pos = 0, t0 = performance.now(), resultText = '';
