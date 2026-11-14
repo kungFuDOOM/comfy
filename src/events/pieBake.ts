@@ -10,6 +10,8 @@ import { bumpEvent, chapterOpen } from '../events';
 import { addItem, count, removeItem } from '../inventory';
 import { bump } from '../quests';
 import { grantXp } from '../skills';
+import { firstPieDue, startFirstPie } from './firstPie';
+import { queueGoldenPie } from './goldenPie';
 import { btn, h, openPanel, type PanelApi } from '../ui/dom';
 
 const STEPS = [
@@ -28,6 +30,7 @@ const pieRecipes = () => RECIPES.filter((r) => r.event === 'harvest' && r.bench 
 export function openPieBake(recipeId: string) {
   const found = RECIPES.find((x) => x.id === recipeId);
   if (!found || !canBakePie(found)) { toast('Bring the ingredients to bake this pie.'); return; }
+  if (firstPieDue() && startFirstPie(() => openPieBake(recipeId))) return; // the very first pie: Brioche shows the way, then the window opens
   const r: Recipe = found;
   let step = 0, ratings: Rating[] = [], made: number | null = null, locked = false, closed = false;
   let zoneC = 0.5, pos = 0, t0 = performance.now(), resultText = '';
@@ -100,7 +103,7 @@ export function openPieBake(recipeId: string) {
     grantXp(r.skill, r.xp + perfects * 6);
     bump(r.stat);
     bumpEvent('harvest', 'pies', 1);
-    if (golden) bumpEvent('harvest', 'goldenPies', 1);
+    if (golden) { bumpEvent('harvest', 'goldenPies', 1); queueGoldenPie(); } // the reveal plays once the window is closed
     sfx.ding();
     toast(golden ? `A Golden ${ITEMS[r.id].name}! You baked two 🥧` : `${ITEMS[r.id].name} is out of the oven! 🥧`);
     changed();
