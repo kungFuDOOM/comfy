@@ -14,7 +14,7 @@ import { getWorld, runScene } from '../render/stage';
 import { heightAtUnits } from '../render/terrain';
 import type { FrameInput, World3D } from '../render/world3d';
 import { markCutsceneSeen, saveGame } from '../save';
-import { getClock } from '../time';
+import { getClock, type Season } from '../time';
 import { createCutsceneUi, type CutsceneUi } from '../ui/cutsceneUi';
 import { fadeTo, setFade } from '../ui/fade';
 import { captureSceneKeys } from '../ui/sceneInput';
@@ -95,6 +95,8 @@ export interface CutsceneScene {
   player?: { x: number; z: number; facing: Facing };
   /** Override the rendered hour (a snowfall scene can hold dusk, then ease into night: see `hourRamp`). */
   hour?: number | ((c: RunnerCtx) => number);
+  /** Render the island in this season instead of the event-dressed one (undefined = normal). The next game frame goes back by itself. */
+  seasonLook?: (c: RunnerCtx) => Season | undefined;
   timing?: Partial<Timing>;
   /** Runs once before the first frame. */
   setup?(c: RunnerCtx): void;
@@ -405,7 +407,7 @@ export function playCutscene(scene: CutsceneScene): boolean {
     setFade(fade);
     const hour = typeof scene.hour === 'function' ? scene.hour(c) : scene.hour ?? clock.hour;
     world.render({
-      t, dt, hour, season: clock.season,
+      t, dt, hour, season: clock.season, seasonLook: scene.seasonLook?.(c),
       player: pose, look: currentLook(), accessory: currentAccessory(), npcs: presentNpcs(), talkedToday: () => true,
     });
     if ((endAt >= 0 && tt - endAt >= tm.endHold + tm.fadeOut) || (skipAt >= 0 && tt - skipAt >= tm.skipFade)) finishNow();

@@ -35,6 +35,8 @@ export interface FrameInput {
   dt: number;
   hour: number;
   season: Season;
+  /** Draw the island in exactly this season, skipping the event dressing (a cutscene holding autumn until the first snow). */
+  seasonLook?: Season;
   player: { x: number; y: number; facing: Facing; moving: boolean; running?: boolean; surface?: FootSurface };
   /** What the player is wearing (or trying on). */
   look: Look;
@@ -295,7 +297,7 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
     },
     render(f) {
       // an active seasonal event can dress the island in another season's look (Twinkle Season is snowy from late November)
-      const season = visualSeason(f.season);
+      const season = f.seasonLook ?? visualSeason(f.season);
       if (season.id !== seasonId) { seasonId = season.id; terrain.setSeason(season); nature.setSeason(season); particles.setSeason(season); }
 
       player.setLook(f.look);
