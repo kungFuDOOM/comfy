@@ -1,4 +1,5 @@
 // Real-clock day cycle and real-calendar seasons.
+import { presetParam } from './cutscene/presets';
 export interface Season {
   id: string;
   name: string;
@@ -33,11 +34,12 @@ export interface Clock {
 }
 
 const params = new URLSearchParams(location.search);
-const hourOverride = params.has('hour') ? Number(params.get('hour')) : null;
+const presetHour = presetParam('hour'); // ?cutscene= implies a date / hour unless the URL sets its own
+const hourOverride = params.has('hour') ? Number(params.get('hour')) : presetHour !== null ? Number(presetHour) : null;
 const monthOverride = params.has('month') ? Number(params.get('month')) : null;
 /** ?date=YYYY-MM-DD previews any calendar day (seasonal events, daily stock). Invalid values are ignored. */
 const dateOverride: Date | null = (() => {
-  const m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(params.get('date') ?? '');
+  const m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(params.get('date') ?? presetParam('date') ?? '');
   if (!m) return null;
   const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
   return Number.isNaN(d.getTime()) || d.getMonth() !== Number(m[2]) - 1 ? null : d;
