@@ -138,6 +138,12 @@ function pointScale(this: THREE.Points, renderer: THREE.WebGLRenderer, _s: THREE
   (this.material as THREE.ShaderMaterial).uniforms.uScale.value = h * 0.5 * camera.projectionMatrix.elements[5];
 }
 
+/** Name of the town tree's group in the scene (the first-snowfall cutscene finds it to raise it). */
+export const TWINKLE_TREE_NAME = 'twinkle-tree';
+let snowLevel = 1;
+/** 0..1 multiplier on the falling snow. Cutscenes hold it at 0 until "the snow begins"; always put it back to 1. */
+export const setTwinkleSnow = (k: number) => { snowLevel = Math.max(0, Math.min(1, k)); };
+
 export function createTwinkleWorld(): EventWorld {
   // animated bits, rebuilt on every build()
   interface Bulb { m: THREE.InstancedMesh; i: number; x: number; y: number; z: number; ph: number; sc: number }
@@ -254,6 +260,7 @@ export function createTwinkleWorld(): EventWorld {
 
       // ---------- the town tree ----------
       const tree = new THREE.Group();
+      tree.name = TWINKLE_TREE_NAME;
       const ty = ground(TREE.x, TREE.z);
       tree.position.set(TREE.x, ty, TREE.z);
       tree.add(cyl(0.12, 0.17, 0.5, '#c99a7a', 0, 0.25, 0, 10));
@@ -403,7 +410,7 @@ export function createTwinkleWorld(): EventWorld {
       const night = nightRef ? Math.min(1, nightRef.emissiveIntensity / LAMP_HDR) : 0;
       if (snowMat) {
         const u = snowMat.uniforms;
-        u.uTime.value = t; u.uOpacity.value = 0.92 - night * 0.22;
+        u.uTime.value = t; u.uOpacity.value = (0.92 - night * 0.22) * snowLevel;
         (u.uColor.value as THREE.Color).setRGB(1 - night * 0.36, 1 - night * 0.3, 1 - night * 0.12); // moonlit blue at night
       }
       if (haloMat) { haloMat.uniforms.uTime.value = t; haloMat.uniforms.uGlow.value = 0.1 + night * 0.62; }

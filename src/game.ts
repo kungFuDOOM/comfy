@@ -30,6 +30,8 @@ import { sharedWorld3D, type World3D } from './render/world3d';
 import { saveGame } from './save';
 import { activeEventSpots, eventSpotAtTile, tickEvents, visualSeason, type EventSpot } from './events';
 import './events/index';
+import { maybeStartFirstSnowfall } from './events/firstSnowfall';
+import { cutsceneParam } from './cutscene/presets';
 import { state } from './state';
 import { getClock } from './time';
 import { stepWeather, tickWeather, view as weatherView } from './weather';
@@ -395,6 +397,7 @@ export function startGame() {
   syncFriendship(); // letters for hearts earned before the mailbox existed
   tickEvents(); // seasonal events: greet, build the table's collision (the 3D decorations follow on the first frame)
   tickMerchant(); // the traveling merchant: open her stall (and its counter's collision) if today is her day
+  if (!cutsceneParam) maybeStartFirstSnowfall(() => isPanelOpen()); // first login on / after Nov 27: the First Snowfall scene, once per save
   cancelAct();
   if (booted) {
     cancelPath();
