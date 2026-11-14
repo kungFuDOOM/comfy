@@ -38,6 +38,7 @@ export function loadGame(): boolean {
     state.merchant = sanitizeMerchant(data.merchant, defaultMerchant()); // saves from before the merchant: nobody has visited yet
     if (!state.regionSeen || typeof state.regionSeen !== 'object' || Array.isArray(state.regionSeen)) state.regionSeen = {};
     if (!Array.isArray(state.partyHats)) state.partyHats = [];
+    state.seenCutscenes = sanitizeSeen(data.seenCutscenes); // saves from before the cutscene registry: nothing seen yet; junk is dropped
     state.photos = sanitizePhotos(data.photos); // saves from before photo mode have no album
     state.style = sanitizeStyle(data.style);
     state.home = normalizeHome(data.home); // saves from before home decorating: an empty, default-styled room
@@ -51,6 +52,19 @@ export function loadGame(): boolean {
   } catch {
     return false;
   }
+}
+
+/** Unique strings only; anything else (missing, not an array, odd entries) becomes an empty / shorter list. */
+function sanitizeSeen(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return [...new Set(v.filter((x): x is string => typeof x === 'string' && x.length > 0 && x.length < 60))].slice(0, 200);
+}
+
+/** Has this cutscene been watched (or skipped) in a real play? */
+export const hasSeenCutscene = (id: string) => state.seenCutscenes.includes(id);
+/** Remember a cutscene as seen (idempotent) and write the save. Previews never call this. */
+export function markCutsceneSeen(id: string) {
+  if (!state.seenCutscenes.includes(id)) { state.seenCutscenes.push(id); saveGame(); }
 }
 
 export const MAX_PHOTOS = 12;

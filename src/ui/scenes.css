@@ -146,20 +146,21 @@ body.input-touch .mm-hints { display: none; }
 .cred-name { font-weight: 700; text-align: right; }
 
 /* ================= Cutscene ================= */
-.cs { position: absolute; inset: 0; z-index: 7; overflow: hidden; }
-.cs-bar { position: absolute; left: 0; right: 0; height: clamp(26px, 7.5vh, 64px); background: #6e3350; transition: transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1); }
-.cs-bar.top { top: 0; transform: translateY(-101%); border-bottom: 3px solid #ffb3cf; }
-.cs-bar.bottom { bottom: 0; transform: translateY(101%); border-top: 3px solid #ffb3cf; }
+/* --cs-bar is the letterbox height; the bars grow by the safe-area insets so the notch and home indicator sit inside them */
+.cs { --cs-bar: clamp(26px, 7.5vh, 64px); --cs-top: calc(var(--cs-bar) + env(safe-area-inset-top)); --cs-bot: calc(var(--cs-bar) + env(safe-area-inset-bottom)); position: absolute; inset: 0; z-index: 7; overflow: hidden; }
+.cs-bar { position: absolute; left: 0; right: 0; background: #6e3350; transition: transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.cs-bar.top { top: 0; height: var(--cs-top); transform: translateY(-101%); border-bottom: 3px solid #ffb3cf; }
+.cs-bar.bottom { bottom: 0; height: var(--cs-bot); transform: translateY(101%); border-top: 3px solid #ffb3cf; }
 .cs.in .cs-bar { transform: none; }
 
-.cs-title { position: absolute; left: 0; right: 0; top: 17%; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; color: #fff; opacity: 0; transform: translateY(10px); transition: opacity 0.9s ease, transform 1.2s ease; pointer-events: none; padding: 0 16px; }
+.cs-title { position: absolute; left: 0; right: 0; top: 17%; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; color: #fff; opacity: 0; transform: translateY(10px); transition: opacity 0.9s ease, transform 1.2s ease; pointer-events: none; padding: 0 max(16px, env(safe-area-inset-left), env(safe-area-inset-right)); }
 .cs-title.on { opacity: 1; transform: none; }
 .cs-title-sub { font-weight: 600; font-size: clamp(13px, 1.9vw, 19px); letter-spacing: 0.14em; text-shadow: 0 1px 0 rgba(110, 51, 80, 0.75), 0 0 12px rgba(110, 51, 80, 0.55); }
 .cs-title-name { font-weight: 700; font-size: clamp(38px, 7.4vw, 86px); line-height: 1.05; letter-spacing: 0.02em; -webkit-text-stroke: 0; text-shadow: 0 3px 0 #e56d9d, 0 6px 0 #bf4a7c, 0 10px 22px rgba(110, 51, 80, 0.5); }
 .cs-title-rule { color: #ffd6e6; font-size: clamp(14px, 2vw, 22px); display: flex; align-items: center; gap: 12px; text-shadow: 0 1px 0 rgba(110, 51, 80, 0.6); }
 .cs-title-rule::before, .cs-title-rule::after { content: ""; width: clamp(40px, 9vw, 110px); height: 3px; border-radius: 3px; background: rgba(255, 255, 255, 0.85); box-shadow: 0 1px 0 rgba(110, 51, 80, 0.5); }
 
-.cs-dlg { position: absolute; left: 50%; bottom: calc(clamp(26px, 7.5vh, 64px) + 14px); width: min(680px, calc(100% - 24px)); display: flex; align-items: flex-end; gap: 10px; opacity: 0; transform: translate(-50%, 24px) scale(0.96); transition: opacity 0.25s ease, transform 0.35s cubic-bezier(0.3, 1.5, 0.5, 1); pointer-events: none; }
+.cs-dlg { position: absolute; left: 50%; bottom: calc(var(--cs-bot) + 14px); width: min(680px, calc(100% - 2 * max(12px, env(safe-area-inset-left), env(safe-area-inset-right)))); display: flex; align-items: flex-end; gap: 10px; opacity: 0; transform: translate(-50%, 24px) scale(0.96); transition: opacity 0.25s ease, transform 0.35s cubic-bezier(0.3, 1.5, 0.5, 1); pointer-events: none; }
 .cs-dlg.on { opacity: 1; transform: translate(-50%, 0); }
 .cs-portrait { flex: none; width: 96px; height: 104px; border-radius: 22px; border: 3px solid #fff; box-shadow: 0 0 0 3px #f5a3c2, 0 6px 0 3px #eb8fb3, 0 12px 16px rgba(110, 51, 80, 0.25); margin-bottom: 9px; }
 .cs-bubble { position: relative; flex: 1; min-width: 0; background: linear-gradient(#fffdfe, #fff6f1); border: 3px solid #fff; border-radius: 26px; padding: 20px 22px 18px; box-shadow: 0 0 0 3px #f5a3c2, 0 6px 0 3px #eb8fb3, 0 14px 22px rgba(110, 51, 80, 0.28); margin-bottom: 9px; }
@@ -171,14 +172,20 @@ body.input-touch .mm-hints { display: none; }
 .cs-next.on { opacity: 1; animation: cs-bob 0.7s ease-in-out infinite; }
 @keyframes cs-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
 
-.cs-skip { position: absolute; top: calc(clamp(26px, 7.5vh, 64px) + 12px); right: max(12px, env(safe-area-inset-right)); display: inline-flex; align-items: center; gap: 7px; padding: 6px 14px; border-radius: 999px; border: 2px solid #ffc3da; background: rgba(255, 248, 243, 0.9); color: var(--pink-ink); font-family: var(--font); font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 3px 0 rgba(224, 112, 154, 0.3); opacity: 0; transition: opacity 0.6s ease 0.8s, transform 0.08s; }
+.cs-skip { position: absolute; top: calc(var(--cs-top) + 12px); right: max(12px, env(safe-area-inset-right)); display: inline-flex; align-items: center; gap: 7px; padding: 6px 14px; border-radius: 999px; border: 2px solid #ffc3da; background: rgba(255, 248, 243, 0.9); color: var(--pink-ink); font-family: var(--font); font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 3px 0 rgba(224, 112, 154, 0.3); opacity: 0; transition: opacity 0.6s ease 0.8s, transform 0.08s; }
 .cs.in .cs-skip { opacity: 0.92; }
 .cs-skip:hover { opacity: 1; background: #fff; }
 .cs-skip:active { transform: translateY(2px); }
 .cs-skip::after { content: "▸▸"; letter-spacing: -3px; font-size: 12px; }
+@media (pointer: coarse) { .cs-skip { min-height: 44px; padding: 8px 18px; font-size: 14px; } }
 @media (max-width: 560px) {
   .cs-portrait { width: 66px; height: 72px; border-radius: 16px; }
   .cs-bubble { padding: 18px 14px 16px; border-radius: 22px; }
+  /* portrait phones: the card sits clear of the Skip pill, and long names ("Harvest Hush Feast") wrap into two even lines */
+  .cs-title { top: max(17%, calc(var(--cs-top) + 76px)); }
+  .cs-title-name { font-size: clamp(30px, 9.4vw, 46px); line-height: 1.08; text-wrap: balance; max-width: 100%; }
+  .cs-title-sub { font-size: 12px; letter-spacing: 0.1em; text-wrap: balance; }
+  .cs-title-rule::before, .cs-title-rule::after { width: clamp(28px, 12vw, 64px); }
 }
 /* help cards reorder themselves (styles.css); keep the closing row last */
 .panel-body > .row.end { order: 20; }

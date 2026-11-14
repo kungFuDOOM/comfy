@@ -1,5 +1,6 @@
 // Title flow: main menu -> (New Game -> intro cutscene) -> gameplay. Continue skips the intro.
 import { shouldPlayIntro, startIntroCutscene } from './cutscene/intro';
+import { playPreview } from './cutscene/preview';
 import { bus } from './bus';
 import { persist, startGame } from './game';
 import { closePanel } from './ui/dom';
@@ -50,4 +51,14 @@ export function bootWithMenu() {
 export function bootIntoGame() {
   if (shouldPlayIntro()) startIntroCutscene(startGame);
   else startGame();
+}
+
+/**
+ * ?cutscene=<id>: no menu, no arrival, straight into play, then the scene. startGame arms the game loop's rAF before
+ * ours, so by the second frame the world has rendered once (event decorations and the table are built, everyone is
+ * seated) and the scene starts on a dressed square. The runner's opening fade covers anything still settling.
+ */
+export function bootCutscenePreview(id: string) {
+  startGame();
+  requestAnimationFrame(() => requestAnimationFrame(() => playPreview(id)));
 }
