@@ -6,8 +6,9 @@ import type { Facing } from '../art/characters';
 import type { VillagerDef } from '../data';
 import type { Look } from '../clothes/types';
 import { lookKey } from '../clothes/types';
-import { buildCloth, buildHood, buildShoes, headExtraOf, legsOf, sleeveOf } from './clothes3d';
-import { cheetahTexture, cheetahToon, contactShadow, makeToon, PALETTE, toon, vertexToon, type CheetahKind } from './materials';
+import { buildCloth, buildHood, buildShoes, chestR, fabric, headExtraOf, legsOf, sleeveOf } from './clothes3d';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { cheetahTexture, cheetahToon, contactShadow, makeToon, PALETTE, registerUnlit, toon, vertexToon, type CheetahKind } from './materials';
 import { ball, Batch, G, lerpAngle, mat } from './util';
 
 export interface ActorMesh {
@@ -75,34 +76,12 @@ function setFill(m: THREE.MeshToonMaterial, f: Fill) {
 function buildHead(kind: Kind, skin: string, accent: string): THREE.Mesh {
   const b = new Batch();
   b.add(G.ball(1, 26), skin, { s: [HA, HB, HC] });
-  // rosy cheeks
-  for (const sx of [-1, 1]) b.add(G.ball(0.075, 10), BLUSH, { ...at(on(sx * 40, -14, 0.985)), ry: sx * 40 * DEG, s: [1, 0.62, 0.3] });
+  // rosy cheeks (the player gets soft see-through blush discs instead, in buildPlayerHead)
+  if (kind !== 'player') for (const sx of [-1, 1]) b.add(G.ball(0.075, 10), BLUSH, { ...at(on(sx * 40, -14, 0.985)), ry: sx * 40 * DEG, s: [1, 0.62, 0.3] });
   const earInner = '#ffb3cf';
   switch (kind) {
-    case 'player': {
-      const hair = '#ffb7d2', hairLite = '#ffe0ee';
-      for (const sx of [-1, 1]) {
-        // round ears, pink inside
-        b.add(G.ball(0.16, 14), skin, { x: sx * 0.34, y: 0.2, z: 0.02, s: [0.82, 1.05, 0.52] });
-        b.add(G.ball(0.1, 10), earInner, { x: sx * 0.34, y: 0.19, z: 0.07, s: [0.72, 0.88, 0.32] });
-        // twin buns with a little shine and a hair tie
-        b.add(G.ball(0.145, 14), hair, { x: sx * 0.3, y: 0.44, z: -0.04 });
-        b.add(G.ball(0.05, 8), hairLite, { x: sx * 0.26, y: 0.52, z: 0.02 });
-        b.add(G.torus(0.068, 0.015, 8), '#f27aa8', { x: sx * 0.3, y: 0.36, z: 0.0, rx: Math.PI / 2 });
-      }
-      // scalloped bangs
-      b.add(G.ball(0.15, 12), hair, { ...at(on(0, 46, 1.02)), s: [1.55, 0.52, 0.75] });
-      b.add(G.ball(0.1, 10), hairLite, { ...at(on(-22, 38, 1.05)), s: [1, 0.58, 0.65] });
-      b.add(G.ball(0.1, 10), hairLite, { ...at(on(22, 40, 1.05)), s: [1, 0.58, 0.65] });
-      // a little ahoge sprout
-      b.add(G.capsule(0.02, 0.07), hair, { x: 0.03, y: 0.5, z: 0.02, rz: 0.7, rx: -0.25 });
-      b.add(G.ball(0.03, 8), hairLite, { x: 0.07, y: 0.56, z: 0.05 });
-      // tiny w-smile
-      const smile = on(0, -30, 1.04);
-      b.add(G.torus(0.045, 0.01, 8, Math.PI * 0.9), '#e56d9d', { x: smile[0], y: smile[1], z: smile[2], rz: Math.PI, rx: 0.35 });
-      b.add(G.ball(0.016, 6), '#ff8fb6', { ...at(on(0, -18, 1.02)), s: [1.4, 0.9, 0.7] });
-      break;
-    }
+    case 'player':
+      break; // built by buildPlayerHead()
     case 'dormouse':
       for (const sx of [-1, 1]) {
         b.add(G.ball(0.2), skin, { x: sx * 0.36, y: 0.24, z: -0.02, s: [1, 1, 0.55] });
@@ -296,6 +275,114 @@ function buildEyes(): THREE.Mesh {
   return m;
 }
 
+// ---------- the player's face and hair: a soft plush toy look that still reads at a small size ----------
+const P_HAIR = '#ffb3d0', P_HAIR_LITE = '#ffd9e8', P_HAIR_TIE = '#f27aa8';
+const P_EYE = '#3a1b30', P_EYE_MID = '#71305b', P_EYE_LOW = '#c86c9e', P_LASH = '#2b1322';
+const P_EYE_YAW = 22, P_EYE_PITCH = 2;
+/** Outward surface normal of the head ellipsoid at a yaw / pitch. */
+function nrm(yaw: number, pitch: number): [number, number, number] {
+  const p = on(yaw, pitch);
+  const n = new THREE.Vector3(p[0] / (HA * HA), p[1] / (HB * HB), p[2] / (HC * HC)).normalize();
+  return [n.x, n.y, n.z];
+}
+let shineMat: THREE.MeshBasicMaterial | null = null;
+let blushMat: THREE.MeshToonMaterial | null = null;
+
+/**
+ * Player head: skin ball, a sculpted hair cap with a rounded scalloped fringe and a fluffy bob, side locks,
+ * little pigtail puffs with ribbon ties, button nose, sweet smile, and see-through rosy cheek discs.
+ * `topper` holds the plush ears + sprout that would poke through a hat; the wardrobe hides it under covering hats.
+ */
+function buildPlayerHead(skin: string): { head: THREE.Mesh; topper: THREE.Mesh; blush: THREE.Mesh } {
+  const b = new Batch(), top = new Batch(), bl = new Batch();
+  b.add(G.ball(1, 28), skin, { s: [HA, HB, HC] });
+  // hair shell: a crown cap all the way round, plus a bob that wraps the back and sides down past the ears
+  b.add(new THREE.SphereGeometry(1, 28, 8, 0, Math.PI * 2, 0, 0.98), P_HAIR, { s: [HA * 1.025, HB * 1.035, HC * 1.025] });
+  b.add(new THREE.SphereGeometry(1, 24, 12, Math.PI - 0.42, Math.PI + 0.84, 0, 2.0), P_HAIR, { s: [HA * 1.02, HB * 1.03, HC * 1.03] });
+  // a few soft scallops along the back of the bob
+  for (let i = 0; i < 5; i++) b.add(G.ball(0.08, 12), P_HAIR, { ...at(on(130 + i * 25, -22, 0.98)), s: [1.2, 0.85, 0.8] });
+  // rounded fringe: overlapping lobes that melt into one soft scalloped edge, the middle ones a touch higher
+  const lobes: [number, number, number, number][] = [[-52, 30, 0.12, 0.1], [-26, 34, 0.13, 0.1], [0, 36, 0.12, 0.09], [26, 34, 0.13, 0.1], [52, 30, 0.12, 0.1]];
+  for (const [yaw, pitch, w, h] of lobes) b.add(G.ball(1, 16), P_HAIR, { ...at(on(yaw, pitch, 1.0)), dir: nrm(yaw, pitch), s: [w, 0.06, h] });
+  // a soft gloss on the crown, lying on the hair
+  for (const sx of [-1, 1]) b.add(G.ball(1, 10), P_HAIR_LITE, { ...at(on(sx * 24, 54, 1.03)), dir: nrm(sx * 24, 54), s: [0.07, 0.012, 0.025] });
+  // side locks framing the cheeks
+  for (const sx of [-1, 1]) {
+    b.add(G.ball(1, 14), P_HAIR, { ...at(on(sx * 66, -6, 0.99)), ry: sx * 66 * DEG, rz: -sx * 0.1, s: [0.065, 0.135, 0.045] });
+    // pigtail puffs behind the ears with ribbon ties
+    b.add(G.ball(0.09, 12), P_HAIR, { x: sx * 0.46, y: -0.05, z: -0.16, s: [0.8, 1.1, 0.85] });
+    b.add(G.ball(0.028, 8), P_HAIR_LITE, { x: sx * 0.49, y: 0.01, z: -0.11 });
+    b.add(G.torus(0.05, 0.016, 12), P_HAIR_TIE, { x: sx * 0.42, y: 0.01, z: -0.14, ry: sx * 1.1, rx: 0.3 });
+  }
+  // tiny button nose and a sweet little smile
+  b.add(G.ball(0.017, 8), '#ff9cbc', { ...at(on(0, -12, 1.01)), s: [1.35, 0.95, 0.8] });
+  const smile = on(0, -23, 1.01);
+  b.add(G.torus(0.032, 0.0085, 10, Math.PI * 0.8), '#d65f8f', { x: smile[0], y: smile[1], z: smile[2], rz: Math.PI * 1.1, rx: 0.3 });
+  // a tiny sparkle on each cheek
+  for (const sx of [-1, 1]) b.add(G.ball(0.011, 6), '#fff4f8', { ...at(on(sx * 36, -7, 1.015)) });
+  // plush rosy cheeks: flattened discs lying on the head curve, drawn see-through
+  for (const sx of [-1, 1]) bl.add(G.ball(1, 14), BLUSH, { ...at(on(sx * 41, -14, 0.995)), dir: nrm(sx * 41, -14), s: [0.088, 0.02, 0.064] });
+  // plush ears: round outer, a soft contour rim and pink inner padding
+  for (const sx of [-1, 1]) {
+    const ex = sx * 0.27, ey = 0.29, rz = -sx * 0.35;
+    top.add(G.ball(0.135, 14), skin, { x: ex, y: ey, z: -0.04, rz, s: [1, 0.95, 0.62] });
+    top.add(G.torus(0.088, 0.02, 16), '#ffd3e4', { x: ex, y: ey - 0.005, z: 0.03, rz });
+    top.add(G.ball(0.082, 12), '#ffb0cc', { x: ex, y: ey - 0.005, z: 0.02, rz, s: [1, 0.95, 0.4] });
+  }
+  // a little sprout on top
+  top.add(G.capsule(0.018, 0.08), P_HAIR, { x: 0.03, y: HB * 1.05 + 0.03, z: 0.02, rz: 0.6, rx: -0.25 });
+  top.add(G.ball(0.03, 8), P_HAIR_LITE, { x: 0.075, y: HB * 1.05 + 0.08, z: 0.04 });
+  blushMat ??= makeToon(BLUSH, { transparent: true, opacity: 0.62 });
+  blushMat.depthWrite = false;
+  const blush = bl.build(blushMat, false);
+  blush.renderOrder = 1;
+  return { head: b.build(), topper: top.build(), blush };
+}
+
+/**
+ * Player eyes: a glossy dark iris with a rosy gradient toward the bottom, a soft upper lash with a wing flick,
+ * and two catchlights (big + small, unlit so they always sparkle). Built as one group so blink / expressions
+ * scale the whole eye. `closed` is the happy ^^ pair, swapped in for the 'happy' face.
+ */
+function buildPlayerEyes(): { eyes: THREE.Group; closed: THREE.Mesh } {
+  const [, ey] = on(P_EYE_YAW, P_EYE_PITCH);
+  const dark: THREE.BufferGeometry[] = [], shine: THREE.BufferGeometry[] = [], shut: THREE.BufferGeometry[] = [];
+  const place = new THREE.Matrix4(), q = new THREE.Quaternion(), z = new THREE.Vector3(0, 0, 1), n = new THREE.Vector3(), pos = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1);
+  for (const sx of [-1, 1]) {
+    const yaw = sx * P_EYE_YAW;
+    const p = on(yaw, P_EYE_PITCH, 0.99);
+    n.set(...nrm(yaw, P_EYE_PITCH));
+    q.setFromUnitVectors(z, n);
+    place.compose(pos.set(p[0], p[1] - ey, p[2]), q, one);
+    // one eye, facing +z with its centre on the head surface
+    const d = new Batch()
+      .add(G.ball(1, 16), P_EYE, { s: [0.064, 0.082, 0.024] })
+      .add(G.ball(1, 12), P_EYE_MID, { y: -0.022, z: 0.013, s: [0.05, 0.05, 0.012] })
+      .add(G.ball(1, 10), P_EYE_LOW, { y: -0.048, z: 0.016, s: [0.034, 0.022, 0.008] })
+      .add(G.torus(0.072, 0.012, 14, Math.PI * 0.84), P_LASH, { y: 0.004, z: 0.012, rz: Math.PI * 0.08, s: [1, 1.13, 0.7] })
+      .add(G.capsule(0.011, 0.034), P_LASH, { x: sx * 0.072, y: 0.058, z: 0.008, rz: -sx * 0.95 });
+    const s = new Batch()
+      .add(G.ball(0.025, 10), '#ffffff', { x: -0.022, y: 0.03, z: 0.026 })
+      .add(G.ball(0.012, 8), '#ffffff', { x: 0.024, y: -0.03, z: 0.022 });
+    const c = new Batch()
+      .add(G.torus(0.056, 0.012, 14, Math.PI * 0.8), P_LASH, { y: -0.02, z: 0.012, rz: Math.PI * 0.1 })
+      .add(G.capsule(0.009, 0.026), P_LASH, { x: sx * 0.058, y: -0.004, z: 0.01, rz: -sx * 1.2 });
+    dark.push(d.geometry().applyMatrix4(place));
+    shine.push(s.geometry().applyMatrix4(place));
+    shut.push(c.geometry().applyMatrix4(place));
+  }
+  shineMat ??= registerUnlit(new THREE.MeshBasicMaterial({ color: '#ffffff' }));
+  const eyes = new THREE.Group();
+  const iris = new THREE.Mesh(mergeGeometries(dark), vertexToon());
+  const glints = new THREE.Mesh(mergeGeometries(shine), shineMat);
+  eyes.add(iris, glints);
+  eyes.position.y = ey;
+  const closed = new THREE.Mesh(mergeGeometries(shut), vertexToon());
+  closed.position.y = ey;
+  closed.visible = false;
+  return { eyes, closed };
+}
+
 function bowGeo(b: Batch, color: string, k = 1) {
   for (const sx of [-1, 1]) b.add(G.ball(0.12, 10), color, { x: sx * 0.11 * k, s: [1.05 * k, 0.8 * k, 0.5 * k], rz: sx * 0.25, uv: [0.6, 0.4] });
   b.add(G.ball(0.055, 8), color, { s: k, uv: [0.2, 0.2] });
@@ -319,6 +406,8 @@ interface Spec {
   bodyScale?: [number, number, number];
   /** Bigger eyes read younger. 1 is the shared default. */
   eyeScale?: number;
+  /** Rounded mitten paws (a thumb nub + pink pad) and button shoes with a cream sole. */
+  plush?: boolean;
   /** Add model-level pieces (tail, mist skirt…). May return a per-frame callback (t, walk 0..1). */
   extra?: (parts: { model: THREE.Group; body: THREE.Group; head: THREE.Group }) => ((t: number, walk: number) => void) | void;
 }
@@ -349,7 +438,13 @@ function build(sp: Spec) {
     const sleeve = new THREE.Mesh(sleeveGeo!, dressMat);
     sleeve.castShadow = true;
     const forearm = new THREE.Mesh(forearmGeo!, toon(sp.skin));
-    const hb = new Batch().add(G.ball(0.086, 12), sp.skin, { y: -0.27 });
+    const hb = new Batch();
+    if (sp.plush) {
+      // a round mitten paw: soft ball, a little thumb nub to the front and a pink pad on the palm side
+      hb.add(G.ball(0.09, 14), sp.skin, { y: -0.27, s: [1, 0.94, 0.95] });
+      hb.add(G.ball(0.036, 8), sp.skin, { x: -sx * 0.03, y: -0.255, z: 0.07 });
+      hb.add(G.ball(0.034, 8), '#ffc2d6', { x: -sx * 0.072, y: -0.28, z: 0.01, s: [0.45, 1, 1] });
+    } else hb.add(G.ball(0.086, 12), sp.skin, { y: -0.27 });
     if (sp.bag && sx === 1) {
       // round pink shopping bag with a little heart
       hb.add(G.ball(0.11, 12), PALETTE.pink, { y: -0.48, s: [1.05, 0.95, 0.7] });
@@ -369,7 +464,13 @@ function build(sp: Spec) {
     pivot.position.set(sx * 0.12, LEG_Y, 0);
     const leg = new THREE.Mesh(legGeo!, toon(sp.skin));
     leg.castShadow = true;
-    const shoe = new Batch().add(G.ball(0.105, 12), sp.shoes, { y: -0.2, z: 0.03, s: [1.05, 0.72, 1.25] }).build();
+    const sb = new Batch().add(G.ball(0.105, 14), sp.shoes, { y: -0.2, z: 0.03, s: [1.05, 0.72, 1.25] });
+    if (sp.plush) {
+      // a cream sole and a round toe button
+      sb.add(G.ball(0.108, 14), '#fff4e6', { y: -0.235, z: 0.03, s: [1.06, 0.3, 1.26] });
+      sb.add(G.ball(0.024, 8), '#fff4e6', { y: -0.17, z: 0.14 });
+    }
+    const shoe = sb.build();
     pivot.add(leg, shoe);
     return { pivot, leg, shoe };
   });
@@ -378,10 +479,17 @@ function build(sp: Spec) {
   const head = new THREE.Group();
   head.position.y = HEAD_Y + (sp.headDrop ?? 0);
   head.rotation.x = -0.13; // chin up towards the high camera
-  const eyes = buildEyes();
   const eyeK = sp.eyeScale ?? 1;
+  let eyes: THREE.Object3D, closedEyes: THREE.Mesh | null = null, topper: THREE.Mesh | null = null;
+  if (sp.kind === 'player') {
+    const ph = buildPlayerHead(sp.skin), pe = buildPlayerEyes();
+    eyes = pe.eyes; closedEyes = pe.closed; topper = ph.topper;
+    head.add(ph.head, ph.topper, ph.blush, eyes, closedEyes);
+  } else {
+    eyes = buildEyes();
+    head.add(buildHead(sp.kind, sp.skin, sp.accent), eyes);
+  }
   eyes.scale.set(eyeK, eyeK, 1);
-  head.add(buildHead(sp.kind, sp.skin, sp.accent), eyes);
 
   if (sp.headScale) head.scale.set(...sp.headScale);
   model.add(body, legs[0].pivot, legs[1].pivot, head);
@@ -396,8 +504,8 @@ function build(sp: Spec) {
   let ang = 0, last = -1, walk = 0, phase = 0, runK = 0, hasPrev = false, prevX = 0, prevZ = 0;
   model.rotation.order = 'YXZ'; // yaw first, so the lean tips along the facing direction
   const off = Math.random() * 10;
-  const api: ActorMesh & { model: THREE.Group; dressMat: THREE.MeshToonMaterial; bandMat: THREE.MeshToonMaterial; head: THREE.Group; body: THREE.Group; dress: THREE.Mesh; band: THREE.Mesh; arms: typeof arms; legs: typeof legs; setExpression(e: Expression): void } = {
-    root, model, dressMat, bandMat, head, body, dress, band, arms, legs,
+  const api: ActorMesh & { model: THREE.Group; dressMat: THREE.MeshToonMaterial; bandMat: THREE.MeshToonMaterial; head: THREE.Group; body: THREE.Group; dress: THREE.Mesh; band: THREE.Mesh; arms: typeof arms; legs: typeof legs; topper: THREE.Mesh | null; setExpression(e: Expression): void } = {
+    root, model, dressMat, bandMat, head, body, dress, band, arms, legs, topper,
     setFacing(f, dt) { ang = lerpAngle(ang, FACE_ANGLE[f], Math.min(1, dt * 14)); model.rotation.y = ang; },
     animate(t, moving, run = false) {
       const dt = last < 0 ? 0 : Math.min(0.05, Math.max(0, t - last));
@@ -459,6 +567,13 @@ function build(sp: Spec) {
       const ex = EXPR[expr];
       eyes.scale.x = eyeK * ex.x;
       eyes.scale.y = Math.min(ex.y, (t + off * 3) % 3.7 < 0.12 ? 0.12 : 1) * eyeK; // blink
+      if (closedEyes) {
+        // the happy face swaps the open eyes for ^^ arcs
+        const shut = !!ex.closed;
+        closedEyes.visible = shut;
+        eyes.visible = !shut;
+        closedEyes.scale.set(eyeK * ex.x, eyeK, 1);
+      }
       marker.position.y = 2.0 * sp.scale + Math.sin(t * 3) * 0.06;
       tick?.(t, w);
     },
@@ -474,7 +589,7 @@ function build(sp: Spec) {
 /** Handmade accessories (item ids of kind 'accessory') as tiny props on the player's head. */
 function buildAccessories(): Record<string, THREE.Object3D> {
   const pin = (o: THREE.Object3D, yaw: number, pitch: number, tilt = 0) => {
-    o.position.set(...on(yaw, pitch, 1.02));
+    o.position.set(...on(yaw, pitch, 1.07)); // sits on the hair, clear of the fringe
     o.lookAt(o.position.clone().multiplyScalar(2)); // face straight out from the head (no parent yet: local = world)
     o.rotateZ(tilt);
     o.scale.setScalar(1.45);
@@ -501,8 +616,8 @@ function buildAccessories(): Record<string, THREE.Object3D> {
 /** The player's toy rig: the activity animator (playerActs.ts) poses these joints on top of idle / walk. */
 /** Photo-mode faces: how the shared eye mesh is stretched (x wide, y tall; a thin y reads as closed, smiling eyes). */
 export type Expression = 'sweet' | 'happy' | 'dreamy' | 'wow';
-const EXPR: Record<Expression, { x: number; y: number }> = {
-  sweet: { x: 1, y: 1 }, happy: { x: 1.12, y: 0.26 }, dreamy: { x: 1.02, y: 0.55 }, wow: { x: 1.16, y: 1.2 },
+const EXPR: Record<Expression, { x: number; y: number; closed?: boolean }> = {
+  sweet: { x: 1, y: 1 }, happy: { x: 1.12, y: 0.26, closed: true }, dreamy: { x: 1.02, y: 0.55 }, wow: { x: 1.16, y: 1.2 },
 };
 
 export interface PlayerRig {
@@ -515,12 +630,23 @@ export interface PlayerRig {
 export function createPlayerMesh(): ActorMesh & PlayerRig & { setLook(l: Look): void; setAccessory(id: string | null): void } {
   const a = build({
     kind: 'player', skin: '#ffe9f4', accent: PALETTE.pink, dress: '#fff1e0', band: 'pink', shoes: '#ff8fb8',
-    scale: 1, headScale: [1.1, 1.06, 1.08], headDrop: -0.04, bodyScale: [1.08, 0.92, 1.08], eyeScale: 1.16,
+    // chibi: a bigger head over a soft, round little body
+    scale: 1, headScale: [1.14, 1.1, 1.12], headDrop: -0.04, bodyScale: [1.08, 0.92, 1.08], eyeScale: 1.06, plush: true,
   });
   // the wardrobe draws the clothes; the stock dress / hem of the shared body stay hidden
   a.dress.visible = a.band.visible = false;
   const accessories = buildAccessories();
   a.head.add(...Object.values(accessories));
+  // a soft rounded Peter Pan collar with a little bow, recoloured from whatever top / dress is worn
+  const collarGeo = new Batch();
+  // built around z = 0 and pushed out to the outfit's chest in setLook
+  for (const sx of [-1, 1]) collarGeo.add(G.ball(1, 14), '#ffffff', { x: sx * 0.078, y: 0.415, z: 0, rz: sx * 0.42, rx: -0.42, s: [0.088, 0.058, 0.026] });
+  const collar = new THREE.Mesh(collarGeo.geometry(), fabric('#ffffff'));
+  const neckBow = bowGeo(new Batch(), '#ffffff', 0.36).build(fabric('#ffffff'));
+  neckBow.position.set(0, 0.43, 0.03);
+  neckBow.rotation.x = -0.35;
+  collar.castShadow = true;
+  a.body.add(collar, neckBow);
   const skinLeg = toon('#ffe9f4');
   const worn = new Map<string, THREE.Object3D>(); // slot -> model currently attached
   const attach = (slot: string, obj: THREE.Object3D | null, parent: THREE.Object3D | null) => {
@@ -544,6 +670,17 @@ export function createPlayerMesh(): ActorMesh & PlayerRig & { setLook(l: Look): 
       attach('dress', l.dress ? buildCloth(l.dress) : null, a.body);
       attach('top', l.dress ? null : buildCloth(l.top), a.body);
       attach('bottom', l.dress ? null : buildCloth(l.bottom), a.body);
+      // collar + bow follow the outfit's colours; items with their own neckline keep theirs
+      const neckItem = l.dress ?? l.top;
+      const ownNeck = !!neckItem.deco?.some((k) => NECKLINE_DECO.has(k));
+      collar.visible = neckBow.visible = !ownNeck;
+      if (!ownNeck) {
+        const z = chestR(l, 0.415) + 0.004;
+        collar.position.z = z;
+        neckBow.position.z = z + 0.03;
+        collar.material = fabric(neckItem.trim, neckItem.trimPattern);
+        neckBow.material = fabric(neckItem.color, neckItem.pattern, neckItem.ink);
+      }
       // sleeves + legs follow the clothes
       const sl = sleeveOf(l), pants = legsOf(l);
       for (const arm of a.arms) {
@@ -559,6 +696,8 @@ export function createPlayerMesh(): ActorMesh & PlayerRig & { setLook(l: Look): 
       attach('hat', l.hat ? buildCloth(l.hat) : null, a.head);
       const hood = headExtraOf(l);
       attach('hood', hood && !l.hat ? buildHood(hood) : null, a.head);
+      // plush ears + sprout tuck away under hats and hoods that cover the crown
+      if (a.topper) a.topper.visible = l.hat ? EARS_SHOW.has(l.hat.shape) : !hood;
       attach('face', l.face ? buildCloth(l.face) : null, a.head);
       // bag: hand-held (right hand) or on the back / hip
       const bagObj = l.bag ? buildCloth(l.bag) : null;
@@ -568,6 +707,11 @@ export function createPlayerMesh(): ActorMesh & PlayerRig & { setLook(l: Look): 
     },
   });
 }
+
+/** Hats small enough that the plush ears still peek out. */
+const EARS_SHOW = new Set(['bow', 'batbow', 'clips', 'headband', 'tiara', 'flowercrown', 'antennae', 'earmuffs']);
+/** Body decos that already dress the neckline (the stock collar steps aside for them). */
+const NECKLINE_DECO = new Set(['collar', 'sailor', 'turtle', 'scarf', 'fur', 'hood', 'bow']);
 
 const HEAD_COLORS: Record<string, string> = { dormouse: '#fbe3ea', hamster: '#f6d9a0', hedgehog: '#e8cfc0', bunny: '#ebe3fa', capybara: '#e9c9a0', moth: '#f4ecff', axolotl: '#ffc4d8', seal: '#f4d2e0' };
 const VILLAGER_LOOK: Record<string, { dress?: Fill; band: Fill; shoes: string; bow?: Fill }> = {

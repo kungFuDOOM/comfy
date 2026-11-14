@@ -432,6 +432,16 @@ function bodyExtras(p: Piece, c: ClothDef, d: (k: string) => boolean, hemY: numb
   if (d('poodle')) { p.t(G.ball(0.07, 10), { x: -0.12, y: hemY + 0.07, z: r(hemY + 0.07) + 0.01, s: [1, 1, 0.25] }, '#ffffff'); p.t(G.ball(0.03, 8), { x: -0.12, y: hemY + 0.1, z: r(hemY + 0.07) + 0.025 }, '#ffffff'); }
   if (d('sparkle')) for (const [x, y, s] of [[-0.14, hemY + 0.12, 0.03], [0.12, hemY + 0.07, 0.025], [0.04, hemY + 0.2, 0.025]] as const) p.t(starGeo(s), { x, y, z: r(y) + 0.008 }, '#fff3a8');
 }
+/** A row of soft rounded scallops hanging from a hem, in the trim fabric. */
+function scallops(p: Piece, hemY: number, hemR: number) {
+  const n = Math.max(12, Math.round(hemR * 46));
+  const w = ((Math.PI * hemR) / n) * 1.18;
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    p.tp(G.ball(1, 8), { x: Math.sin(a) * hemR, y: hemY - 0.004, z: Math.cos(a) * hemR, ry: a, s: [w, 0.03, 0.016] });
+  }
+}
+const plainHem = (d: (k: string) => boolean) => !d('ruffle') && !d('fringe') && !d('stripehem');
 function finishBody(p: Piece): THREE.Group {
   const g = p.group();
   if (p.cape) {
@@ -455,6 +465,7 @@ function buildDress(c: ClothDef): THREE.Group {
   const band = new THREE.Mesh(lathe(`b:${c.shape}`, [[rAt(pts, hy) * 1.015, hy - 0.006], [rAt(pts, hy + 0.05) * 1.02, hy + 0.05]], 28), fabric(c.trim, c.trimPattern, undefined, true));
   band.castShadow = true;
   bodyExtras(p, c, d, hy, rAt(pts, hy + 0.02), (y) => rAt(pts, y), false);
+  if (plainHem(d)) scallops(p, hy, rAt(pts, hy) * 1.02);
   const g = finishBody(p);
   g.add(body, band);
   return g;
@@ -493,6 +504,7 @@ function buildBottom(c: ClothDef): THREE.Group {
   const d = (k: string) => !!c.deco?.includes(k);
   bodyExtras(p, c, d, s.yh, s.rh, (y) => rAt(pts, Math.max(s.yh, y)) * 1.0, false);
   if (s.kind === 'skirt') {
+    if (plainHem(d)) scallops(p, s.yh, s.rh * 1.02);
     const band = new THREE.Mesh(lathe(`bb:${c.shape}`, [[s.rh * 1.015, s.yh - 0.006], [rAt(pts, s.yh + 0.045) * 1.02, s.yh + 0.045]], 26), fabric(c.trim, c.trimPattern, undefined, true));
     band.castShadow = true;
     const g = finishBody(p);
@@ -575,6 +587,16 @@ export function legsOf(look: Look): THREE.MeshToonMaterial | null {
   if (look.dress) return null;
   const k = BOTTOM_SHAPES[look.bottom.shape]?.kind;
   return k === 'pants' || k === 'overalls' ? fabricOf(look.bottom) : null;
+}
+/** Outfit surface radius at a hip-relative height on the chest, so neck pieces (the stock collar) sit on top of it. */
+export function chestR(look: Look, y: number): number {
+  if (look.dress) {
+    const s = DRESS_SHAPES[look.dress.shape] ?? DRESS_SHAPES.aline;
+    return rAt(profile(s.yh, s.rh, s.rw, s.rt, 0.56), y);
+  }
+  const s = TOP_SHAPES[look.top.shape] ?? TOP_SHAPES.tee;
+  const t = Math.max(0, Math.min(1, (y - s.yb) / (0.54 - s.yb)));
+  return bodyR(y) * s.puff * (1 + (s.flare - 1) * (1 - t) ** 2);
 }
 /** Hood ears etc. that belong on the head (onesies). */
 export function headExtraOf(look: Look): ClothDef | null {
