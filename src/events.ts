@@ -6,8 +6,10 @@
 //   ?event=<id>          force that event active; its peak (feast) day is the "current" day
 //   ?date=YYYY-MM-DD     pretend it is that calendar day (also moves seasons, daily stock, ...)
 //   ?event=harvest&date=2026-11-22   a regular event day instead of the peak day
+//   ?cutscene=<id>       also implies the event + date that scene needs (src/cutscene/presets.ts), unless set explicitly
 import type * as THREE from 'three';
 import { bus, changed, toast } from './bus';
+import { presetParam } from './cutscene/presets';
 import { grantCloth } from './wardrobe';
 import { clothById } from './clothes';
 import { ITEMS } from './data';
@@ -132,7 +134,7 @@ export function dateRange(def: EventDef): string {
   return `${prettyDay(def.start)} to ${prettyDay(def.end)}, ${parseDay(def.end).getFullYear()}`;
 }
 
-const forcedId = new URLSearchParams(location.search).get('event');
+const forcedId = new URLSearchParams(location.search).get('event') ?? presetParam('event');
 const forcedEvent = (): EventDef | undefined => (forcedId ? eventById(forcedId) : undefined);
 
 /** The calendar day events see: ?date=, else the peak day of a forced ?event, else the real day. */
