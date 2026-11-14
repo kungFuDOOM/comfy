@@ -20,7 +20,7 @@ initDevices(); // prompt glyphs + gamepad hot-plug from the very first screen
 // The game opens on the main menu. Shortcuts for testing:
 //   ?scene=game  -> straight into play (a brand-new save still gets its arrival first)
 //   ?scene=intro -> replay the arrival cutscene, then play
-//   ?cutscene=<id> -> straight into play and preview that scene (harvest-feast, christmas-eve, christmas-day); wins over ?scene=
+//   ?cutscene=<id> -> straight into play and preview that scene (harvest-feast, christmas-eve, christmas-day, first-snowfall); wins over ?scene=
 const scene = new URLSearchParams(location.search).get('scene');
 if (cutsceneParam) bootCutscenePreview(cutsceneParam);
 else if (scene === 'game') bootIntoGame();

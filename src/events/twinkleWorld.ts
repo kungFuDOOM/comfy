@@ -98,16 +98,18 @@ void main() {
 }`;
 const HALO_VERT = /* glsl */ `
 attribute vec3 aColor; attribute float aSize; attribute float aPhase;
-uniform float uTime; uniform float uScale; uniform float uGlow;
+uniform float uTime; uniform float uScale; uniform float uGlow; uniform vec4 uWave; // x, z, radius, soft edge
 varying float vA; varying vec3 vC;
 void main() {
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  vec3 wp = (modelMatrix * vec4(position, 1.0)).xyz;
+  float lit = smoothstep(0.0, 1.0, clamp((uWave.z - distance(wp.xz, uWave.xy)) / max(0.01, uWave.w), 0.0, 1.0));
   gl_Position = projectionMatrix * mv;
   // the same beat the bulbs swell on, plus a rare little sparkle
   float tw = max(0.0, sin(uTime * 2.3 + aPhase));
   float spark = pow(max(0.0, sin(uTime * 0.9 + aPhase * 7.0)), 24.0);
   gl_PointSize = min(aSize * (0.78 + 0.3 * tw + 0.35 * spark) * uScale / max(0.1, -mv.z), 256.0);
-  vA = uGlow * (0.42 + 0.48 * tw + 0.5 * spark); vC = aColor;
+  vA = uGlow * lit * (0.42 + 0.48 * tw + 0.5 * spark); vC = aColor;
 }`;
 const HALO_FRAG = /* glsl */ `
 varying float vA; varying vec3 vC;
@@ -138,14 +140,32 @@ function pointScale(this: THREE.Points, renderer: THREE.WebGLRenderer, _s: THREE
   (this.material as THREE.ShaderMaterial).uniforms.uScale.value = h * 0.5 * camera.projectionMatrix.elements[5];
 }
 
+/** Name of the town tree's group in the scene (the first-snowfall cutscene finds it to raise it). */
+export const TWINKLE_TREE_NAME = 'twinkle-tree';
+let snowLevel = 1;
+/** 0..1 multiplier on the falling snow. Cutscenes hold it at 0 until "the snow begins"; always put it back to 1. */
+export const setTwinkleSnow = (k: number) => { snowLevel = Math.max(0, Math.min(1, k)); };
+/** Name of the snow-drift mounds (a cutscene can hide them until the snow has settled). */
+export const TWINKLE_DRIFTS_NAME = 'twinkle-drifts';
+/** The light strings switch on in a wave spreading out from a point: bulbs within `r` tiles are lit (soft edge `soft`).
+ *  null = all lit (the normal state). Cutscenes drive it; always put it back to null. */
+export interface LightWave { x: number; z: number; r: number; soft: number }
+let wave: LightWave | null = null;
+export const setTwinkleLightWave = (w: LightWave | null) => { wave = w; };
+const waveAt = (x: number, z: number) => {
+  if (!wave) return 1;
+  const t = Math.max(0, Math.min(1, (wave.r - Math.hypot(x - wave.x, z - wave.z)) / Math.max(0.01, wave.soft)));
+  return t * t * (3 - 2 * t);
+};
+
 export function createTwinkleWorld(): EventWorld {
   // animated bits, rebuilt on every build()
-  interface Bulb { m: THREE.InstancedMesh; i: number; x: number; y: number; z: number; ph: number; sc: number }
+  interface Bulb { m: THREE.InstancedMesh; i: number; x: number; y: number; z: number; ph: number; sc: number; tree: boolean }
   let bulbs: Bulb[] = [], bulbMeshes: THREE.InstancedMesh[] = [];
   let pools: { m: THREE.Mesh; w: number; d: number; ph: number }[] = [];
   let sparkles: { m: THREE.InstancedMesh; i: number; x: number; y: number; z: number; ph: number; r: number }[] = [];
   let topper: THREE.Object3D | null = null;
-  let lastTick = -1;
+  let lastTick = -1, waveWas = false;
   let snowMat: THREE.ShaderMaterial | null = null, haloMat: THREE.ShaderMaterial | null = null, auraMat: THREE.ShaderMaterial | null = null;
   let nightRef: THREE.MeshToonMaterial | null = null; // any 'lamp' material: its emissive strength tells how dark it is
   let auraBase = 0;
@@ -172,21 +192,25 @@ export function createTwinkleWorld(): EventWorld {
       const bulbGeo = new THREE.SphereGeometry(0.055, 8, 6);
       const bulbSets = BULB.map((b) => { const i = instanced(bulbGeo, mat(b.c, b.glow, 'lamp'), 150, false); bulbMeshes.push(i.mesh); return i; });
       nightRef = bulbSets[0].mesh.material as THREE.MeshToonMaterial;
-      // every bulb also gets a soft warm halo (one additive point cloud for all of them)
-      const haloPos: number[] = [], haloCol: number[] = [], haloSize: number[] = [], haloPh: number[] = [];
+      // the tree's own bulbs live inside the tree group (tree-local coords) so they rise and scale with it
+      const treeSets = BULB.map((b) => { const i = instanced(bulbGeo, mat(b.c, b.glow, 'lamp'), 40, false); bulbMeshes.push(i.mesh); return i; });
+      // every bulb also gets a soft warm halo (one additive point cloud for the strings, one inside the tree)
+      type HaloBuf = { pos: number[]; col: number[]; size: number[]; ph: number[] };
+      const haloBuf = (): HaloBuf => ({ pos: [], col: [], size: [], ph: [] });
+      const worldHalo = haloBuf(), treeHalo = haloBuf();
       const WARM = new THREE.Color('#ffd2a0');
-      const addHalo = (x: number, y: number, z: number, color: string, size: number, ph: number) => {
+      const addHalo = (h: HaloBuf, x: number, y: number, z: number, color: string, size: number, ph: number) => {
         col.set(color).lerp(WARM, 0.35);
-        haloPos.push(x, y, z); haloCol.push(col.r, col.g, col.b); haloSize.push(size); haloPh.push(ph);
+        h.pos.push(x, y, z); h.col.push(col.r, col.g, col.b); h.size.push(size); h.ph.push(ph);
       };
       let bn = 0;
-      const addBulb = (p: THREE.Vector3, sc = 1) => {
-        const k = bn++ % bulbSets.length, set = bulbSets[k];
+      const addBulb = (p: THREE.Vector3, sc = 1, sets = bulbSets, h = worldHalo) => {
+        const k = bn++ % sets.length, set = sets[k];
         const i = set.add(p.x, p.y, p.z, [sc, sc, sc]);
         if (i < 0) return;
         const ph = r() * 6.3;
-        bulbs.push({ m: set.mesh, i, x: p.x, y: p.y, z: p.z, ph, sc });
-        addHalo(p.x, p.y, p.z, BULB[k].glow, 0.42 * sc, ph);
+        bulbs.push({ m: set.mesh, i, x: p.x, y: p.y, z: p.z, ph, sc, tree: sets === treeSets });
+        addHalo(h, p.x, p.y, p.z, BULB[k].glow, 0.42 * sc, ph);
       };
 
       // ---------- strings of lights ----------
@@ -240,7 +264,7 @@ export function createTwinkleWorld(): EventWorld {
       for (const p of posts) mound(p[0], p[1], 0.4, 1);
       mound(TREE.x, TREE.z, 2.3, 14);
       mound(48.5, 46.6, 1.8, 4);
-      drift.done(); root.add(drift.mesh);
+      drift.done(); drift.mesh.name = TWINKLE_DRIFTS_NAME; root.add(drift.mesh);
 
       // ---------- wreaths with bows on the lamp posts ----------
       const wreathGeo = new THREE.TorusGeometry(0.2, 0.07, 6, 16);
@@ -254,6 +278,7 @@ export function createTwinkleWorld(): EventWorld {
 
       // ---------- the town tree ----------
       const tree = new THREE.Group();
+      tree.name = TWINKLE_TREE_NAME;
       const ty = ground(TREE.x, TREE.z);
       tree.position.set(TREE.x, ty, TREE.z);
       tree.add(cyl(0.12, 0.17, 0.5, '#c99a7a', 0, 0.25, 0, 10));
@@ -273,7 +298,7 @@ export function createTwinkleWorld(): EventWorld {
         const pts = spiral(4.2, 0.55, 2.6, 80);
         tree.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 160, 0.032, 5), mat(garlandCol)));
         // tiny lights on the garland
-        pts.forEach((p, i) => { if (i % 5 === 2) addBulb(new THREE.Vector3(TREE.x + p.x, ty + p.y, TREE.z + p.z), 0.9); });
+        pts.forEach((p, i) => { if (i % 5 === 2) addBulb(p, 0.9, treeSets, treeHalo); });
       }
       if (baubles) {
         const set = baubles === 1 ? ['#ff8fb6', '#ffb3cf', '#ff6f94'] : baubles === 2 ? ['#bfe3f7', '#e6f4ff', '#c9a8e8'] : ['#ffd36e', '#fff0b0', '#f7b84a'];
@@ -307,7 +332,7 @@ export function createTwinkleWorld(): EventWorld {
       });
       root.add(tree);
       // a halo around the topper, and a big soft aura over the tree that grows with every decorating step
-      if (glow) addHalo(TREE.x, ty + tipY + 0.08, TREE.z, ['#ffd95e', '#ff8fb6', '#e8f0ff'][glow - 1], finale ? 1.5 : 1.15, 1.0);
+      if (glow) addHalo(treeHalo, 0, tipY + 0.08, 0, ['#ffd95e', '#ff8fb6', '#e8f0ff'][glow - 1], finale ? 1.5 : 1.15, 1.0);
       const steps = (garland ? 1 : 0) + (baubles ? 1 : 0) + (glow ? 1 : 0);
       if (steps) {
         auraBase = (finale ? 0.3 : 0.2) * (steps / 3);
@@ -316,13 +341,13 @@ export function createTwinkleWorld(): EventWorld {
           uniforms: { uColor: { value: new THREE.Color(finale ? '#ffcf8a' : '#ffc9a8') }, uGlow: { value: 0 }, uSize: { value: new THREE.Vector2(finale ? 5.4 : 4.4, finale ? 6.6 : 5.6) } },
         }));
         const aura = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), auraMat);
-        aura.position.set(TREE.x, ty + 1.75, TREE.z); aura.frustumCulled = false; aura.renderOrder = 4;
-        root.add(aura);
+        aura.position.set(0, 1.75, 0); aura.frustumCulled = false; aura.renderOrder = 4;
+        tree.add(aura);
       }
       // warm glow once the tree is fully decorated, brighter for the finale
       if (garland && baubles && glow) {
         const p = lightPool(finale ? 6.4 : 4.4, finale ? 6.4 : 4.4, finale ? '#ffd9a0' : '#ffd0c0', finale ? 0.34 : 0.26);
-        p.position.set(TREE.x, ty + 0.04, TREE.z); pools.push({ m: p, w: finale ? 6.4 : 4.4, d: finale ? 6.4 : 4.4, ph: 0.5 }); root.add(p);
+        p.position.set(0, 0.04, 0); pools.push({ m: p, w: finale ? 6.4 : 4.4, d: finale ? 6.4 : 4.4, ph: 0.5 }); tree.add(p);
       }
 
       // ---------- the cocoa market stall (week 3) ----------
@@ -364,20 +389,26 @@ export function createTwinkleWorld(): EventWorld {
       }
 
       for (const b of bulbSets) { b.done(); root.add(b.mesh); }
+      for (const b of treeSets) { b.done(); tree.add(b.mesh); }
 
       // ---------- bulb halos ----------
-      const haloGeo = new THREE.BufferGeometry();
-      haloGeo.setAttribute('position', new THREE.Float32BufferAttribute(haloPos, 3));
-      haloGeo.setAttribute('aColor', new THREE.Float32BufferAttribute(haloCol, 3));
-      haloGeo.setAttribute('aSize', new THREE.Float32BufferAttribute(haloSize, 1));
-      haloGeo.setAttribute('aPhase', new THREE.Float32BufferAttribute(haloPh, 1));
       haloMat = markOwned(new THREE.ShaderMaterial({
         vertexShader: HALO_VERT, fragmentShader: HALO_FRAG, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-        uniforms: { uTime: { value: 0 }, uScale: { value: 500 }, uGlow: { value: 0 } },
+        uniforms: { uTime: { value: 0 }, uScale: { value: 500 }, uGlow: { value: 0 }, uWave: { value: new THREE.Vector4(0, 0, 1e4, 1) } },
       }));
-      const halos = new THREE.Points(haloGeo, haloMat);
-      halos.frustumCulled = false; halos.renderOrder = 4; halos.onBeforeRender = pointScale;
-      root.add(halos);
+      const halos = (h: HaloBuf, parent: THREE.Object3D) => {
+        if (!h.pos.length) return;
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.Float32BufferAttribute(h.pos, 3));
+        g.setAttribute('aColor', new THREE.Float32BufferAttribute(h.col, 3));
+        g.setAttribute('aSize', new THREE.Float32BufferAttribute(h.size, 1));
+        g.setAttribute('aPhase', new THREE.Float32BufferAttribute(h.ph, 1));
+        const pts = new THREE.Points(g, haloMat!);
+        pts.frustumCulled = false; pts.renderOrder = 4; pts.onBeforeRender = pointScale;
+        parent.add(pts);
+      };
+      halos(worldHalo, root);
+      halos(treeHalo, tree);
 
       // ---------- falling snow: fluffy flakes of many sizes, drifting and swaying on the breeze ----------
       const seed = new Float32Array(SNOW * 3), extra = new Float32Array(SNOW * 4);
@@ -403,16 +434,21 @@ export function createTwinkleWorld(): EventWorld {
       const night = nightRef ? Math.min(1, nightRef.emissiveIntensity / LAMP_HDR) : 0;
       if (snowMat) {
         const u = snowMat.uniforms;
-        u.uTime.value = t; u.uOpacity.value = 0.92 - night * 0.22;
+        u.uTime.value = t; u.uOpacity.value = (0.92 - night * 0.22) * snowLevel;
         (u.uColor.value as THREE.Color).setRGB(1 - night * 0.36, 1 - night * 0.3, 1 - night * 0.12); // moonlit blue at night
       }
-      if (haloMat) { haloMat.uniforms.uTime.value = t; haloMat.uniforms.uGlow.value = 0.1 + night * 0.62; }
+      if (haloMat) {
+        const u = haloMat.uniforms;
+        u.uTime.value = t; u.uGlow.value = 0.1 + night * 0.62;
+        (u.uWave.value as THREE.Vector4).set(wave?.x ?? 0, wave?.z ?? 0, wave?.r ?? 1e4, wave?.soft ?? 1);
+      }
       if (auraMat) auraMat.uniforms.uGlow.value = auraBase * (0.12 + night * 0.88) * (1 + Math.sin(t * 0.9) * 0.06);
       // bulbs twinkle: each swells and shrinks on its own beat (~15 updates a second is plenty)
-      if (t - lastTick > 0.066 || t < lastTick) {
-        lastTick = t;
+      // (every frame while a light wave is running, so the bulbs pop on smoothly)
+      if (wave || waveWas || t - lastTick > 0.066 || t < lastTick) {
+        lastTick = t; waveWas = !!wave;
         for (const b of bulbs) {
-          const k = b.sc * (0.82 + 0.34 * Math.max(0, Math.sin(t * 2.3 + b.ph)));
+          const k = b.sc * (0.82 + 0.34 * Math.max(0, Math.sin(t * 2.3 + b.ph))) * (b.tree ? 1 : 0.45 + 0.55 * waveAt(b.x, b.z)); // unlit bulbs sit small and dark
           dummy.position.set(b.x, b.y, b.z); dummy.rotation.set(0, 0, 0); dummy.scale.setScalar(k); dummy.updateMatrix();
           b.m.setMatrixAt(b.i, dummy.matrix);
         }
