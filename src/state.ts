@@ -165,6 +165,8 @@ export interface SaveData {
   seenHelp: boolean;
   /** The new-game arrival cutscene has played (or been skipped) for this save. */
   seenIntro: boolean;
+  /** Ids of cutscenes watched (or skipped) in a real play, never in a ?cutscene= preview. Older saves start empty. */
+  seenCutscenes: string[];
   /** Total XP per skill; the level is always derived from it (see skills.ts). */
   skills: Record<string, number>;
   /** Chest storage at home. */
@@ -227,6 +229,7 @@ export function defaultState(): SaveData {
     spawns: [],
     seenHelp: false,
     seenIntro: false,
+    seenCutscenes: [],
     skills: {},
     bank: {},
     nodes: {},
