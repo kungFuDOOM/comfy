@@ -155,6 +155,10 @@ export const setTwinkleLightWave = (w: LightWave | null) => { wave = w; };
 let treeGlow = 1;
 /** How brightly the town tree's own lights burn: 1 = normal, 0 = unlit, up to 2 = the tree-lighting blaze. Cutscenes drive it; always put it back to 1. */
 export const setTwinkleTreeGlow = (k: number) => { treeGlow = Math.max(0, Math.min(2, k)); };
+let pickFill: number[] | null = null;
+/** Render-only stand-in picks for tree steps the save has not picked yet (the ?cutscene=tree-lighting preview), so the
+ *  saved counters are never touched (a persist mid-preview can't keep them). null = the save's own picks. */
+export const setTwinkleTreePickFill = (p: number[] | null) => { pickFill = p; };
 const waveAt = (x: number, z: number) => {
   if (!wave) return 1;
   const t = Math.max(0, Math.min(1, (wave.r - Math.hypot(x - wave.x, z - wave.z)) / Math.max(0.01, wave.soft)));
@@ -175,7 +179,7 @@ export function createTwinkleWorld(): EventWorld {
 
   const picks = () => {
     const c = eventProgress('twinkle').counters;
-    return TREE_STEPS.map((s) => Math.max(0, Math.min(3, c[s.key] ?? 0)));
+    return TREE_STEPS.map((s, i) => Math.max(0, Math.min(3, (c[s.key] ?? 0) || (pickFill?.[i] ?? 0))));
   };
 
   return {
