@@ -9,3 +9,5 @@ export { startGathering, gatheringPlaying } from './gathering';
 export { openCookieBake } from './cookieBake';
 export { queueTreeLighting, startTreeLighting, treeLightingDue, treeLightingPlaying } from './treeLighting';
 export { startFirstSnowfall, firstSnowfallDue, firstSnowfallPlaying, maybeStartFirstSnowfall } from './firstSnowfall';
+export { startFirstPie, firstPieDue, firstPiePlaying, maybeStartFirstPie } from './firstPie';
+export { startGoldenPie, goldenPieDue, goldenPiePlaying, queueGoldenPie } from './goldenPie';

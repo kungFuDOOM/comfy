@@ -31,6 +31,7 @@ import { saveGame } from './save';
 import { activeEventSpots, eventSpotAtTile, tickEvents, visualSeason, type EventSpot } from './events';
 import './events/index';
 import { maybeStartFirstSnowfall } from './events/firstSnowfall';
+import { maybeStartFirstPie } from './events/firstPie';
 import { cutsceneParam } from './cutscene/presets';
 import { state } from './state';
 import { getClock } from './time';
@@ -398,6 +399,7 @@ export function startGame() {
   tickEvents(); // seasonal events: greet, build the table's collision (the 3D decorations follow on the first frame)
   tickMerchant(); // the traveling merchant: open her stall (and its counter's collision) if today is her day
   if (!cutsceneParam) maybeStartFirstSnowfall(() => isPanelOpen()); // first login on / after Nov 27: the First Snowfall scene, once per save
+  if (!cutsceneParam) maybeStartFirstPie(() => isPanelOpen()); // first login during the Harvest Hush Feast: Brioche's pie lesson, once per save
   cancelAct();
   if (booted) {
     cancelPath();
