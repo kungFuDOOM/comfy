@@ -117,6 +117,22 @@ export interface StyleSave {
 }
 export const defaultStyle = (): StyleSave => ({ ribbons: {}, hosted: {}, entries: 0 });
 
+/**
+ * Villager conversation memory (talk/engine.ts). Optional in older saves: loadGame() fills in an empty one.
+ * Only line ids and small counters, never free text.
+ */
+export interface TalkSave {
+  /** Recently said line ids per villager, oldest first (so nobody repeats themselves too soon). */
+  recent: Record<string, string[]>;
+  /** Lifetime stats at the last chat with each villager, so they can notice what you have been up to since. */
+  since: Record<string, Record<string, number>>;
+  /** One-time remarks already made (news about a new area, a new pet...). */
+  once: string[];
+  /** The last thing you gave each villager, for a later "thank you again". */
+  gift: Record<string, { item: string; taste: string; day: string }>;
+}
+export const defaultTalk = (): TalkSave => ({ recent: {}, since: {}, once: [], gift: {} });
+
 /** A keepsake in the photo album: only a small JPEG thumbnail is stored (the full photo is saved as a PNG download). */
 export interface Photo {
   /** Timestamp (ms) the photo was taken; also its id. */
@@ -197,6 +213,8 @@ export interface SaveData {
   style: StyleSave;
   /** Traveling merchant visit + stock; older saves get a fresh one. */
   merchant: MerchantSave;
+  /** Villager conversation memory; older saves get an empty one. */
+  talk: TalkSave;
 }
 
 export function defaultState(): SaveData {
@@ -245,6 +263,7 @@ export function defaultState(): SaveData {
     photos: [],
     style: defaultStyle(),
     merchant: defaultMerchant(),
+    talk: defaultTalk(),
   };
 }
 

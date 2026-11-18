@@ -1,4 +1,4 @@
-import { defaultBonds, defaultMerchant, defaultState, defaultStyle, emptyCollection, state, type SaveData } from './state';
+import { defaultBonds, defaultMerchant, defaultState, defaultStyle, defaultTalk, emptyCollection, state, type SaveData } from './state';
 import { normalizeHome } from './home';
 import { TOWN_OFFSET, MAP_VERSION } from './world';
 import { migrateWardrobe } from './clothes/migrate';
@@ -46,6 +46,7 @@ export function loadGame(): boolean {
     state.petCare = sanitizePetCare(data.petCare); // saves from before Pet Care: fresh counters
     state.errands = sanitizeErrands(data.errands, { item: (id) => !!ITEMS[id], skill: (id) => SKILLS.some((k) => k.id === id), giver: (id) => VILLAGERS.some((v) => v.id === id) }); // saves from before the bulletin board: empty, it posts on the first tick
     state.collection = sanitizeCollection(data.collection);
+    state.talk = sanitizeTalk(data.talk); // saves from before the conversation rework: nothing said yet
     if ((data.mapV ?? 1) < MAP_VERSION) migrateMap();
     state.mapV = MAP_VERSION;
     return true;
@@ -116,6 +117,27 @@ function normalizeFriendship(data: Partial<SaveData>) {
     const v = Number(state.friend[k]);
     state.friend[k] = Number.isFinite(v) ? Math.max(0, Math.min(200, v)) : 0;
   }
+}
+
+/** Conversation memory is optional in old saves and trusted no further than its shape; lists are capped. */
+function sanitizeTalk(raw: unknown): SaveData['talk'] {
+  const t = defaultTalk();
+  if (!raw || typeof raw !== 'object') return t;
+  const r = raw as Partial<Record<keyof SaveData['talk'], unknown>>;
+  const obj = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : {});
+  const strs = (v: unknown, max: number) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.length < 80) : []).slice(-max);
+  for (const [id, list] of Object.entries(obj(r.recent))) t.recent[id] = strs(list, 36);
+  for (const [id, snap] of Object.entries(obj(r.since))) {
+    const out: Record<string, number> = {};
+    for (const [k, v] of Object.entries(obj(snap))) if (typeof v === 'number' && Number.isFinite(v)) out[k] = v;
+    t.since[id] = out;
+  }
+  t.once = [...new Set(strs(r.once, 400))];
+  for (const [id, g] of Object.entries(obj(r.gift))) {
+    const { item, taste, day } = obj(g);
+    if (typeof item === 'string' && typeof taste === 'string' && typeof day === 'string') t.gift[id] = { item, taste, day };
+  }
+  return t;
 }
 
 /** Collection Log data is optional in old saves, and is trusted no further than its shape. */

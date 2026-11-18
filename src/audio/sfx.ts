@@ -47,7 +47,7 @@ const M = (n: number) => midiHz(n);
 
 export type FootSurface = 'grass' | 'path' | 'sand' | 'wood' | 'snow';
 /** Per-speaker blip pitch (MIDI). Unknown speakers hash to something in the same cheerful range. */
-const BLIP_BASE: Record<string, number> = { mimsy: 76, zuzu: 83, bramble: 67, nimbus: 72 };
+const BLIP_BASE: Record<string, number> = { mimsy: 76, zuzu: 83, bramble: 67, nimbus: 72, brioche: 70, oolie: 86, tuppi: 88, marlo: 64 };
 function baseFor(id: string): number {
   if (id in BLIP_BASE) return BLIP_BASE[id];
   let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt(0)) | 0;

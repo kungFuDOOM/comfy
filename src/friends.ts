@@ -4,7 +4,7 @@
 import { sfx } from './audio';
 import { bus, changed, toast } from './bus';
 import { ITEMS, VILLAGERS, type VillagerDef } from './data';
-import { DISLIKE_REPLY, DISLIKE_REPLY_WARM, FRIEND_INFO, HEART_PTS, MAX_HEARTS, MAX_PTS, type FriendInfo, type LetterDef, type LetterGift, type MaxReward } from './friendData';
+import { FRIEND_INFO, HEART_PTS, MAX_HEARTS, MAX_PTS, type FriendInfo, type LetterDef, type LetterGift, type MaxReward } from './friendData';
 import { addItem, earn } from './inventory';
 import { isAreaOpen, state, type Letter } from './state';
 import { today } from './time';
@@ -85,23 +85,7 @@ export function giftPoints(taste: Taste, drink: boolean): number {
   return taste === 'love' ? 24 : taste === 'like' ? 12 : taste === 'dislike' ? 0 : drink ? 6 : 4;
 }
 
-export function dislikeReply(id: string): string {
-  const pool = hearts(id) >= 6 ? DISLIKE_REPLY_WARM : DISLIKE_REPLY;
-  return pool[(Math.random() * pool.length) | 0];
-}
-
-// ---------- dialogue warm-up ----------
-/** The chat lines a friend draws from: they warm up as hearts rise, with a few new lines at every stage. */
-export function chatPool(def: VillagerDef): string[] {
-  const h = hearts(def.id), info = infoOf(def.id), L = def.lines;
-  if (!info) return L[h >= 8 ? 2 : h >= 4 ? 1 : 0];
-  if (h < 2) return L[0];
-  if (h < 4) return L[1];
-  if (h < 6) return [...info.mid, ...L[1]];
-  if (h < 8) return [...info.close, ...L[1]];
-  if (h < 10) return [...L[2], ...info.close];
-  return [...info.best, ...L[2]];
-}
+// What friends actually say (warming up with hearts, holidays, weather, gifts...) lives in talk/engine.ts.
 
 /** A short label for how well you know each other, shown under the hearts. */
 export function bondLabel(id: string): string {
