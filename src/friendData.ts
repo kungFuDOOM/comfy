@@ -28,7 +28,7 @@ export interface FriendInfo {
   /** Extra tastes. Loved items are the villager's `likes` in data.ts, plus pies and cookies (loved by everyone). */
   like: string[];
   dislike: string[];
-  /** Extra chat lines that appear as hearts grow. */
+  /** Extra chat lines that join the small talk as hearts grow (4, 6 and 10 hearts; see talk/engine.ts). */
   mid: string[];
   close: string[];
   best: string[];
@@ -186,13 +186,3 @@ export const FRIEND_INFO: Record<string, FriendInfo> = {
     ],
   },
 };
-
-/** Items everyone is thrilled with (pies and cookies carry `loved` in data.ts). Never listed as a personal taste. */
-export const DISLIKE_REPLY: string[] = [
-  'Oh. Um. Thank you, it is not quite for me, but I can tell you thought of me.',
-  'Hm. That is not my favorite, but your kindness counts. Truly.',
-];
-export const DISLIKE_REPLY_WARM: string[] = [
-  'Ha! Not my cup of tea, but coming from you, I will treasure the thought.',
-  'Oh, silly, you know I am not fond of that. But I love that you tried!',
-];

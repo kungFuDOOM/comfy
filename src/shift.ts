@@ -6,6 +6,7 @@ import { changed, toast } from './bus';
 import { ITEMS, RECIPES, VILLAGERS, type Recipe, type VillagerDef } from './data';
 import { addItem, earn } from './inventory';
 import { hasMovedIn, presentNpcs, shiftServe } from './npc';
+import { serveLine } from './talk/engine';
 import { bump } from './quests';
 import { grantXp } from './skills';
 import { ensureDaily, state } from './state';
@@ -59,7 +60,7 @@ export function countShift(): string[] {
 /** She finished and served this customer's drink. Pays tip, friendship and Barista XP. */
 export function serveCustomer(c: Customer, perfects: number): ServeResult {
   const r = RECIPES.find((x) => x.id === c.drink);
-  if (!r) return { tip: 0, friend: 0, xp: 0, text: c.def.liked, unlocks: [] }; // unknown drink id: serve nothing, never crash
+  if (!r) return { tip: 0, friend: 0, xp: 0, text: serveLine(c.def, false), unlocks: [] }; // unknown drink id: serve nothing, never crash
   const tip = tipFor(c, perfects);
   const xp = r.xp + perfects * 4;
   const reply = shiftServe(c.def, c.drink, perfects);

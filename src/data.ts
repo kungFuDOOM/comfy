@@ -291,11 +291,10 @@ export interface VillagerDef {
   /** Area that must be open before this friend moves in. Omitted = lives in town from the start. */
   area?: AreaId;
   bio: string;
-  lines: [string[], string[], string[]]; // by friendship tier
+  /** Classic small talk by friendship tier (0, 2 and 8 hearts) and a remark per time of day. Both feed the
+   *  conversation engine (talk/engine.ts) next to each friend's full voice in talk/voices/. */
+  lines: [string[], string[], string[]];
   phase: Record<'morning' | 'day' | 'evening' | 'night', string>;
-  loved: string;
-  liked: string;
-  meh: string;
 }
 
 export const VILLAGERS: VillagerDef[] = [
@@ -315,7 +314,6 @@ export const VILLAGERS: VillagerDef[] = [
       evening: 'Golden hour makes my whiskers tingle.',
       night: 'Shhh... the moths are doing their coffee-steam dance.',
     },
-    loved: 'A Pink Puff Latte?! My heart just did a little tumble!', liked: 'For me? Squee! This is so sweet.', meh: 'Aww, thank you. I will put it somewhere soft.',
   },
   {
     id: 'zuzu', name: 'Dottie Spotwhisk', species: 'hamster', speciesName: 'Cheetah-spotted Hamster',
@@ -333,7 +331,6 @@ export const VILLAGERS: VillagerDef[] = [
       evening: 'Evening looks are my specialty. Sparkles, anyone?',
       night: 'Shh, the mannequins are resting. Pretty, isn\'t it?',
     },
-    loved: 'A Spotted Mocha! You get me. Cheetah-spot sprinkles?! Iconic.', liked: 'Fabulous. I will treasure it, dramatically.', meh: 'Hm, thoughtful! I will find the perfect outfit for it.',
   },
   {
     id: 'bramble', name: 'Bramble Tumbledown', species: 'hedgehog', speciesName: 'Marshmallow Hedgehog',
@@ -351,7 +348,6 @@ export const VILLAGERS: VillagerDef[] = [
       evening: 'The sprouts are sleepy. So am I.',
       night: 'Stars are out. The garden is dreaming.',
     },
-    loved: '...That is my favorite. Do not look at my face right now.', liked: 'Oh. Hm. That is nice. Thanks.', meh: 'It\'s fine. I will find a spot for it. Thanks.',
   },
   {
     id: 'nimbus', name: 'Nimbus Hollowell', species: 'bunny', speciesName: 'Fog-puff Bunny',
@@ -369,7 +365,6 @@ export const VILLAGERS: VillagerDef[] = [
       evening: 'The first lights are drifting up now.',
       night: 'Look up. Isn\'t it wonderful?',
     },
-    loved: 'A gift fit for the grove! My ears are all aflutter.', liked: 'How kind. The grove will remember this.', meh: 'Thank you, dear. Every gift is a small light.',
   },
   {
     id: 'brioche', name: 'Brioche Crumbleton', species: 'capybara', speciesName: 'Pastry-minded Capybara', area: 'meadow',
@@ -387,7 +382,6 @@ export const VILLAGERS: VillagerDef[] = [
       evening: 'Golden light on a flaky crust. That is what dreams are made of.',
       night: 'Shhh... the dough is proofing. Sleep well, dear.',
     },
-    loved: 'A tart?! You are an angel in an apron. Warm pastry for the win!', liked: 'Oh, that is lovely! Pairs perfectly with a pastry, you know.', meh: 'How thoughtful! I will tuck it by the blanket.',
   },
   {
     id: 'oolie', name: 'Oolie Wisperwing', species: 'moth', speciesName: 'Pastel Pressed-flower Moth', area: 'blossom',
@@ -405,7 +399,6 @@ export const VILLAGERS: VillagerDef[] = [
       evening: 'The moonpetals are waking up. They are my favorite, I think.',
       night: 'I like the night. It is quiet in a good way.',
     },
-    loved: 'A moonpetal?! I... I am going to press this one forever. Thank you.', liked: 'Oh... this one is lovely. I will press it with care.', meh: 'Th-thank you. I will find the right book for it.',
   },
   {
     id: 'tuppi', name: 'Tuppi Frostwiggle', species: 'axolotl', speciesName: 'Blush-cheeked Axolotl', area: 'pond',
@@ -423,7 +416,6 @@ export const VILLAGERS: VillagerDef[] = [
       evening: 'The pond turns pink at this hour. Just like frosting!',
       night: 'Goodnight, cakes. Goodnight, wiggles. Hee.',
     },
-    loved: 'A cloud cake!! It is so fluffy I might giggle all the way to bed!', liked: 'Ooh! Sweet! Wiggle wiggle!', meh: 'Hee, thank you! I will find it a frosting buddy.',
   },
   {
     id: 'marlo', name: 'Marlo Seaglass', species: 'seal', speciesName: 'Sugar-dusted Seal', area: 'lighthouse',
@@ -441,7 +433,6 @@ export const VILLAGERS: VillagerDef[] = [
       evening: 'Time to light the lamp! It is my favorite part of the day.',
       night: 'The sea is dreaming. I stay up so it does not feel alone.',
     },
-    loved: 'Oh! This is a treasure from the sea. My heart is doing little flippers!', liked: 'How lovely. The lighthouse shelf will get a new friend today.', meh: 'Thank you, friend. Every gift shines a little.',
   },
 ];
 
