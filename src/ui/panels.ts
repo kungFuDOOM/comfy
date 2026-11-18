@@ -1,6 +1,6 @@
 // Modal panels: dialogue, café, boutique, market, journal, bag, help.
 import { startAct } from '../actions';
-import { drawPlayer, drawVillager } from '../art/characters';
+import { drawPlayer } from '../art/characters';
 import { cheetahDataUrl } from '../art/cheetah';
 import { coinIcon, itemIcon } from '../art/icons';
 import { drawLantern, LANTERN_KINDS } from '../art/lantern';
@@ -24,6 +24,8 @@ import { isAreaOpen } from '../state';
 import { skillName, skillProgress } from '../skills';
 import { lanternCounts, SETS, slotPos } from '../lanterns';
 import { give, talk } from '../npc';
+import { plainBeats, type Beat } from '../talk/engine';
+import { createConvo } from './talkUi';
 import { recipeFriendOk, birthdayDone, celebrateBirthday, addPoints, bondLabel, hearts, infoOf, isBirthday, knownTastes } from '../friends';
 import { heartRow, renderFriendsTab, tasteTag } from './friendsUi';
 import { progress } from '../quests';
@@ -89,37 +91,49 @@ export function openDialogue(def: VillagerDef) {
   const npc = npcs.find((n) => n.def.id === def.id);
   if (npc) npc.busy = true;
   startAct('wave', 1.1);
-  let line = '';
-  let note = '';
+  const firstName = def.name.split(' ')[0];
+  // the conversation widget lives across rerenders, so a line keeps typing while the cards below update
+  const convo = createConvo(def);
+  const say = (beats: Beat[], note = '') => convo.say(beats, note);
   const first = talk(def);
-  line = first.text; note = first.gain ? `+${first.gain} friendship` : '';
+  let giftsOpen = false;
   openPanel(def.name, (body, api) => {
-    const portrait = canvasEl(110, 120, (g) => { g.fillStyle = '#fff0f6'; g.fillRect(0, 0, 110, 120); drawVillager(g, def, 55, 108, performance.now() / 1000, 'down', false, 2.3); }, 'portrait');
     const giftable = Object.keys(state.inv).filter((id) => ['crop', 'drink', 'collectible', 'ingredient', 'seed', 'fish', 'treat', 'accessory'].includes(ITEMS[id].kind));
-    body.append(...[
-      h('div', 'dlg',
-        portrait,
-        h('div', 'dlg-main',
-          h('div', 'dlg-sub', `${def.speciesName} · ${def.personality}`),
-          heartRow(def.id, 'big'),
-          h('div', 'muted small', `${bondLabel(def.id)} · ${hearts(def.id)}/10 ♥`),
-          typedBubble(line, def.id, api),
-          note ? h('div', 'note', note) : null,
-        ),
-      ),
-      isBirthday(def.id) ? h('div', 'card fr-banner', h('div', 'grow', `🎂 It is ${def.name.split(' ')[0]}'s birthday! Gifts count double.`), btn(birthdayDone(def.id) ? '✓ Wished' : 'Wish happy birthday', () => { if (celebrateBirthday(def.id)) { addPoints(def.id, 20); line = infoOf(def.id)?.bdayThanks ?? 'Thank you!'; note = '+20 friendship ♥'; api.rerender(); } }, 'small', birthdayDone(def.id))) : null,
-      contestCard(def),
-      ...questsFrom(def.id).map((q) => questBlock(q, (t) => { line = t; note = ''; api.rerender(); })).filter((e): e is HTMLElement => !!e),
-      h('div', 'sub', (() => { const k = knownTastes(def.id).love; return `Give or serve something (${k.length ? `${def.name.split(' ')[0]} loves: ${k.map((l) => ITEMS[l].name).join(', ')}` : 'you are still learning what they love'})`; })()),
-      giftable.length ? h('div', 'chips', ...giftable.map((id) => {
+    const loves = knownTastes(def.id).love;
+    const giftDrawer = () => h('div', 'tk-gifts',
+      h('div', 'muted small', loves.length ? `${firstName} loves: ${loves.map((l) => ITEMS[l].name).join(', ')}` : `You are still learning what ${firstName} loves. Gifts and letters tell you.`),
+      giftable.length ? h('div', 'tk-gift-grid', ...giftable.map((id) => {
         const label = ITEMS[id].kind === 'drink' || ITEMS[id].kind === 'treat' ? 'Serve' : 'Give';
         const c = h('button', 'chip-item', itemIcon(id, 26), h('span', '', `${label} ${ITEMS[id].name} ×${count(id)} ${tasteTag(def.id, id)}`.trim()));
-        c.addEventListener('click', () => { const r = give(def, id); if (r) { line = r.text; note = r.gain ? `+${r.gain} friendship ♥${r.birthday ? ' (birthday bonus!)' : ''}` : ''; api.rerender(); } });
+        c.addEventListener('click', () => {
+          const r = give(def, id);
+          if (!r) return;
+          giftsOpen = false;
+          say(r.beats, r.gain ? `+${r.gain} friendship ♥${r.birthday ? ' (birthday!)' : ''}` : '');
+          api.rerender();
+          convo.reveal();
+        });
         return c;
-      })) : h('div', 'muted', 'Your bag has nothing to share yet. Brew a drink at the café or collect something lovely!'),
-      h('div', 'row', btn('Chat again', () => { const r = talk(def); line = r.text; note = ''; api.rerender(); }), btn('Bye!', () => api.close(), 'ghost')),
+      })) : h('div', 'muted', 'Your bag has nothing to share yet. Brew a drink at the café or collect something lovely!'));
+    body.append(...[
+      h('div', 'tk-head',
+        h('div', 'dlg-sub', `${def.speciesName} · ${def.personality}`),
+        heartRow(def.id, 'big'),
+        h('div', 'muted small', `${bondLabel(def.id)} · ${hearts(def.id)}/10 ♥`),
+      ),
+      convo.el,
+      h('div', 'tk-actions',
+        btn('💬 Chat', () => { const r = talk(def); say(r.beats); }),
+        btn(giftsOpen ? '🎁 Close' : `🎁 Give${giftable.length ? ` (${giftable.length})` : ''}`, () => { giftsOpen = !giftsOpen; api.rerender(); }, giftsOpen ? 'on' : ''),
+        btn('Bye!', () => api.close(), 'ghost'),
+      ),
+      giftsOpen ? giftDrawer() : null,
+      isBirthday(def.id) ? h('div', 'card fr-banner', h('div', 'grow', `🎂 It is ${firstName}'s birthday! Gifts count double.`), btn(birthdayDone(def.id) ? '✓ Wished' : 'Wish happy birthday', () => { if (celebrateBirthday(def.id)) { addPoints(def.id, 20); say(plainBeats(infoOf(def.id)?.bdayThanks ?? 'Thank you!', '🎂'), '+20 friendship ♥'); api.rerender(); } }, 'small', birthdayDone(def.id))) : null,
+      contestCard(def),
+      ...questsFrom(def.id).map((q) => questBlock(q, (t) => { say(plainBeats(t, '✿')); api.rerender(); })).filter((e): e is HTMLElement => !!e),
     ].filter((e): e is HTMLElement => !!e));
-  }, () => { if (npc) npc.busy = false; });
+  }, () => { convo.destroy(); if (npc) npc.busy = false; });
+  say(first.beats, first.gain ? `+${first.gain} friendship ♥` : '');
 }
 
 /** The styling-contest invitation a hosting villager adds to their dialogue (one contest per host per day). */
