@@ -69,3 +69,26 @@ const CHAT: Record<string, string[]> = {
   marlo: ['Snow on the sea is the quietest thing. Even the gulls whisper.', 'A tree in a square, a friend beside it. Ten out of ten.'],
 };
 export const twinkleChat = (villager: string): string[] => CHAT[villager] ?? ['Happy Twinkle Season! Is it not the coziest thing?'];
+
+/** Extra lines for the Eve walk-up and Christmas Morning scenes. The first friend in each list who is here says it; if none
+ *  of them is here the line is left out, so nobody ends up speaking in someone else's voice. */
+export const EVE_ARRIVE: { who: string[]; text: string }[] = [
+  { who: ['tuppi', 'zuzu'], text: 'Is it time? Is it time? The tree is so quiet and so dark and so full of maybe!' },
+];
+export const EVE_YOURS: { who: string[]; text: string }[] = [
+  { who: ['mimsy'], text: 'Now you, dear friend. Close your eyes, hold your wish close, and give it to the tree. We will not peek. (Tuppi, that includes you.)' },
+  { who: ['brioche', 'marlo', 'nimbus'], text: 'Mmm. That is a good one. I can tell from here. The tree just got warmer.' },
+];
+export const EVE_AFTER: { who: string[]; text: string }[] = [
+  { who: ['oolie', 'zuzu', 'tuppi'], text: 'It is glowing! Every wish went up into it, and now they are all twinkling together!' },
+];
+export const DAY_WAKE: { who: string[]; text: string }[] = [
+  { who: ['tuppi', 'zuzu'], text: 'It is morning, it is MORNING, it is Christmas morning! I have been up since the moon!' },
+  { who: ['brioche', 'marlo', 'nimbus'], text: 'Cocoa is warming, the tree is glowing, and the sun is just peeking over the roofs. Perfect.' },
+];
+export const DAY_PRESENTS: { who: string[]; text: string }[] = [
+  { who: ['oolie', 'nimbus', 'marlo', 'zuzu'], text: 'Look under the tree. They were not there last night. Little presents with bows, all in a row.' },
+];
+export const DAY_END: { who: string[]; text: string }[] = [
+  { who: ['brioche', 'marlo', 'zuzu', 'nimbus'], text: 'Best Christmas morning ever. Same as every year, only a little more, because you are in it.' },
+];
