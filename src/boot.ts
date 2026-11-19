@@ -4,6 +4,7 @@ import { playPreview } from './cutscene/preview';
 import { bus } from './bus';
 import { persist, startGame } from './game';
 import { closePanel } from './ui/dom';
+import { cancelTodayOffer } from './ui/todayUi';
 import { hasSave, newGame } from './save';
 import { fadeTo, setFade } from './ui/fade';
 import { startMainMenu, stopMainMenu } from './ui/mainMenu';
@@ -26,6 +27,7 @@ let returning = false;
 async function backToTitle() {
   if (returning || leaving) return;
   returning = true;
+  cancelTodayOffer();
   persist();
   await fadeTo(1, 450);
   closePanel();
