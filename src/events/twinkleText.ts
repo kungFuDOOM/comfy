@@ -70,26 +70,25 @@ const CHAT: Record<string, string[]> = {
 };
 export const twinkleChat = (villager: string): string[] => CHAT[villager] ?? ['Happy Twinkle Season! Is it not the coziest thing?'];
 
-/** Extra lines for the upgraded Eve walk-up and Christmas Morning scenes. The first present friend in each list speaks. */
+/** Extra lines for the Eve walk-up and Christmas Morning scenes. The first friend in each list who is here says it; if none
+ *  of them is here the line is left out, so nobody ends up speaking in someone else's voice. */
 export const EVE_ARRIVE: { who: string[]; text: string }[] = [
   { who: ['tuppi', 'zuzu'], text: 'Is it time? Is it time? The tree is so quiet and so dark and so full of maybe!' },
-  { who: ['nimbus', 'oolie'], text: 'Look up, everyone. The first star came out just to see this.' },
 ];
 export const EVE_YOURS: { who: string[]; text: string }[] = [
   { who: ['mimsy'], text: 'Now you, dear friend. Close your eyes, hold your wish close, and give it to the tree. We will not peek. (Tuppi, that includes you.)' },
-  { who: ['brioche', 'marlo'], text: 'Mmm. That is a good one. I can tell from here. The tree just got warmer.' },
+  { who: ['brioche', 'marlo', 'nimbus'], text: 'Mmm. That is a good one. I can tell from here. The tree just got warmer.' },
 ];
 export const EVE_AFTER: { who: string[]; text: string }[] = [
-  { who: ['oolie', 'zuzu'], text: 'It is glowing! Every wish went up into it, and now they are all twinkling together!' },
-  { who: ['nimbus', 'marlo', 'brioche'], text: 'Look at the snow. It is lit up like a thousand little wishes coming down to say hello.' },
+  { who: ['oolie', 'zuzu', 'tuppi'], text: 'It is glowing! Every wish went up into it, and now they are all twinkling together!' },
 ];
 export const DAY_WAKE: { who: string[]; text: string }[] = [
   { who: ['tuppi', 'zuzu'], text: 'It is morning, it is MORNING, it is Christmas morning! I have been up since the moon!' },
-  { who: ['brioche', 'marlo'], text: 'Cocoa is warming, the tree is glowing, and the sun is just peeking over the roofs. Perfect.' },
+  { who: ['brioche', 'marlo', 'nimbus'], text: 'Cocoa is warming, the tree is glowing, and the sun is just peeking over the roofs. Perfect.' },
 ];
 export const DAY_PRESENTS: { who: string[]; text: string }[] = [
-  { who: ['oolie', 'nimbus'], text: 'Look under the tree. They were not there last night. Little presents with bows, all in a row.' },
+  { who: ['oolie', 'nimbus', 'marlo', 'zuzu'], text: 'Look under the tree. They were not there last night. Little presents with bows, all in a row.' },
 ];
 export const DAY_END: { who: string[]; text: string }[] = [
-  { who: ['brioche', 'marlo', 'zuzu'], text: 'Best Christmas morning ever. Same as every year, only a little more, because you are in it.' },
+  { who: ['brioche', 'marlo', 'zuzu', 'nimbus'], text: 'Best Christmas morning ever. Same as every year, only a little more, because you are in it.' },
 ];
