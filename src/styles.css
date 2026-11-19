@@ -279,9 +279,11 @@ body.input-touch .help-menu-row { display: none; }
 @keyframes rainbow-glow { from { filter: blur(1.2px) saturate(0.95); } to { filter: blur(2px) saturate(1.25); } }
 @media (prefers-reduced-motion: reduce) { .rainbow { animation: none; } }
 
-/* ---- any window open: hide the play HUD + touch controls (same set cutscenes hide) ---- */
-body.panel-open .hud-top, body.panel-open .hud-quick, body.panel-open .hotbar, body.panel-open .hint,
-body.panel-open .touch-ui, body.panel-open .joy-base { display: none !important; }
+/* ---- any window open: hide the play HUD + touch controls on touch devices only (desktop keeps clock + hotbar) ---- */
+@media (pointer: coarse) {
+  body.panel-open .hud-top, body.panel-open .hud-quick, body.panel-open .hotbar, body.panel-open .hint,
+  body.panel-open .touch-ui, body.panel-open .joy-base { display: none !important; }
+}
 /* the backdrop may scroll on short screens; html/body stay touch-action:none for the canvas joystick */
 .panel-backdrop, .panel-body, .menu-drawer { touch-action: pan-y; overscroll-behavior: contain; }
 .panel-backdrop { -webkit-overflow-scrolling: touch; }
@@ -290,9 +292,15 @@ body.panel-open .touch-ui, body.panel-open .joy-base { display: none !important;
 @media (orientation: landscape) and (max-height: 540px) and (pointer: coarse) {
   body .hud-top { left: max(48px, env(safe-area-inset-left)); max-width: calc(100% - 32px - 96px - max(48px, env(safe-area-inset-left)) - max(48px, env(safe-area-inset-right))); }
   body .hud-quick { right: max(48px, env(safe-area-inset-right)); }
-  body .touch-ui { right: max(48px, env(safe-area-inset-right)); bottom: calc(78px + env(safe-area-inset-bottom)); }
+  body .touch-ui { right: max(48px, env(safe-area-inset-right)); bottom: calc(86px + env(safe-area-inset-bottom)); }
   /* resting joystick: fully in the bottom-left corner, left of the hotbar (centre = edge offset + 62px radius) */
   body .joy-base { left: calc(max(48px, env(safe-area-inset-left)) + 62px); top: calc(100% - max(12px, env(safe-area-inset-bottom)) - 62px); }
+}
+/* narrow short landscape (e.g. 667x375): the side margin beside the hotbar (~105px) can't hold the stick, so lift it fully above the hotbar with a clear gap */
+@media (orientation: landscape) and (max-height: 540px) and (max-width: 799px) and (pointer: coarse) {
+  body .joy-base { top: calc(100% - max(12px, env(safe-area-inset-bottom)) - 136px); }
+}
+@media (orientation: landscape) and (max-height: 540px) and (pointer: coarse) {
   body .panel-backdrop { padding: max(8px, env(safe-area-inset-top)) max(48px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(48px, env(safe-area-inset-left)); }
   body .panel, body .panel.wide {
     max-height: calc(100vh - 16px);
