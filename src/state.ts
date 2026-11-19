@@ -130,8 +130,10 @@ export interface TalkSave {
   once: string[];
   /** The last thing you gave each villager, for a later "thank you again". */
   gift: Record<string, { item: string; taste: string; day: string }>;
+  /** Question line id -> the reply index they picked (into that line's `ask`). Never the words themselves. */
+  answers: Record<string, Record<string, number>>;
 }
-export const defaultTalk = (): TalkSave => ({ recent: {}, since: {}, once: [], gift: {} });
+export const defaultTalk = (): TalkSave => ({ recent: {}, since: {}, once: [], gift: {}, answers: {} });
 
 /** A keepsake in the photo album: only a small JPEG thumbnail is stored (the full photo is saved as a PNG download). */
 export interface Photo {

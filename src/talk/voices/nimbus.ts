@@ -85,6 +85,10 @@ export const nimbus: Voice = {
     { t: 'Do you ever make wishes on the lanterns?', ask: [['All the time', 'Me too. Some come true. The best ones take their time.'], ['Not yet', 'Try tonight. Whisper it. I will not listen. Much.']] },
     { t: 'What would you like to dream about tonight?', min: 4, ask: [['Snow', 'Snow. Soft and silver and quiet. I will think of it for you.'], ['Sweets', 'Sweets. A dream of cocoa and frosting. Tuppi would approve.'], ['Flying', 'Flying, like a lantern. You would float so gracefully.']] },
   ],
+  recall: [
+    'I have been thinking about what you said, dear. {answer}. It still glows a little.',
+    'You told me {answer}. I kept it, the way the grove keeps a lantern.',
+  ],
   gossip: {
     mimsy: ['Mimsy talks in her sleep. Last night she said "more foam." I think it was a happy dream.'],
     zuzu: ['Dottie came to the grove once and said the lanterns needed bows. She was right, a little.'],

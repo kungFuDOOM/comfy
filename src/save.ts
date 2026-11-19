@@ -137,6 +137,15 @@ function sanitizeTalk(raw: unknown): SaveData['talk'] {
     const { item, taste, day } = obj(g);
     if (typeof item === 'string' && typeof taste === 'string' && typeof day === 'string') t.gift[id] = { item, taste, day };
   }
+  // reply indexes only (which pill they picked), never the words; a missing map is an empty one
+  for (const [id, bag] of Object.entries(obj(r.answers))) {
+    const out: Record<string, number> = {};
+    for (const [q, v] of Object.entries(obj(bag))) {
+      if (q.length < 80 && typeof v === 'number' && Number.isInteger(v) && v >= 0 && v < 8) out[q] = v;
+    }
+    const keys = Object.keys(out).slice(0, 12);
+    if (keys.length) t.answers[id] = Object.fromEntries(keys.map((k) => [k, out[k]]));
+  }
   return t;
 }
 

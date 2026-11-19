@@ -6,10 +6,12 @@
 // from twinkleWorld.ts, whose lights this scene turns down to "unlit" (setTwinkleTreeGlow) and then up to a blaze.
 // Whatever it changes (tree lights, the tree's squash, the count overlay, preview-only stand-in picks) is handed back in
 // onFinish, watched or skipped. The trigger (queueTreeLighting) holds a single pending start, so it can never double-fire.
+// A save that already finished the tree (all three picks saved) before this scene existed also gets it: on the next
+// load while Twinkle Season is on, or the next time they visit the tree. Still once, via seenCutscenes.
 import * as THREE from 'three';
 import { sfx } from '../audio';
 import { hourRamp, isRunnerPlaying, playCutscene, type Beat, type RunnerCtx } from '../cutscene/runner';
-import { eventProgress } from '../events';
+import { eventProgress, isEventActive } from '../events';
 import { presentNpcs } from '../npc';
 import { sceneActive } from '../render/stage';
 import { heightAtUnits } from '../render/terrain';
@@ -45,6 +47,20 @@ export function queueTreeLighting(delayMs = 450): boolean {
   };
   queued = window.setTimeout(go, delayMs);
   return true;
+}
+
+/** One boot check at a time. A fully dressed tree that was never lit plays on the next load (while the tree is in the world). */
+let boot = 0;
+export function maybeStartTreeLighting(blocked: () => boolean) {
+  if (boot) return;
+  let tries = 0;
+  const go = () => {
+    boot = 0;
+    if (!owed() || !isEventActive('twinkle')) return;
+    if (blocked() || sceneActive() || isRunnerPlaying()) { if (++tries < 40) boot = window.setTimeout(go, 3000); return; }
+    queueTreeLighting(500);
+  };
+  boot = window.setTimeout(go, 2000);
 }
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));

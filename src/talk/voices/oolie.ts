@@ -84,6 +84,10 @@ export const oolie: Voice = {
     { t: 'Do you like quiet places or busy places?', ask: [['Quiet places', 'Me too. We could be quiet together. Sometime.'], ['Busy places', 'Busy? Oh. That is brave. You can tell me about them. I will listen from somewhere quiet.']] },
     { t: '*whispers* Do you want to hear a flower\'s secret name?', min: 4, ask: [['Yes, please', 'The tall pink one by my door... is called Softly. That is its real name. Now you know. Only you.'], ['Keep it secret', 'Okay. I will keep it safe. ...Thank you for letting me keep it.']] },
   ],
+  recall: [
+    'Um. You said {answer}. I pressed it into my book. Quietly.',
+    'I still think about your answer. {answer}. It was a very you thing to say.',
+  ],
   gossip: {
     mimsy: ['Mimsy fell asleep in the grove once. I pressed a petal next to her ear. She said "thank you" in her sleep.'],
     zuzu: ['Dottie put a pressed-flower brooch in her window. I think... it was for me. I have not gone in yet. I will. Someday.'],

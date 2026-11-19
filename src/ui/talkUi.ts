@@ -7,7 +7,7 @@ import { drawVillager } from '../art/characters';
 import { sfx } from '../audio';
 import type { VillagerDef } from '../data';
 import { currentMode } from '../input/prompts';
-import { plainBeats, type Beat } from '../talk/engine';
+import { noteAnswer, plainBeats, type Beat } from '../talk/engine';
 import { h } from './dom';
 import { setFocus } from './focus';
 
@@ -77,7 +77,7 @@ export function createConvo(def: VillagerDef): Convo {
     n = line.length; paint();
     picWrap.classList.remove('talking');
     const ask = beats[i]?.ask;
-    if (ask?.length) showChoices(ask);
+    if (ask?.length) showChoices(ask, beats[i]?.qid);
     hint();
   }
 
@@ -103,7 +103,7 @@ export function createConvo(def: VillagerDef): Convo {
     }, 30);
   }
 
-  function showChoices(ask: [string, string][]) {
+  function showChoices(ask: [string, string][], qid?: string) {
     asking = true;
     choices.replaceChildren(...ask.map(([label, answer], k) => {
       const b = h('button', 'tk-choice', label);
@@ -112,6 +112,7 @@ export function createConvo(def: VillagerDef): Convo {
       b.addEventListener('click', (e) => {
         e.stopPropagation();
         sfx.confirm();
+        noteAnswer(def.id, qid, k);
         asking = false;
         const said = h('div', 'tk-said', label);
         choices.replaceChildren(said);

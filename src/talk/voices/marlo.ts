@@ -84,6 +84,10 @@ export const marlo: Voice = {
     { t: 'Want to hear me hum to the Bell? Just a little?', ask: [['Yes, please!', 'Hmm-hm-hmmm, hm-hm... Did you hear that? I think it hummed back! A little!'], ['Maybe later', 'Later it is. The Bell is patient. So am I.']] },
     { t: 'If you found a piece of sea glass, what color would you hope for?', ask: [['Pink', 'Pink! The rarest! You have very good taste in sea glass.'], ['Lavender', 'Lavender! Like the evening sky. I found one once. I still have it.'], ['Mint', 'Mint! Like a cool wave. Very refreshing choice.']] },
   ],
+  recall: [
+    'Log entry, still true: you said {answer}. I wrote it in ink.',
+    'I was humming earlier and I remembered. You said {answer}. The Bell heard it too.',
+  ],
   gossip: {
     mimsy: ['I can see the café from up here. Mimsy is usually asleep on the patio. I wave anyway.'],
     zuzu: ['Dottie says my striped scarf is "a signature look." I did not know I had a look. Now I have a look.'],

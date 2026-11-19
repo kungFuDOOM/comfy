@@ -24,7 +24,7 @@ export type Cond = 'hat' | 'noHat' | 'spots' | 'dress' | 'pet' | 'ribbon';
 
 /**
  * A line: plain text, or text with options. A "|" splits it into separate taps.
- * Tokens: {pet} {friend} {when} {days} {item} {skill} {level} {season}.
+ * Tokens: {pet} {friend} {when} {days} {item} {skill} {level} {season} {answer}.
  */
 export type Line = string | LineObj;
 export interface LineObj {
@@ -70,6 +70,8 @@ export interface Voice {
   small: [Line[], Line[], Line[], Line[]];
   /** Little questions with reply choices. */
   ask: Line[];
+  /** Later chats that mention an answer you gave. `{answer}` is the choice you picked, with the shouty punctuation trimmed. */
+  recall: Line[];
   /** Talking about another friend (only once that friend lives on the island). Keyed by villager id. */
   gossip: Partial<Record<string, Line[]>>;
   /** Another friend's birthday is close. {friend} {when} */
@@ -108,4 +110,6 @@ export interface Beat {
   /** A little sticker that pops by the portrait (weather, holiday, gift...). */
   mood?: string;
   ask?: [string, string][];
+  /** Stable id of a question line, so the chosen reply can be saved in `talk.answers`. */
+  qid?: string;
 }

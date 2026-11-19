@@ -3,14 +3,19 @@
 // café; it rises and spins in a ring of little stars, splits into two with a boing and a burst of sparkles, and both
 // settle back on the table glinting while Brioche is delighted. Plays once
 // per save (the 'golden-pie' entry in save.ts seenCutscenes; watched or skipped both count) and can be previewed any
-// time with ?cutscene=golden-pie. It pays nothing (the pies are already in the bag) and adds no save field. The trigger
-// (queueGoldenPie) holds a single pending start that waits out an open panel or another scene, so it can't double-fire.
-// Props come from pieStage.ts and are handed back in onFinish, watched or skipped.
+// time with ?cutscene=golden-pie. It pays nothing (the pies are already in the bag). The trigger (queueGoldenPie)
+// holds a single pending start that waits out an open panel or another scene, so it can't double-fire. That pending
+// start is also written into the harvest event flags (`goldenReveal`) and saved, so closing the game while the baking
+// window is still open does not lose it: the next load plays it if it was never seen. A save from before the flag
+// existed still qualifies when its goldenPies counter is already above zero. Props come from pieStage.ts and are
+// handed back in onFinish, watched or skipped.
 import * as THREE from 'three';
 import { hourRamp, isRunnerPlaying, playCutscene, type Beat } from '../cutscene/runner';
+import { setEventFlag } from '../events';
 import { npcs } from '../npc';
 import { sceneActive } from '../render/stage';
-import { hasSeenCutscene } from '../save';
+import { hasSeenCutscene, saveGame } from '../save';
+import { state } from '../state';
 import { isPanelOpen } from '../ui/dom';
 import { TS } from '../world';
 import { BAKER_SPOT, PLAYER_POSE, TABLE, TABLE_TOP, backOut, inviteBrioche, makeNook, makePie, smooth } from './pieStage';
@@ -23,11 +28,22 @@ const owed = () => !playing && !hasSeenCutscene(GOLDEN_PIE_ID);
 /** Due once a Golden Pie has been baked and nothing else is on screen (the baking window is closed). */
 export const goldenPieDue = () => owed() && !isRunnerPlaying() && !sceneActive() && !isPanelOpen();
 
+/** A reveal is waiting: the flag we just saved, or (older saves) a Golden Pie already counted and never shown. Read-only, so a save with no harvest progress is left alone. */
+function pendingReveal(): boolean {
+  const raw = state.events?.harvest;
+  if (!raw || typeof raw !== 'object') return false;
+  const flags = raw.flags;
+  const n = raw.counters?.goldenPies;
+  return !!flags?.goldenReveal || (typeof n === 'number' && n > 0);
+}
+
 let queued = 0;
 /** Ask for the reveal after a Golden Pie bake. One pending start at most; it checks back until the window is closed. */
 export function queueGoldenPie(delayMs = 700): boolean {
   if (queued) return true;
   if (!owed()) return false;
+  // durable across a reload: the in-memory timer alone used to vanish when the tab closed first
+  if (!state.events?.harvest?.flags?.goldenReveal) { setEventFlag('harvest', 'goldenReveal'); saveGame(); }
   let tries = 0;
   const go = () => {
     queued = 0;
@@ -37,6 +53,20 @@ export function queueGoldenPie(delayMs = 700): boolean {
   };
   queued = window.setTimeout(go, delayMs);
   return true;
+}
+
+/** One boot check at a time. Plays a reveal that was saved but never watched (the baking window closed with the game). */
+let boot = 0;
+export function maybeStartGoldenPie(blocked: () => boolean) {
+  if (boot) return;
+  let tries = 0;
+  const go = () => {
+    boot = 0;
+    if (playing || hasSeenCutscene(GOLDEN_PIE_ID) || !pendingReveal()) return;
+    if (blocked() || sceneActive() || isRunnerPlaying()) { if (++tries < 40) boot = window.setTimeout(go, 3000); return; }
+    queueGoldenPie(600);
+  };
+  boot = window.setTimeout(go, 2400);
 }
 
 /** Late afternoon gold. */
