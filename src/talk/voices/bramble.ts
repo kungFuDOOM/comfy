@@ -84,6 +84,10 @@ export const bramble: Voice = {
     { t: 'I need a name for a new sprout. Any ideas?', ask: [['Biscuit', 'Biscuit. Hm. He looks like a Biscuit. Done. Hello, Biscuit.'], ['Sir Fluffington', 'Sir Fluffington. That is ridiculous. ...I love it. Do not tell him I hesitated.'], ['Bramble Junior', '...Bramble Junior. Hmph. I have to go water something. My eyes are watering. From the hose.']] },
     { t: 'Do you talk to your plants?', min: 3, ask: [['Yes!', 'Good. They listen. Better than most people.'], ['Not yet', 'Start. Say good morning. They will grow faster. It is science. Probably.']] },
   ],
+  recall: [
+    'Hmph. You said {answer}. I have not forgotten. The sprouts have not either.',
+    '{answer}. That is what you told me. I am only bringing it up because it was a good answer.',
+  ],
   gossip: {
     mimsy: ['Mimsy fell asleep in my flower bed again. I watered around her.'],
     zuzu: ['Dottie made me a hat. I said no. I am wearing it. It keeps the sun off. That is the only reason.'],

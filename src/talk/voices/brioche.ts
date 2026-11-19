@@ -84,6 +84,10 @@ export const brioche: Voice = {
     { t: 'If you were a pastry, which one would you be?', ask: [['A croissant', 'A croissant! Flaky, layered, a little fancy. Yes. I see it.'], ['A cinnamon roll', 'A cinnamon roll! Warm, sweet, and everyone wants a hug from you. Perfect.'], ['A cupcake', 'A cupcake! Small, sweet, and sprinkled with joy. Tuppi will be thrilled.']] },
     { t: 'Do you like your tea with honey or with milk?', ask: [['Honey', 'Honey! Golden and sweet. Like you.'], ['Milk', 'Milk! Soft and cozy. Very classic.'], ['Both!', 'Both! A true connoisseur. I knew I liked you.']] },
   ],
+  recall: [
+    'Crumb, I still remember. You said {answer}. I almost baked it into a tart.',
+    'You told me {answer}. I wrote it on the recipe card. In icing.',
+  ],
   gossip: {
     mimsy: ['Mimsy came all the way out to the meadow once. She fell asleep on the picnic blanket. I tucked a scone beside her for when she woke up.'],
     zuzu: ['Dottie says my apron is "very rustic chic." I think that means flour. I am wearing a lot of flour.'],

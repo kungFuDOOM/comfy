@@ -1,7 +1,8 @@
 // Villager conversations: picks what a friend says from their voice (talk/voices) and what is going on right now
 // (hearts, holidays, weather, time of day, birthdays, gifts, quests, what you have been up to), shapes it into a few
 // taps (hello, a topic or two, goodbye) and remembers recent lines so nobody repeats themselves too soon.
-// Memory lives in state.talk (optional in older saves, sanitised in save.ts). The friendship numbers are untouched:
+// Memory lives in state.talk (optional in older saves, sanitised in save.ts), including which reply they picked.
+// The friendship numbers are untouched:
 // npc.ts still decides points; this module only decides words.
 import { bus } from '../bus';
 import { clothById } from '../clothes';
@@ -144,8 +145,36 @@ function beatsOf(ctx: Ctx, c: Cand, extra: Record<string, string> = {}): Beat[] 
   const o = obj(c.line), vars = { ...ctx.vars, ...extra };
   const parts = fill(o.t, vars).split('|').map((s) => s.trim()).filter(Boolean);
   const beats: Beat[] = parts.map((text, i) => ({ text, mood: i === 0 ? c.mood : undefined }));
-  if (o.ask?.length && beats.length) beats[beats.length - 1].ask = o.ask.map(([a, b]): [string, string] => [fill(a, vars), fill(b, vars)]);
+  if (o.ask?.length && beats.length) {
+    const last = beats[beats.length - 1];
+    last.ask = o.ask.map(([a, b]): [string, string] => [fill(a, vars), fill(b, vars)]);
+    last.qid = c.id; // so the window can remember which question this was
+  }
   return beats;
+}
+
+/** Remember which reply they picked. `qid` is the question's stable line id; `index` is the pill (0-based). */
+export function noteAnswer(villagerId: string, qid: string | undefined, index: number) {
+  if (!qid || qid.length >= 80 || !Number.isInteger(index) || index < 0 || index > 7) return;
+  const all = (mem().answers ??= {});
+  const bag = (all[villagerId] ??= {});
+  bag[qid] = index;
+  const keys = Object.keys(bag);
+  if (keys.length > 12) delete bag[keys[0]];
+}
+
+/** Button labels for questions this friend has already heard an answer to. */
+function rememberedLabels(ctx: Ctx): string[] {
+  const saved = mem().answers[ctx.def.id];
+  if (!saved) return [];
+  const out: string[] = [];
+  ctx.voice.ask.forEach((line, i) => {
+    const pick = saved[`${ctx.def.id}.ask.${i}`];
+    if (typeof pick !== 'number') return;
+    const label = obj(line).ask?.[pick]?.[0].replace(/[!?.]+$/g, '').trim();
+    if (label) out.push(label);
+  });
+  return out;
 }
 
 /** Split a plain line (quest offers, birthday thanks...) into taps. */
@@ -233,6 +262,12 @@ function topics(ctx: Ctx, firstToday: boolean): Topic[] {
   const small = v.small.flatMap((list, k) => (k <= ctx.tier ? cands(ctx, `${id}.small${k}`, list, k === ctx.tier ? 2.2 : 1) : []));
   add('small', 4, [...small, ...legacySmall(ctx)]);
   add('ask', 2.6, cands(ctx, `${id}.ask`, v.ask, 1, '💭'));
+  // now and then they bring up something you told them (the newest answers sit in the same pool as the old ones)
+  const remembered = rememberedLabels(ctx);
+  if (remembered.length) {
+    const answer = remembered[Math.floor(Math.random() * remembered.length)];
+    add('recall', 2.2, cands(ctx, `${id}.recall`, v.recall, 1, '💭'), { vars: { answer } });
+  }
   const gossip = Object.entries(v.gossip).flatMap(([who, list]) => {
     const o = VILLAGERS.find((x) => x.id === who);
     return o && metFriend(o) ? cands(ctx, `${id}.gossip.${who}`, list, 1, '🤫') : [];

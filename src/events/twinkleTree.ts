@@ -11,6 +11,9 @@ import { queueTreeLighting } from './treeLighting';
 
 /** `onGather`, on Christmas Eve / Day, adds a big button that starts the gathering from the same window. */
 export function openTreePanel(onGather?: { label: string; run: () => void }) {
+  // already dressed, and the lighting has not played yet: a visit is enough (no need to change a pick).
+  // Christmas Eve / Day still open this window, so their gathering button is untouched.
+  if (!onGather && queueTreeLighting()) return;
   openPanel('Twinkle Tree 🎄', (body, api) => {
     const c = eventProgress('twinkle').counters;
     const done = TREE_STEPS.every((s) => (c[s.key] ?? 0) > 0);

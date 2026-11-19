@@ -84,6 +84,10 @@ export const zuzu: Voice = {
     { t: 'Be honest. Am I wearing too many accessories?', ask: [['Never!', 'Thank you! There is no such thing. Only not enough.'], ['Maybe one less?', 'One less?! ...Fine. I will take off the third brooch. The fourth stays.']] },
     { t: 'What is your signature color, darling? Everyone needs one.', ask: [['Pink!', 'Pink! Of course. It loves you back.'], ['Lavender', 'Lavender. Dreamy, soft, a little mysterious. Very you.'], ['Cream', 'Cream! Classic. Clean. The little black dress of colors, but cozier.']] },
   ],
+  recall: [
+    'Darling, I have not forgotten. You said {answer}. Iconic.',
+    'People keep asking, and I tell them you said {answer}. Fashion is memory.',
+  ],
   gossip: {
     mimsy: ['Mimsy wore a nightcap to brunch and somehow pulled it off. I am still thinking about it.'],
     bramble: ['I offered to make Bramble a gardening hat. He said "no" eleven times. He is wearing it right now.'],

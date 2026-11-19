@@ -84,6 +84,10 @@ export const mimsy: Voice = {
     { t: 'What is your favorite drink at the café?', ask: [['Pink Puff Latte', 'Mine too! We have the same heart. A pink, puffy one.'], ['Something new', 'Ooh, an adventurer. Try it, then tell me all about it while I lie down.'], ['Cocoa', 'Cocoa! A hug you can drink. Very good answer.']] },
     { t: 'Be honest. How sleepy are you right now? From one to Mimsy.', min: 3, ask: [['One', 'One! So awake. Look at you, sparkling.'], ['A full Mimsy', 'A full Mimsy! Here, have half my blanket. No, the bigger half.']] },
   ],
+  recall: [
+    'I keep thinking about what you told me. {answer}. I might dream about it.',
+    'You said {answer}. I wrote it on a napkin so I would not forget. Then I napped on the napkin.',
+  ],
   gossip: {
     brioche: ['Brioche keeps bringing me pastries. I keep eating them. It is a very healthy friendship.'],
     bramble: ['Bramble pretends to be grumpy, but he once tucked a leaf over me so I would not get sunburned.'],

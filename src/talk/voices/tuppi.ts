@@ -84,6 +84,10 @@ export const tuppi: Voice = {
     { t: 'Do you like sprinkles? Be honest! Wait, do not be honest if it is no!', ask: [['I love them!', 'YAY! Sprinkle friends forever! Hee!'], ['A few is nice', 'A few! Okay! I will put just one hundred! Hee! Kidding!']] },
     { t: 'If you were a cake, what kind would you be?', ask: [['Strawberry', 'Strawberry! Pink and sweet! I knew it! Hee!'], ['Chocolate', 'Chocolate! Rich and cozy! Like a hug! Wiggle!'], ['Cloud Cake', 'A Cloud Cake! Soft and fluffy and my FAVORITE! Hee hee hee!']] },
   ],
+  recall: [
+    'Hee! You said {answer}! I told the frosting, and the frosting remembers!',
+    'I keep giggling about it. You said {answer}. Wiggle!',
+  ],
   gossip: {
     mimsy: ['Mimsy fell asleep while I was telling her a story! I told the rest to her pillow! Hee!'],
     zuzu: ['I asked Dottie for a hat made of frosting! She said maybe! MAYBE! Hee!'],
