@@ -30,11 +30,11 @@ const treeSpot = (): EventSpot => {
     reach: 52,
     approach: [{ x: 46, y: 44 }, { x: 45, y: 44 }, { x: 44, y: 44 }, { x: 46, y: 41 }, { x: 45, y: 41 }],
     label: 'Twinkle Tree',
-    prompt: kind ? (kind === 'eve' ? 'Christmas Eve at the tree' : 'Christmas Day at the tree') : 'Decorate the tree',
+    prompt: kind ? (kind === 'eve' ? 'Christmas Eve at the tree' : 'Christmas Morning at the tree') : 'Decorate the tree',
     run() {
       const k = gatherKind();
       if (k) {
-        openTreePanel({ label: k === 'eve' ? 'Join the Christmas Eve gathering ✨' : 'Join the Christmas Day gathering 🎄', run: () => startGathering(k, eventFlag(TWINKLE, `${k}Done`)) });
+        openTreePanel({ label: k === 'eve' ? 'Join the Christmas Eve walk-up ✨' : 'Join Christmas Morning at the tree 🎄', run: () => startGathering(k, eventFlag(TWINKLE, `${k}Done`)) });
         return;
       }
       openTreePanel();
