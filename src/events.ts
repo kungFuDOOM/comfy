@@ -15,7 +15,7 @@ import { clothById } from './clothes';
 import { ITEMS } from './data';
 import { addItem, earn } from './inventory';
 import { state, type EventProgress } from './state';
-import { hasDateOverride, SEASONS, today, type Season } from './time';
+import { hasDateOverride, SEASONS, setForcedEventDay, today, type Season } from './time';
 
 /** A one-time reward paid out when an activity counter reaches its goal while the event is on. */
 export interface EventMilestone {
@@ -137,11 +137,16 @@ export function dateRange(def: EventDef): string {
 const forcedId = new URLSearchParams(location.search).get('event') ?? presetParam('event');
 const forcedEvent = (): EventDef | undefined => (forcedId ? eventById(forcedId) : undefined);
 
-/** The calendar day events see: ?date=, else the peak day of a forced ?event, else the real day. */
-export function eventDay(): Date {
+/** Peak day of a forced ?event= (null when there is none, or when ?date= is present and wins). */
+const forcedEventDay = (): Date | null => {
   const f = forcedEvent();
-  if (!hasDateOverride && f) return parseDay(f.peakDay ?? f.start);
-  return today();
+  return !hasDateOverride && f ? parseDay(f.peakDay ?? f.start) : null;
+};
+setForcedEventDay(forcedEventDay); // time.ts's today() / getClock() follow the forced event too
+
+/** The calendar day events see: ?date=, else the peak day of a forced ?event, else the real day (same as today()). */
+export function eventDay(): Date {
+  return forcedEventDay() ?? today();
 }
 
 export type EventPhase = 'upcoming' | 'active' | 'ended';

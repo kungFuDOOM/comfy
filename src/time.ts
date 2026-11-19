@@ -45,11 +45,18 @@ const dateOverride: Date | null = (() => {
   return Number.isNaN(d.getTime()) || d.getMonth() !== Number(m[2]) - 1 ? null : d;
 })();
 export const hasDateOverride = dateOverride !== null;
-/** The calendar day the game believes it is: the real date, or the ?date= override (the time of day stays real). */
+/**
+ * Day of a forced ?event= (its peak day), supplied by events.ts via setForcedEventDay(). A registered lookup rather than an
+ * import keeps time.ts free of a cycle (events.ts already imports from here).
+ */
+let forcedEventDay: (() => Date | null) | null = null;
+export function setForcedEventDay(fn: () => Date | null): void { forcedEventDay = fn; }
+/** The calendar day the game believes it is: ?date=, else the peak day of a forced ?event=, else the real date (the time of day stays real). */
 export function today(): Date {
   const d = new Date();
-  if (!dateOverride) return d;
-  return new Date(dateOverride.getFullYear(), dateOverride.getMonth(), dateOverride.getDate(), d.getHours(), d.getMinutes(), d.getSeconds());
+  const day = dateOverride ?? forcedEventDay?.() ?? null;
+  if (!day) return d;
+  return new Date(day.getFullYear(), day.getMonth(), day.getDate(), d.getHours(), d.getMinutes(), d.getSeconds());
 }
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const PHASE_NAMES: Record<Phase, string> = { morning: 'Morning', day: 'Daytime', evening: 'Evening', night: 'Night' };
