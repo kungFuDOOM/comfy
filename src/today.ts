@@ -114,6 +114,12 @@ function errandHook(): TodayHook {
 function friendHook(): TodayHook {
   const here = VILLAGERS.filter(metFriend);
   const daily = ensureDaily();
+  const bday = here.filter((v) => isBirthday(v.id) && !birthdayDone(v.id));
+  if (bday.length) {
+    const v = bday[0];
+    const name = first(v.id);
+    return { id: 'friend', icon: '🎂', title: `${name}'s birthday`, text: `Stop by with a hello and a little gift. Birthday gifts count double, and a wish is always welcome.` };
+  }
   const open = LOG_QUESTS.filter(questVisible).filter((q) => questStatus(q) !== 'done');
   const ready = open.filter((q) => questStatus(q) === 'ready');
   const active = open.filter((q) => questStatus(q) === 'active');
@@ -128,12 +134,6 @@ function friendHook(): TodayHook {
   if (chosen) {
     const st = questStatus(chosen);
     if (st === 'ready' || st === 'active' || st === 'available') return request(chosen, st);
-  }
-  const bday = here.filter((v) => isBirthday(v.id) && !birthdayDone(v.id));
-  if (bday.length) {
-    const v = bday[0];
-    const name = first(v.id);
-    return { id: 'friend', icon: '🎂', title: `${name}'s birthday`, text: `Stop by with a hello and a little gift. Birthday gifts count double, and a wish is always welcome.` };
   }
   const quiet = here.filter((v) => !daily.talked.includes(v.id));
   if (quiet.length) {

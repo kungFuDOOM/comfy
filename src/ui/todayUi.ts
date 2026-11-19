@@ -17,23 +17,29 @@ export function openToday() {
     const card = body.parentElement;
     card?.classList.add('today-panel');
     // A still tap anywhere on the card closes it. A drag is a scroll, so it stays open.
-    let ax = 0, ay = 0, dragged = false;
+    let ax = 0, ay = 0, dragged = false, pressed = false;
     const down = (e: PointerEvent) => {
-      if ((e.target as HTMLElement).closest('button')) return;
-      ax = e.clientX; ay = e.clientY; dragged = false;
+      if ((e.target as HTMLElement).closest('button')) { pressed = false; return; }
+      ax = e.clientX; ay = e.clientY; dragged = false; pressed = true;
     };
-    const move = (e: PointerEvent) => { if (Math.hypot(e.clientX - ax, e.clientY - ay) > 10) dragged = true; };
-    const up = (e: PointerEvent) => {
-      if ((e.target as HTMLElement).closest('button')) return;
-      if (!dragged) api.close();
+    const move = (e: PointerEvent) => {
+      if (pressed && Math.hypot(e.clientX - ax, e.clientY - ay) > 10) dragged = true;
     };
+    const up = () => {
+      const close = pressed && !dragged;
+      pressed = false; dragged = false;
+      if (close) api.close();
+    };
+    const cancel = () => { pressed = false; dragged = false; };
     card?.addEventListener('pointerdown', down);
     card?.addEventListener('pointermove', move);
     card?.addEventListener('pointerup', up);
+    card?.addEventListener('pointercancel', cancel);
     api.cleanup(() => {
       card?.removeEventListener('pointerdown', down);
       card?.removeEventListener('pointermove', move);
       card?.removeEventListener('pointerup', up);
+      card?.removeEventListener('pointercancel', cancel);
     });
     const spot = h('span', 'today-spot');
     spot.setAttribute('aria-hidden', 'true');
