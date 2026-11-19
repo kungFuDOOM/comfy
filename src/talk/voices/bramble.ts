@@ -39,6 +39,10 @@ export const bramble: Voice = {
   },
   holiday: {
     halloween: ['Halloween. I carved a pumpkin. It looks grumpy. It looks like me. I am proud of it.'],
+    petalpicnic: ['Petal picnic. I sat on a blanket. A petal landed on my head. I did not move for ten minutes.', 'The blankets are fine. The petals are fine. I am not smiling. That is the wind.'],
+    shoredays: ['Shore days. I found a shell. It is shiny. I put it in my pocket. I will not discuss it further.', 'The lemonade is sour and sweet. Like me. Do not tell anyone I said that.'],
+    costumenight: ['Costume night. I am a grumpy pumpkin. It is not a costume. But I wore the lantern as a hat.', 'The bats are paper and the pumpkins are pink. Fine. It is cute. Do not make a fuss.'],
+    warmcup: ['Warm cup market. I went. I held a cocoa. It was warm. That is all I will say about it.', 'The cocoa stall is small and cozy. Like it should be. No one is trying too hard. I respect that.'],
     harvestSoon: ['The feast is coming. I have been growing pumpkins for it all year. Do not make a fuss.', 'Feast soon. The squash are ready. I am ready. Mostly.'],
     harvest: ['Harvest season. The best season. Everyone eats what the earth made. I find that very moving. Hmph.', 'The pumpkins in the square are from my garden. I am telling you so you can tell me they are good.'],
     feast: ['Feast day. I am thankful for good soil, good rain, and... you. There. I said it. Pass the pie.', 'Happy feast. I grew the pumpkins. You are welcome. ...Thank you for coming.'],

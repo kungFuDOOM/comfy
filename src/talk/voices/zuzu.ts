@@ -39,6 +39,10 @@ export const zuzu: Voice = {
   },
   holiday: {
     halloween: ['Halloween costume plan: a very glamorous ghost. Sheet by me. Sequins by me. Spooky by nobody.'],
+    petalpicnic: ['Petal Picnic Days, darling! The blossom pink trend is back. It is the only trend that matters.', 'A blanket picnic outfit: soft sundress, a bonnet, and a shawl for the breeze. Do not forget the basket!'],
+    shoredays: ['Sunsip Shore Days! Golden hour all day long. My sundress and I are thrilled.', 'The lemon ribbon hat is a statement, darling. A very small, very sweet statement.'],
+    costumenight: ['Costume night! I am a glamorous ghost again. But this year, a lavender sheet. Elegant.', 'The paper bat cape is subtle, soft, and spooky-chic. I want three.'],
+    warmcup: ['The Warm Cup Market! Cozy layers and a warm cup. That is the whole outfit, darling.', 'A cocoa-cream poncho and a hot drink. The most elegant way to stay warm in January.'],
     harvestSoon: ['The feast is coming, darling! I am planning a stretchy, elegant waistline situation.', 'Harvest feast outfit tip: autumn colors, soft knits, and pants that forgive.'],
     harvest: ['Feast season! The table runner is pink gingham and I will not be taking questions.', 'I folded the napkins into little hats. Obviously. It is a feast, not a funeral.'],
     feast: ['It is feast day! I am so thankful for good friends, good pie, and good tailoring. In that order.', 'Happy feast, bestie! You look divine. The pie is jealous.'],

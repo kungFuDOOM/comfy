@@ -109,6 +109,12 @@ add({ id: 'd_tw_cocoa', name: 'Cocoa Mug Stand', kind: 'decor', event: 'twinkle'
 add({ id: 'd_tw_gifts', name: 'Ribbon Gift Stack', kind: 'decor', event: 'twinkle', desc: 'Three wrapped boxes, pink, cream and mint, with enormous bows.' });
 add({ id: 'd_tw_star', name: 'Eve Wishing Star', kind: 'decor', event: 'twinkle', desc: 'A soft golden star on a stand. It listens when you whisper.' });
 add({ id: 'd_tw_wreath', name: 'Twinkle Wreath', kind: 'decor', event: 'twinkle', desc: 'A snowy wreath with berries, bows and little lights.' });
+// Seasonal festivals (events/petalpicnic.ts, shoredays.ts, costumenight.ts, warmcup.ts): small, short, exclusives never sold
+add({ id: 'd_pp_blanket', name: 'Petal Picnic Blanket', kind: 'decor', event: 'petalpicnic', desc: 'A pink gingham blanket with a basket, a thermos and one drifting petal.' });
+add({ id: 'sd_shell', name: 'Glowday Shell', kind: 'collectible', sell: 12, event: 'shoredays', findWeight: 6, desc: 'A peach-and-gold shell that holds a little sunshine inside.' });
+add({ id: 'd_sd_lemonade', name: 'Sunsip Lemonade Cart', kind: 'decor', event: 'shoredays', desc: 'A striped cart with a jug of lemonade that stays cold forever.' });
+add({ id: 'd_cn_lantern', name: 'Sleepy Moon Lantern', kind: 'decor', event: 'costumenight', desc: 'A round pumpkin lantern with a sleepy smile and a lavender glow.' });
+add({ id: 'd_wc_kettle', name: 'Warm Cup Kettle', kind: 'decor', event: 'warmcup', desc: 'A rosy kettle that hums while it keeps the cocoa warm.' });
 // recipes a best friend teaches at 10 hearts (see friendData.ts)
 add({ id: 'jam_croissant', name: 'Jammy Butter Croissant', kind: 'treat', sell: 66, desc: 'Brioche\'s own recipe: a flaky crescent with a heart of berry jam. Still steaming.' });
 add({ id: 'wiggle_cake', name: 'Wiggle Cake', kind: 'treat', sell: 84, desc: 'Tuppi\'s secret cake. It jiggles when you say its name.' });
@@ -202,7 +208,7 @@ export const SHOP_INGREDIENTS = ['beans', 'milk', 'syrup', 'honey', 'cocoa'];
 /** Extra café pantry stock while a seasonal event is on (event id to item ids). */
 export const EVENT_PANTRY: Record<string, string[]> = { harvest: ['cinnamon', 'pumpkin', 'apple'], twinkle: ['ginger', 'peppermint'] };
 /** Seasonal items that also turn up as collectibles around the island while the event is on (event id to item ids). */
-export const EVENT_COLLECTIBLES: Record<string, string[]> = { harvest: ['pumpkin', 'apple'], twinkle: ['ornament'] };
+export const EVENT_COLLECTIBLES: Record<string, string[]> = { harvest: ['pumpkin', 'apple'], twinkle: ['ornament'], shoredays: ['sd_shell'] };
 export const SHOP_DECOR = ['d_pouf', 'd_rug', 'd_lamp', 'd_shelf', 'd_teacup', 'd_chair'];
 
 // --- Skills ---

@@ -39,6 +39,10 @@ export const marlo: Voice = {
   },
   holiday: {
     halloween: ['Halloween! I am putting an orange cover on the lamp. A lighthouse pumpkin! Spooky and safe.'],
+    petalpicnic: ['Petal Picnic Days! I brought sea-salt crackers. They go with petals. Trust me.', 'A blanket, a breeze, a petal in my tea. A lighthouse keeper could not ask for more.'],
+    shoredays: ['Sunsip Shore Days! My favorite. The shells and the lamp both glow. I keep one by the other.', 'Lemonade at the stand, shells on the sand. The sea is in a very good mood.'],
+    costumenight: ['Costume night! I am a lighthouse. A big lamp on my head. It is very bright. Spooky and safe!', 'Soft little paper bats over the square. They are like moths for people who like lavender.'],
+    warmcup: ['The Warm Cup Market! A hot cocoa on a cold January evening. The sea is quiet, so is the world.', 'I put a pinch of sea salt in my cocoa. Do not make that face. Try it.'],
     harvestSoon: ['The feast is coming! I am bringing sea salt for the table. It goes on everything. Even pie. Trust me.', 'Feast soon! I polished my best scarf. It is the same striped scarf. But polished.'],
     harvest: ['Feast season! I am thankful for calm seas, a steady light, and friends who climb all these steps.', 'Lighthouse log: feast season. Smells of cinnamon reaching all the way up the cliff.'],
     feast: ['Feast day! I left the lamp on automatic tonight. The Bell can nap by itself.', 'Happy feast, friend! I am thankful for you. Very thankful. Flipper-tinglingly thankful.'],

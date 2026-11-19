@@ -34,3 +34,23 @@ def('top', 'holiday', 'tw_ribbon_sweater', 'Gift Ribbon Sweater', 'sweater', '#f
 def('dress', 'princess', 'tw_eve_gown', 'Starlit Eve Gown', 'gown', '#ffd2e3', '#fff6d9', 0, 'A blush gown with a snowy hem and tiny gold stars that twinkle when you twirl.', { tint: 'Starlit', pattern: 'stars', ink: '#ffe08a', deco: ['sparkle', 'bow'], src: W });
 def('hat', 'princess', 'tw_star_crown', 'Twinkle Star Crown', 'tiara', '#fff0b8', '#ffb3cf', 0, 'A little golden crown with a pink star at the front.', { tint: 'Twinkle', deco: ['sparkle'], src: W });
 def('bottom', 'party', 'tw_snow_tutu', 'Snowdrift Tutu', 'tutu', '#fff7fb', '#ffd2e3', 0, 'A frothy tutu in snow white with a ribbon-pink waistband.', { tint: 'Snowdrift', deco: ['bow'], src: W });
+
+// ---- Seasonal festivals: small, short windows, 1 to 3 exclusives each (see events/petalpicnic.ts and friends) ----
+// Petal Picnic Days (Apr 3 to Apr 11, 2027)
+const P = E('petalpicnic');
+def('hat', 'cottage', 'pp_petal_bonnet', 'Petal Picnic Bonnet', 'sunhat', '#ffe4ee', '#ff9ec0', 0, 'A soft straw bonnet with a ring of blush petals and a ribbon tied under the chin.', { tint: 'Petal', deco: ['ribbon', 'sparkle'], src: P });
+def('dress', 'cottage', 'pp_blossom_sundress', 'Blossom Blanket Sundress', 'aline', '#ffd3e2', '#ffffff', 0, 'A gingham sundress in blossom pink with puffy sleeves, made for sitting on blankets.', { tint: 'Blossom', pattern: 'gingham', ink: '#ffb3cf', deco: ['bow', 'heart'], src: P });
+
+// Sunsip Shore Days (Jul 10 to Jul 18, 2027)
+const S = E('shoredays');
+def('hat', 'beach', 'sd_lemon_sunhat', 'Lemon Ribbon Sunhat', 'sunhat', '#fff3b8', '#ff9ec0', 0, 'A butter-yellow sunhat with a pink ribbon and one very small paper lemon.', { tint: 'Lemon', deco: ['ribbon'], src: S });
+def('dress', 'beach', 'sd_glow_sundress', 'Glowday Shell Sundress', 'shirtdress', '#ffe2b0', '#ffb3cf', 0, 'A peachy sundress that looks like the shore at four in the afternoon.', { tint: 'Glowday', pattern: 'stripes', ink: '#fff3d0', deco: ['buttons', 'bow'], src: S });
+
+// Moonlit Costume Night (Oct 24 to Oct 31, 2027)
+const C = E('costumenight');
+def('hat', 'witchy', 'cn_ghost_hood', 'Sleepy Ghost Hood', 'beanie', '#fff8ff', '#d8c8f8', 0, 'A floaty white hood with two sleepy eyes and a lavender trim. Boo, but gently.', { tint: 'Ghost', deco: ['sparkle'], src: C });
+def('top', 'witchy', 'cn_bat_cape', 'Paper Bat Cape', 'tee', '#d8c8f8', '#ffb3cf', 0, 'A short lilac cape with paper bat wings and a pink moon brooch.', { tint: 'Paper Bat', deco: ['cape', 'moonbrooch'], src: C });
+
+// Warm Cup Market (Jan 15 to Jan 18, 2027)
+const M = E('warmcup');
+def('top', 'winter', 'wc_cocoa_poncho', 'Warm Cup Poncho', 'sweater', '#ffd9c8', '#fff3e8', 0, 'A cuddly cocoa-cream poncho with a mug stitched on the front and a big cozy collar.', { tint: 'Warm Cup', deco: ['scarf', 'heart'], src: M });

@@ -39,6 +39,10 @@ export const brioche: Voice = {
   },
   holiday: {
     halloween: ['Halloween treats! I made pumpkin muffins with little faces. Some of them look surprised. I am surprised too.'],
+    petalpicnic: ['Petal Picnic Days! I packed a basket with sakura buns. Forty buns. For two people. It is fine.', 'The blankets are out! Fresh bread tastes better with petals falling on it. That is science.'],
+    shoredays: ['Sunsip Shore Days! I am baking lemon rolls, and I put a tiny shell on each box. Very fancy.', 'Lemonade and warm bread by the shore. I think I have solved summer.'],
+    costumenight: ['Costume night! I am going as a loaf of bread. It is just me and a very big hat. I am thrilled.', 'I made ghost buns with sleepy faces. Please do not stare at them. They are shy.'],
+    warmcup: ['The Warm Cup Market is on! Cocoa and a warm roll. I would say it is the perfect pairing, but I say that about everything.', 'The kettle at the stall smells like a bakery in winter. I would know. I live in one.'],
     harvestSoon: ['The feast is coming! I have been testing pie recipes for weeks. For research. Delicious research.', 'Harvest Hush Feast soon! I am bringing eleven kinds of bread. Just a few.'],
     harvest: ['Feast season! I am so thankful for flour and butter and friends to share them with.', 'Have you baked a pie yet? Café oven, crumb. Pumpkin, apple, cinnamon. You can do it!'],
     feast: ['It is feast day! Gather close. The warm things are best shared.', 'Happy feast, crumb! I am thankful for every single person at that table. You especially.'],

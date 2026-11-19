@@ -39,6 +39,10 @@ export const nimbus: Voice = {
   },
   holiday: {
     halloween: ['Halloween is a lantern night, really. Every carved pumpkin is a little lantern with a face.'],
+    petalpicnic: ['A picnic under the petals is a very good lantern night in the daytime. Everything glows pink.', 'I brought a tiny paper lantern to the picnic. In case a petal gets lonely.'],
+    shoredays: ['Long glowy days are my favorite light. The shells catch it and hold it for later.', 'I hung a lantern by the lemonade stand. For evening. The lemonade glows when it is dark.'],
+    costumenight: ['Costume night is lantern night with hats. I made a lavender lantern for the square. It sleeps with one eye open.', 'The paper bats look wonderful by lantern light. Gentle and a little silly.'],
+    warmcup: ['A cocoa market is a little lantern for the cold: warm in one place, and everyone gathers. I like that.', 'The kettle glows a bit in the dusk. I tried to put a lantern next to it. It said no. Politely.'],
     harvestSoon: ['The feast is coming. A long table and every friend at it. I will arrive before dusk for that.', 'I am making a lantern for the feast table. Amber paper. It will glow like pie crust.'],
     harvest: ['Feast season. Gratitude is a kind of light, you know. The grove has been glowing all week.', 'Everyone is talking about pie. I am talking about pie too. It is contagious.'],
     feast: ['Feast day. I came early, before dusk, just for this. I am thankful for you, dear.', 'Today I am thankful for long tables, soft candlelight, and friends who listen. You most of all.'],
