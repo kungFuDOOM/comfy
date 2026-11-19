@@ -217,7 +217,7 @@ body.input-touch .hint { bottom: calc(96px + var(--tb, 58px) * 3 + env(safe-area
 /* Wide desktop: keep the seven-button row and reserve its width so chips wrap inside their own column, never under it. */
 .hud-top { max-width: calc(100% - 20px - 480px - env(safe-area-inset-left) - env(safe-area-inset-right)); }
 /* The event banner is a flex item of .hud-top (own wrapped row under the chips), so it can't overlap them. */
-.hud-top .event-banner { font-size: 13px; }
+.hud-top .event-banner { font-size: 13px; flex: 1 0 100%; }
 /* Drawer layout: phones in portrait, phones in landscape (short + coarse pointer), small tablets. */
 @media (max-width: 1100px), ((max-height: 500px) and (pointer: coarse)) {
   .hud-quick { left: auto; right: max(8px, env(safe-area-inset-right)); top: max(8px, env(safe-area-inset-top)); display: block; }

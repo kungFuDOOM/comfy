@@ -164,7 +164,7 @@ export function createBarriers(): BarrierLayer {
     for (const g of [standing, opened]) {
       const inner = new THREE.Group();
       inner.position.copy(pivot).negate();
-      inner.add(...g.children);
+      if (g.children.length) inner.add(...g.children); // add() with no args logs a THREE error ('opened' is empty unless it's a bridge)
       g.add(inner);
       g.position.copy(pivot);
     }
