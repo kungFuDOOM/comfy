@@ -16,7 +16,7 @@ import { dragSpin, dressing, nudgeSpin } from '../dressing';
 import { startDressingRoom, stopDressingRoom } from '../render/dressingRoom';
 import { CURRENCY, EVENT_PANTRY, ITEMS, QUESTS, SHOP_DECOR, SKILLS, type Bench, type Recipe, SHOP_INGREDIENTS, SHOP_SEEDS, VILLAGERS, type VillagerDef } from '../data';
 import { addItem, assignHotbar, BAG_SLOTS, BANK_SLOTS, count, earn, moveStack, removeItem, spend, tidyBag } from '../inventory';
-import { LOG_QUESTS, questsFrom, questStatus, questVisible, startQuest, statusText, turnIn } from '../questlog';
+import { LOG_QUESTS, latteQuestOpen, questsFrom, questStatus, questVisible, startQuest, statusText, turnIn } from '../questlog';
 import { AREA_LIST } from '../areas';
 import { barrierForArea, requirementMet, requirementText } from '../unlocks';
 import { hasMovedIn } from '../npc';
@@ -50,6 +50,7 @@ import { npcs } from '../npc';
 import { GROVE } from '../world';
 import { renderMap } from './mapPanel';
 import { visitDaysText } from '../merchant';
+import './guides.css';
 
 export const price = (n: number) => h('span', 'price', coinIcon(14), String(n));
 
@@ -180,9 +181,10 @@ function recipeList(body: HTMLElement, api: PanelApi, bench: Bench) {
     const def = ITEMS[r.id], open = isUnlocked(r);
     const seasonal = !!r.event;
     const ok = seasonal ? canBakePie(r) : canBrew(r.id) && !brewing.id;
-    body.append(h('div', 'card row-card' + (open ? '' : ' locked'),
+    const forMimsy = r.id === 'pink_latte' && bench === 'brew' && latteQuestOpen();
+    body.append(h('div', 'card row-card' + (open ? '' : ' locked') + (forMimsy ? ' for-mimsy' : ''),
       itemIcon(r.id, 40),
-      h('div', 'grow', h('b', '', def.name), h('div', 'muted', def.desc),
+      h('div', 'grow', h('b', '', def.name), forMimsy ? h('div', 'mimsy-note', '✿ For Mimsy: bring the cup to her sunny seat') : null, h('div', 'muted', def.desc),
         open ? null : h('div', 'lock-note', r.friend && !recipeFriendOk(r.friend) ? `🔒 Reach 10 hearts with ${VILLAGERS.find((v) => v.id === r.friend)?.name.split(' ')[0] ?? 'a friend'} to learn it` : `🔒 Needs ${skillName(r.skill)} level ${r.level}`),
         h('div', 'needs', ...Object.entries(r.needs).map(([k, n]) => h('span', count(k) >= n ? 'need ok' : 'need no', itemIcon(k, 16), `${ITEMS[k].name} ${count(k)}/${n}`))),
         open ? h('div', 'muted small', `${seasonal ? (r.event === 'twinkle' ? 'Seasonal cookies, a little timing game · ' : 'Seasonal pie, a little timing game · ') : ''}+${r.xp} ${skillName(r.skill)} XP`) : null),

@@ -9,6 +9,7 @@ import { cleanPetName, PET_COATS, PET_ITEMS, PET_KINDS, PET_NAME_MAX, petItemByI
 import { state } from '../state';
 import { CURRENCY } from '../data';
 import { btn, closePanel, h, isPanelOpen, openPanel, type PanelApi } from './dom';
+import { queueFirstPet } from '../cutscene/firstPet';
 import { sceneActive } from '../render/stage';
 import './pet.css';
 
@@ -56,7 +57,7 @@ export function openAdopt() {
     };
     const submit = () => {
       if (!check(true)) return;
-      if (adoptPet(kind, name, coat)) closePanel();
+      if (adoptPet(kind, name, coat)) { closePanel(); queueFirstPet(); }
     };
     body.append(
       h('div', 'muted', 'A basket of warm blankets is waiting by the wardrobe. Who will curl up in it?'),

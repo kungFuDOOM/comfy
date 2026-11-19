@@ -1,0 +1,7 @@
+/* Day-one guide touches: the café's Pink Puff Latte row while it is Mimsy's errand. Scoped to .for-mimsy. */
+.card.for-mimsy { background: linear-gradient(135deg, #fff1f7, #ffe3ef); box-shadow: 0 0 0 2px #ffc2dc, 0 4px 14px rgba(255, 150, 200, 0.28); }
+.card.for-mimsy .mimsy-note { display: inline-block; margin: 2px 0 4px; padding: 1px 9px; border-radius: 999px; background: #ffd3e6; color: var(--pink-ink); font-size: 12px; font-weight: 700; }
+@media (prefers-reduced-motion: no-preference) {
+  .card.for-mimsy .mimsy-note { animation: mimsy-glow 2.6s ease-in-out infinite; }
+}
+@keyframes mimsy-glow { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }

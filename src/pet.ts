@@ -5,6 +5,7 @@ import { bus, changed, toast } from './bus';
 import { presentNpcs } from './npc';
 import { findPath, player } from './player';
 import { spend } from './inventory';
+import { bump } from './quests';
 import { saveGame } from './save';
 import { state } from './state';
 import { cleanPetName, coatById, PET_COATS, petItemById, type PetKind, type PetSlot } from './petData';
@@ -262,6 +263,7 @@ export function adoptPet(kind: PetKind, rawName: string, coat: string): boolean 
   resetPet();
   bus.emit('petAdopted', { x: pet.x, y: pet.y });
   toast(`${name} the ${kind} is home with you ♡`);
+  bump('adopted'); // the journal goal "A Little Friend"
   saveGame();
   changed();
   return true;

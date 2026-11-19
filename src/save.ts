@@ -43,6 +43,7 @@ export function loadGame(): boolean {
     state.style = sanitizeStyle(data.style);
     state.home = normalizeHome(data.home); // saves from before home decorating: an empty, default-styled room
     state.pet = sanitizePet(data.pet); // saves from before pets: no pet yet; anything malformed is dropped
+    backfillAdoptGoal(); // a pet adopted before the "A Little Friend" goal existed counts as done, quietly
     state.petCare = sanitizePetCare(data.petCare); // saves from before Pet Care: fresh counters
     state.errands = sanitizeErrands(data.errands, { item: (id) => !!ITEMS[id], skill: (id) => SKILLS.some((k) => k.id === id), giver: (id) => VILLAGERS.some((v) => v.id === id) }); // saves from before the bulletin board: empty, it posts on the first tick
     state.collection = sanitizeCollection(data.collection);
@@ -55,6 +56,13 @@ export function loadGame(): boolean {
   } catch {
     return false;
   }
+}
+
+/** Saves that already have a pet can't adopt again: quietly finish the "A Little Friend" goal (no toast, no pips, no cutscene). */
+function backfillAdoptGoal() {
+  if (!state.pet || state.quests.q_adopt === true) return;
+  state.quests.q_adopt = true;
+  state.stats.adopted = Math.max(state.stats.adopted ?? 0, 1);
 }
 
 /** Unique strings only; anything else (missing, not an array, odd entries) becomes an empty / shorter list. */

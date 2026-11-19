@@ -472,6 +472,7 @@ export interface QuestDef {
 export const QUESTS: QuestDef[] = [
   { id: 'q_brew', title: 'First Sip', desc: 'Brew a drink at the Puddle & Pip Café.', stat: 'brewed', goal: 1, reward: 25, loop: 'Café' },
   { id: 'q_serve', title: 'Cup of Kindness', desc: 'Serve a drink to a villager.', stat: 'served', goal: 1, reward: 40, rewardItem: 'beans', loop: 'Café' },
+  { id: 'q_adopt', title: 'A Little Friend', desc: 'Visit the Pet Nook beside your house and adopt a kitten or a puppy.', stat: 'adopted', goal: 1, reward: 40, loop: 'Pets' },
   { id: 'q_boutique', title: 'Window Shopping', desc: 'Try on an outfit at Spot & Bow Boutique.', stat: 'tried', goal: 1, reward: 30, loop: 'Boutique' },
   { id: 'q_gift', title: 'A Little Something', desc: 'Give a gift to a villager.', stat: 'gifted', goal: 1, reward: 30, loop: 'Friends' },
   { id: 'q_collect', title: 'Treasure Trail', desc: 'Find 3 collectibles around the island.', stat: 'collected', goal: 3, reward: 50, loop: 'Collecting' },
