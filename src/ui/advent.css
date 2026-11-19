@@ -62,6 +62,22 @@
   .advent-grid { grid-template-columns: repeat(6, minmax(44px, 1fr)); }
 }
 
+/* Short phone landscape (844x390, 932x430): 8 columns x 3 rows keeps all 24 doors on screen without scrolling. */
+@media (max-height: 540px) and (min-aspect-ratio: 1/1) {
+  .advent-panel .panel-body { gap: 6px; padding-top: 8px; padding-bottom: 10px; }
+  .advent-panel .panel-head { padding-top: 6px; padding-bottom: 4px; }
+  .advent-blurb { display: none; }
+  .advent-status { font-size: 12px; line-height: 1.25; }
+  .advent-result { padding: 4px 8px; gap: 8px; border-radius: 14px; }
+  .advent-result-copy b { font-size: 13px; }
+  .advent-where { font-size: 11px; line-height: 1.2; }
+  .advent-pics canvas { width: auto; height: 38px; }
+  .advent-grid { grid-template-columns: repeat(8, minmax(44px, 1fr)); gap: 6px; }
+  .advent-door { padding: 2px 2px 4px; border-radius: 14px; }
+  .advent-num { font-size: 15px; }
+  .advent-mark { font-size: 10px; }
+}
+
 .advent-door {
   box-sizing: border-box;
   min-width: 44px;

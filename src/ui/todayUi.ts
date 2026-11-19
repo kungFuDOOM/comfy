@@ -77,9 +77,11 @@ export function buildTodayChip(parent: HTMLElement) {
 
 let waitTimer = 0;
 
-function tryOpen(tries: number) {
+/** Keeps waiting, every 500ms, until no panel and no cutscene is up. Opens at most once per day. */
+function tryOpen() {
+  waitTimer = 0;
   if (isPanelOpen() || sceneActive()) {
-    if (tries < 12) waitTimer = window.setTimeout(() => tryOpen(tries + 1), 500);
+    waitTimer = window.setTimeout(tryOpen, 500);
     return;
   }
   if (!todayWantsShow && shownToday()) return;
@@ -98,5 +100,5 @@ export function maybeOfferToday() {
   if (adventWantsPreview && !force) return;
   if (!force && (!state.seenHelp || shownToday())) return;
   window.clearTimeout(waitTimer);
-  waitTimer = window.setTimeout(() => tryOpen(0), 700);
+  waitTimer = window.setTimeout(tryOpen, 700);
 }
