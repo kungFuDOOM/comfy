@@ -88,6 +88,12 @@ function tryOpen() {
   openToday();
 }
 
+/** Drops any pending or retrying offer (e.g. when leaving play). Does not mark Today as shown. */
+export function cancelTodayOffer() {
+  window.clearTimeout(waitTimer);
+  waitTimer = 0;
+}
+
 /**
  * Call when play begins (Continue, or a return from the title).
  * Greets once per calendar day. `?today=show` greets anyway.
