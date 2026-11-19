@@ -76,7 +76,9 @@ export type Source =
   /** Sold only by the traveling merchant (merchant.ts), on her visit days. */
   | { k: 'merchant' }
   /** Reward for completing a Collection Log set (collection.ts); `set` is the set id. */
-  | { k: 'set'; set: string };
+  | { k: 'set'; set: string }
+  /** A door on the Twinkle Advent Calendar (advent.ts), Dec 1–24. Kept forever; a new year does not take it back. */
+  | { k: 'advent' };
 
 export interface ClothDef {
   id: string;

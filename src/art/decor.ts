@@ -233,6 +233,63 @@ export function drawDecor(ctx: CanvasRenderingContext2D, id: string, x: number, 
       ctx.beginPath(); ctx.arc(0, -9.5, 2.6, 0.2, Math.PI - 0.2); ctx.stroke();
       ctx.fillStyle = '#a3d19a'; ctx.fillRect(-1, -23, 2, 4); circle(ctx, 0, -11, 14, 'rgba(201,168,255,0.14)');
       break;
+    case 'd_adv_candle':
+      ellipse(ctx, 0, -1, 8, 2.4, 'rgba(120,70,100,0.18)');
+      rr(ctx, -6, -4, 12, 3, 1.2); ctx.fillStyle = '#e8b98a'; ctx.fill();
+      rr(ctx, -3.2, -22, 6.4, 20, 2); ctx.fillStyle = '#ffb3cf'; ctx.fill();
+      ellipse(ctx, 0, -22, 3.2, 1.4, '#ff8fb6');
+      ctx.fillStyle = '#ffe27a'; ctx.beginPath(); ctx.moveTo(0, -30); ctx.lineTo(2.2, -24); ctx.lineTo(-2.2, -24); ctx.fill();
+      circle(ctx, 0, -23.2, 1.2, '#fff6c8');
+      break;
+    case 'd_adv_stockings':
+      ellipse(ctx, 0, -1, 12, 2.6, 'rgba(120,70,100,0.18)');
+      ctx.strokeStyle = '#ff8fb6'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-12, -28); ctx.quadraticCurveTo(0, -22, 12, -28); ctx.stroke();
+      for (const [x, c] of [[-8, '#ffb3cf'], [0, '#fff6ea'], [8, '#c8ecd9']] as [number, string][]) {
+        ctx.fillStyle = c; ctx.beginPath(); ctx.moveTo(x - 3.2, -26); ctx.lineTo(x + 3.2, -26); ctx.lineTo(x + 3.4, -10); ctx.quadraticCurveTo(x, -4, x - 3.4, -10); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.fillRect(x - 3.2, -26, 6.4, 3);
+      }
+      break;
+    case 'd_adv_froststar':
+      ellipse(ctx, 0, -1, 8, 2.4, 'rgba(120,70,100,0.18)');
+      ctx.fillStyle = '#e8b98a'; ctx.fillRect(-1.1, -14, 2.2, 13); rr(ctx, -5, -3, 10, 2.4, 1); ctx.fill();
+      star(ctx, 0, -22, 8, '#eef7ff'); star(ctx, 0, -22, 4.2, '#fff');
+      circle(ctx, 7, -28, 1, '#fff'); circle(ctx, -6, -16, 1, '#d6ecff');
+      break;
+    case 'd_adv_sleigh':
+      ellipse(ctx, 0, -1, 13, 2.8, 'rgba(120,70,100,0.18)');
+      ctx.strokeStyle = '#c98f5f'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(-12, -2); ctx.quadraticCurveTo(-4, -8, 10, -4); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-8, -2); ctx.quadraticCurveTo(0, -8, 12, -4); ctx.stroke();
+      rr(ctx, -8, -14, 16, 8, 3); ctx.fillStyle = '#ffb3cf'; ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.fillRect(-8, -14, 16, 2.4);
+      circle(ctx, 2, -16, 3.2, '#8fd7ae'); heart(ctx, -3, -10, 1.8, '#ff8fb6');
+      break;
+    case 'd_adv_wreath':
+      ellipse(ctx, 0, -1, 9, 2.4, 'rgba(120,70,100,0.18)');
+      ctx.strokeStyle = '#7dba8a'; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(0, -16, 8, 0, 7); ctx.stroke();
+      for (const [x, y] of [[-6, -18], [6, -12], [0, -8], [7, -20], [-2, -22]] as [number, number][]) circle(ctx, x, y, 1.6, '#ff6f93');
+      heart(ctx, 0, -24, 2.6, '#ff8fb6');
+      break;
+    case 'd_adv_globe':
+      ellipse(ctx, 0, -1, 9, 2.4, 'rgba(120,70,100,0.18)');
+      rr(ctx, -5, -4, 10, 3, 1.2); ctx.fillStyle = '#e8b98a'; ctx.fill();
+      circle(ctx, 0, -16, 10, 'rgba(210,236,248,0.85)'); ctx.strokeStyle = '#8fcde4'; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.arc(0, -16, 10, 0, 7); ctx.stroke();
+      ctx.fillStyle = '#8fd7ae'; ctx.beginPath(); ctx.moveTo(0, -22); ctx.lineTo(4, -12); ctx.lineTo(-4, -12); ctx.fill();
+      circle(ctx, 0, -10, 1.4, '#ffe27a'); circle(ctx, -3, -18, 0.8, '#fff'); circle(ctx, 3, -14, 0.8, '#fff');
+      break;
+    case 'd_adv_pillow':
+      ellipse(ctx, 0, -1, 12, 3, 'rgba(120,70,100,0.18)');
+      rr(ctx, -11, -16, 22, 14, 6); ctx.fillStyle = '#ffc2d8'; ctx.fill(); ctx.strokeStyle = '#ff8fb6'; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.fillStyle = '#fff6ea'; ctx.fillRect(-0.8, -16, 1.6, 14); ctx.fillRect(-11, -9.5, 22, 1.6);
+      heart(ctx, 0, -9, 2.4, '#ff8fb6');
+      break;
+    case 'd_adv_bellstar':
+      ellipse(ctx, 0, -1, 8, 2.4, 'rgba(120,70,100,0.18)');
+      ctx.fillStyle = '#e8b98a'; ctx.fillRect(-1, -12, 2, 11); rr(ctx, -5, -3, 10, 2.4, 1); ctx.fill();
+      ctx.fillStyle = '#ffe08a'; ctx.beginPath(); ctx.moveTo(-6, -16); ctx.quadraticCurveTo(0, -6, 6, -16); ctx.quadraticCurveTo(0, -13, -6, -16); ctx.fill();
+      ctx.strokeStyle = '#e0b45a'; ctx.lineWidth = 1; ctx.stroke();
+      circle(ctx, 0, -10, 1.5, '#fff6c8');
+      star(ctx, 0, -24, 5, '#ffe27a');
+      break;
     case 'd_wc_kettle':
       ellipse(ctx, 0, -1, 12, 3, 'rgba(120,70,100,0.18)');
       ctx.beginPath(); ctx.moveTo(-9, -4); ctx.quadraticCurveTo(-12, -18, 0, -19); ctx.quadraticCurveTo(12, -18, 9, -4); ctx.closePath(); ctx.fillStyle = '#ffb3c6'; ctx.fill(); ctx.strokeStyle = '#e07a9a'; ctx.lineWidth = 1.2; ctx.stroke();

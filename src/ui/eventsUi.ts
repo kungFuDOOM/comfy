@@ -7,6 +7,7 @@ import {
   chapterOpen, currentChapter, dateRange, dayLabel, daysLeft, endsText, eventCounter, eventProgress, getActiveEvents, getPastEvents, getUpcomingEvents,
   isPeakDay, ownsEventItem, startsText, type EventDef,
 } from '../events';
+import { adventJournalCard } from './adventUi';
 import { h } from './dom';
 
 // ---------- HUD banner ----------
@@ -117,6 +118,8 @@ function eventCard(e: EventDef, phase: 'active' | 'upcoming' | 'ended', thumb: T
 export function renderEventsTab(body: HTMLElement, thumb: Thumb) {
   const active = getActiveEvents(), upcoming = getUpcomingEvents(), past = getPastEvents();
   body.append(h('div', 'muted', 'Seasonal events follow the real calendar. Exclusive items can only be earned while an event is on, and stay yours forever.'));
+  const advent = adventJournalCard();
+  if (advent) body.append(advent);
   if (!active.length) body.append(h('div', 'card', h('div', 'grow muted', upcoming.length ? `No event right now. Next up: ${upcoming[0].name} (${startsText(upcoming[0]).toLowerCase()}).` : 'No event right now. Check back soon!')));
   for (const e of active) body.append(eventCard(e, 'active', thumb));
   if (upcoming.length) body.append(h('div', 'ev-sec', 'Coming up'), ...upcoming.map((e) => eventCard(e, 'upcoming', thumb)));

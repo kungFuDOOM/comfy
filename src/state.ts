@@ -217,6 +217,18 @@ export interface SaveData {
   merchant: MerchantSave;
   /** Villager conversation memory; older saves get an empty one. */
   talk: TalkSave;
+  /**
+   * Twinkle Advent Calendar. Optional in older saves (missing becomes a fresh calendar).
+   * `opened` is the door numbers (1–24) opened in `year`. A new year starts the list over; the gifts stay.
+   */
+  advent: AdventSave;
+}
+
+/** Doors opened on the Twinkle Advent Calendar for one calendar year. */
+export interface AdventSave {
+  opened: number[];
+  /** Calendar year these openings belong to. 0 means none yet. */
+  year: number;
 }
 
 export function defaultState(): SaveData {
@@ -266,6 +278,7 @@ export function defaultState(): SaveData {
     style: defaultStyle(),
     merchant: defaultMerchant(),
     talk: defaultTalk(),
+    advent: { opened: [], year: 0 },
   };
 }
 

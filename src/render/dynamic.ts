@@ -193,6 +193,49 @@ export function createDecor(id: string): THREE.Group {
       g.add(cyl(0.025, 0.035, 0.09, '#a3d19a', 0, 0.62, 0, 6)); g.add(ball(0.04, '#7a5a78', -0.1, 0.38, 0.27, 6)); g.add(ball(0.04, '#7a5a78', 0.1, 0.38, 0.27, 6));
       break;
     }
+    case 'd_adv_candle':
+      g.add(cyl(0.16, 0.18, 0.06, '#e8b98a', 0, 0.03, 0, 12));
+      g.add(cyl(0.07, 0.08, 0.42, '#ffb3cf', 0, 0.27, 0, 10));
+      g.add(ball(0.05, mat('#ffe27a', '#ffd95e', 'lamp'), 0, 0.52, 0, 8));
+      break;
+    case 'd_adv_stockings': {
+      const rod = cyl(0.02, 0.02, 0.7, '#ff8fb6', 0, 0.72, 0, 8); rod.rotation.z = Math.PI / 2; g.add(rod);
+      for (const [x, c] of [[-0.22, '#ffb3cf'], [0, '#fff6ea'], [0.22, '#c8ecd9']] as [number, string][]) {
+        g.add(box(0.12, 0.28, 0.04, c, x, 0.5, 0)); g.add(box(0.13, 0.06, 0.045, '#ffffff', x, 0.62, 0));
+      }
+      break;
+    }
+    case 'd_adv_froststar':
+      g.add(cyl(0.03, 0.04, 0.4, '#e8b98a', 0, 0.2, 0, 8)); g.add(cyl(0.14, 0.16, 0.04, '#e8b98a', 0, 0.02, 0, 12));
+      g.add(ball(0.16, mat('#eef7ff', '#d6ecff', 'lamp'), 0, 0.62, 0, 5));
+      break;
+    case 'd_adv_sleigh':
+      g.add(box(0.55, 0.16, 0.28, '#ffb3cf', 0, 0.22, 0)); g.add(box(0.55, 0.05, 0.3, '#ffffff', 0, 0.3, 0));
+      g.add(box(0.5, 0.03, 0.04, '#c98f5f', 0, 0.06, 0.12)); g.add(box(0.5, 0.03, 0.04, '#c98f5f', 0, 0.06, -0.12));
+      g.add(ball(0.08, '#8fd7ae', 0.12, 0.38, 0, 8));
+      break;
+    case 'd_adv_wreath': {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.07, 8, 18), mat('#7dba8a')); ring.position.y = 0.55; g.add(ring);
+      for (const [x, y] of [[-0.16, 0.62], [0.16, 0.48], [0, 0.36], [0.12, 0.7]] as [number, number][]) g.add(ball(0.04, '#ff6f93', x, y, 0.06, 8));
+      g.add(ball(0.06, '#ff8fb6', 0, 0.78, 0.04, 8));
+      break;
+    }
+    case 'd_adv_globe':
+      g.add(cyl(0.16, 0.18, 0.06, '#e8b98a', 0, 0.03, 0, 12));
+      g.add(ball(0.22, '#d2ecf8', 0, 0.32, 0, 14));
+      g.add(cyl(0.01, 0.1, 0.16, '#8fd7ae', 0, 0.28, 0, 8));
+      g.add(ball(0.04, mat('#ffe27a', '#ffd95e', 'lamp'), 0, 0.38, 0, 6));
+      break;
+    case 'd_adv_pillow':
+      g.add(box(0.55, 0.28, 0.4, '#ffc2d8', 0, 0.16, 0));
+      g.add(box(0.56, 0.04, 0.02, '#fff6ea', 0, 0.16, 0.2));
+      g.add(ball(0.06, '#ff8fb6', 0, 0.2, 0.22, 8));
+      break;
+    case 'd_adv_bellstar':
+      g.add(cyl(0.03, 0.04, 0.28, '#e8b98a', 0, 0.14, 0, 8)); g.add(cyl(0.12, 0.14, 0.04, '#e8b98a', 0, 0.02, 0, 10));
+      g.add(cyl(0.12, 0.02, 0.14, '#ffe08a', 0, 0.4, 0, 12)); g.add(ball(0.04, '#fff6c8', 0, 0.32, 0, 8));
+      g.add(ball(0.1, mat('#ffe27a', '#ffd95e', 'lamp'), 0, 0.58, 0, 5));
+      break;
     case 'd_wc_kettle': {
       g.add(cyl(0.22, 0.28, 0.4, '#ffb3c6', 0, 0.22, 0, 14)); g.add(cyl(0.12, 0.2, 0.08, '#ffffff', 0, 0.46, 0, 14)); g.add(ball(0.05, '#ff8fb6', 0, 0.54, 0, 8));
       g.add(cyl(0.03, 0.05, 0.2, '#e07a9a', 0.3, 0.3, 0, 6));

@@ -47,6 +47,7 @@ export function loadGame(): boolean {
     state.errands = sanitizeErrands(data.errands, { item: (id) => !!ITEMS[id], skill: (id) => SKILLS.some((k) => k.id === id), giver: (id) => VILLAGERS.some((v) => v.id === id) }); // saves from before the bulletin board: empty, it posts on the first tick
     state.collection = sanitizeCollection(data.collection);
     state.talk = sanitizeTalk(data.talk); // saves from before the conversation rework: nothing said yet
+    state.advent = sanitizeAdvent(data.advent); // saves from before the advent calendar: no doors opened yet
     if ((data.mapV ?? 1) < MAP_VERSION) migrateMap();
     state.mapV = MAP_VERSION;
     return true;
@@ -147,6 +148,21 @@ function sanitizeTalk(raw: unknown): SaveData['talk'] {
     if (keys.length) t.answers[id] = Object.fromEntries(keys.map((k) => [k, out[k]]));
   }
   return t;
+}
+
+/** Advent progress is optional in old saves. Only door numbers 1–24 and a sane year are kept. */
+function sanitizeAdvent(raw: unknown): SaveData['advent'] {
+  const out: SaveData['advent'] = { opened: [], year: 0 };
+  if (!raw || typeof raw !== 'object') return out;
+  const r = raw as Partial<SaveData['advent']>;
+  if (typeof r.year === 'number' && Number.isInteger(r.year) && r.year >= 2000 && r.year <= 9999) out.year = r.year;
+  if (!Array.isArray(r.opened)) return out;
+  const seen = new Set<number>();
+  for (const n of r.opened) {
+    if (typeof n === 'number' && Number.isInteger(n) && n >= 1 && n <= 24) seen.add(n);
+  }
+  out.opened = [...seen].sort((a, b) => a - b);
+  return out;
 }
 
 /** Collection Log data is optional in old saves, and is trusted no further than its shape. */

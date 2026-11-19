@@ -204,6 +204,7 @@ export function howToGet(c: ClothDef): string {
     case 'merchant': return 'Sold by Tansy, the traveling merchant, when she visits the island';
     case 'set': return 'Complete a set in your Collection Log (Journal › Collection)';
     case 'region': return s.area === 'all' ? 'Complete all six regions' : `Complete ${areaById(s.area).name} (Journal › Island)`;
+    case 'advent': return 'A door on the Twinkle Advent Calendar (December 1–24, from the town tree or Journal › Events)';
   }
 }
 function eventHowTo(id: string): string {
@@ -222,7 +223,18 @@ function earned(c: ClothDef): boolean {
     case 'friend': return isMaxed(s.friend);
     case 'shift': return (state.cafe?.shifts ?? 0) >= s.n;
     case 'ribbon': return (state.style.ribbons[s.theme] ?? -1) >= s.tier;
-    default: return false;
+    case 'start':
+    case 'shop':
+    case 'event':
+    case 'merchant':
+    case 'set':
+    case 'region':
+    case 'advent':
+      return false;
+    default: {
+      const neverEarned: never = s;
+      return neverEarned;
+    }
   }
 }
 let refreshing = false;

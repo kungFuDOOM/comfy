@@ -12,6 +12,7 @@ import { h } from './dom';
 import { drawWeatherIcon } from '../art/weatherIcon';
 import { getWeather, view, weatherBlurb, weatherLabel } from '../weather';
 import { buildEventBanner, refreshEventBanner } from './eventsUi';
+import { buildAdventNotice, refreshAdventNotice } from './adventUi';
 import { buildMerchantChip, refreshMerchantChip } from './merchantUi';
 
 let mailEl: HTMLButtonElement, mailCount: HTMLElement;
@@ -40,6 +41,7 @@ export function buildHud(actions: { mail(): void; skills(): void; journal(tab: s
     (() => { const b = h('button', 'chip lantern', lanternCanvas, lanternEl); b.title = 'Afterglow Lanterns (L)'; b.onclick = () => actions.journal('lanterns'); return b; })(),
   );
   buildMerchantChip(top);
+  buildAdventNotice(top);
   // Seven labelled buttons: an always-visible row on wide screens, a "Menu" toggle + drawer on phones (CSS decides).
   const toggle = h('button', 'btn small menu-toggle', '✿ Menu');
   toggle.type = 'button'; toggle.setAttribute('aria-haspopup', 'true'); toggle.setAttribute('aria-expanded', 'false');
@@ -86,6 +88,7 @@ export function tickHud() {
   rainbowEl.style.opacity = (view.rainbow * 0.6).toFixed(2);
   refreshEventBanner();
   refreshMerchantChip();
+  refreshAdventNotice();
   const g = lanternCanvas.getContext('2d')!;
   g.clearRect(0, 0, 56, 56);
   g.save(); g.scale(1.6, 1.6); drawLantern(g, 'gift', 17.5, 17.5, 0.9, performance.now() / 1000, 0.7); g.restore();
