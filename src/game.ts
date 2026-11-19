@@ -39,6 +39,7 @@ import { state } from './state';
 import { getClock } from './time';
 import { stepWeather, tickWeather, view as weatherView } from './weather';
 import { isPanelOpen } from './ui/dom';
+import { maybeStartLatteQuest } from './questlog';
 import { buildHud, setHint, tickHud } from './ui/hud';
 import { openMap } from './ui/mapPanel';
 import { photoAct, photo, tickPhoto } from './photo';
@@ -329,6 +330,7 @@ function update(dt: number) {
   saveTimer += dt;
   if (saveTimer > 5) { saveTimer = 0; persist(); }
   if (petHintT > 0 && !state.pet && state.seenHelp) { petHintT -= dt; if (petHintT <= 0) toast('A cozy Pet Nook is set up beside your house. Come meet a kitten or puppy ♡'); }
+  if (!panel && !cutsceneParam) maybeStartLatteQuest(); // day one: Mimsy's latte errand lands in the Journal once the help window has been seen
   if (seenHelpTimer > 0 && !state.seenHelp && !todayWantsShow) { seenHelpTimer -= dt; if (seenHelpTimer <= 0) openHelp(); }
 }
 

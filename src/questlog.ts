@@ -1,7 +1,7 @@
 // Quest log: short authored quests with real beats (offered -> active -> ready to turn in -> done).
 // The older auto-completing stat goals live in quests.ts and stay as they are.
 import { sfx } from './audio';
-import { changed, toast } from './bus';
+import { bus, changed, toast } from './bus';
 import { ITEMS } from './data';
 import { addItem, count, earn, removeItem } from './inventory';
 import { requestDone } from './friends';
@@ -24,7 +24,17 @@ export interface LogQuest {
   thanks: string;
 }
 
+export const LATTE_QUEST = 'lq_latte';
+
 export const LOG_QUESTS: LogQuest[] = [
+  {
+    id: LATTE_QUEST, title: 'Make Mimsy a Pink Puff Latte', giver: 'mimsy',
+    steps: 'Step into the Puddle & Pip Café and use the brew counter. Make a Pink Puff Latte from Cocoa-Roast Beans, Cloud Milk and Strawberry Syrup (you may already have them in your bag), then bring the cup to Mimsy on the sunny seat by the café.',
+    want: { item: 'pink_latte', n: 1 },
+    reward: 70,
+    offer: "*yawn* Oh, hello, sunbeam. Would you make me a Pink Puff Latte? Just step into the café, press the brew counter, and stir up beans, milk and a little strawberry syrup. You may have those in your pocket already. Then bring it to my sunny seat, and I will be ever so grateful.",
+    thanks: "A Pink Puff Latte, still warm! *sip* Mmm. My whole heart just did a little tumble. You are a sweet one. Here, a little something for your pocket.",
+  },
   {
     id: 'lq_errand', title: "Mimsy's Soft Errand", giver: 'mimsy',
     steps: 'Pick 3 Puffberries from the berry bushes in Ribbon Meadow, the grassy patch just west of the café, and bring them back to Mimsy.',
@@ -94,6 +104,12 @@ export function startQuest(q: LogQuest) {
 
 export function turnIn(q: LogQuest): boolean {
   if (questStatus(q) !== 'ready' || !removeItem(q.want.item, q.want.n)) return false;
+  finishQuest(q);
+  return true;
+}
+
+/** Marks the quest done and pays out. The caller has already taken the goods. */
+function finishQuest(q: LogQuest) {
   state.questLog[q.id] = 'done';
   earn(q.reward);
   let extra = '';
@@ -102,6 +118,24 @@ export function turnIn(q: LogQuest): boolean {
   toast(`Quest complete: ${q.title}! +${q.reward} pips${extra} ♥`);
   requestDone(q.giver); // finishing a friend's request warms them up
   changed();
+}
+
+// Handing Mimsy the cup directly (the gift drawer) already took it from the bag, so finish without a second removeItem.
+bus.on('gift', (g: { villager: string; item: string }) => {
+  const q = LOG_QUESTS.find((x) => x.id === LATTE_QUEST);
+  if (!q || g.villager !== q.giver || g.item !== q.want.item || state.questLog[q.id] !== 'active') return;
+  finishQuest(q);
+});
+
+/** Is the day-one latte errand underway (so the café can nudge the Pink Puff Latte row)? */
+export const latteQuestOpen = () => state.questLog[LATTE_QUEST] === 'active';
+
+/** Day one: puts the latte errand in the Journal for a save that has not seen it. Returns true once it is handled. */
+export function maybeStartLatteQuest(): boolean {
+  const q = questById(LATTE_QUEST);
+  if (state.questLog[q.id]) return true;
+  if (!state.seenHelp || !questVisible(q)) return false;
+  startQuest(q);
   return true;
 }
 

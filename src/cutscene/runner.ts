@@ -8,6 +8,7 @@ import { sfx } from '../audio';
 import { currentAccessory } from '../boutique';
 import { VILLAGERS, type VillagerDef } from '../data';
 import { npcs, presentNpcs, type Npc } from '../npc';
+import type { PetPose } from '../pet';
 import { cancelPath, player } from '../player';
 import { confettiAt, harvestAt, twinkleAt, welcomeAt } from '../render/celebrate';
 import { getWorld, runScene } from '../render/stage';
@@ -100,6 +101,8 @@ export interface CutsceneScene {
   timing?: Partial<Timing>;
   /** Runs once before the first frame. */
   setup?(c: RunnerCtx): void;
+  /** The pet to draw this frame (the game's own pet is hidden during scenes). Omitted = no pet. */
+  pet?: (c: RunnerCtx) => PetPose | null;
   /** Extra per-frame staging, after the default (speaker bounce + hops). */
   stage?(c: RunnerCtx, f: FrameInput): void;
   /** Replaces the default camera. Call `c.follow(...)` to get the shared easing. */
@@ -409,6 +412,7 @@ export function playCutscene(scene: CutsceneScene): boolean {
     world.render({
       t, dt, hour, season: clock.season, seasonLook: scene.seasonLook?.(c),
       player: pose, look: currentLook(), accessory: currentAccessory(), npcs: presentNpcs(), talkedToday: () => true,
+      pet: scene.pet?.(c) ?? null,
     });
     if ((endAt >= 0 && tt - endAt >= tm.endHold + tm.fadeOut) || (skipAt >= 0 && tt - skipAt >= tm.skipFade)) finishNow();
   });

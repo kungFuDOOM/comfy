@@ -5,6 +5,7 @@ import { VILLAGERS } from '../data';
 import { startFeast } from '../events/feast';
 import { startFirstSnowfall } from '../events/firstSnowfall';
 import { startTreeLighting } from '../events/treeLighting';
+import { startFirstPet } from './firstPet';
 import { startFirstPie } from '../events/firstPie';
 import { startGoldenPie } from '../events/goldenPie';
 import { startGathering } from '../events/gathering';
@@ -22,6 +23,7 @@ const PLAYERS: Record<string, (done: () => void) => void> = {
   'first-snowfall': (done) => startFirstSnowfall(done, true),
   'tree-lighting': (done) => startTreeLighting(done, true),
   'first-pie': (done) => { startFirstPie(done, true); },
+  'first-pet': (done) => { startFirstPet(done, true); },
   'golden-pie': (done) => { startGoldenPie(done, true); },
 };
 
