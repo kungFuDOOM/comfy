@@ -49,6 +49,7 @@ export function openPanel(title: string, render: (body: HTMLElement, api: PanelA
   document.getElementById('ui')!.append(root);
   const me: Open = { root, cleanups: [], onClose };
   current = me;
+  document.body.classList.add('panel-open');
   const api: PanelApi = {
     rerender() {
       me.cleanups.splice(0).forEach((f) => f());
@@ -75,6 +76,7 @@ export function closePanel(silent = false) {
   current = null;
   c.cleanups.forEach((f) => f());
   c.root.remove();
+  if (!document.querySelector('.panel-backdrop')) document.body.classList.remove('panel-open');
   c.onClose?.();
 }
 

@@ -53,7 +53,7 @@ export function buildHud(actions: { mail(): void; skills(): void; journal(tab: s
   document.addEventListener('pointerdown', (e) => { if (quick.classList.contains('open') && !quick.contains(e.target as Node)) setMenu(false); }, true);
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape') setMenu(false); });
   // Close it whenever a scene / the dressing room takes over, or a panel opens.
-  new MutationObserver(() => { if (document.body.classList.contains('scene') || document.body.classList.contains('dressing')) setMenu(false); })
+  new MutationObserver(() => { if (document.body.classList.contains('scene') || document.body.classList.contains('dressing') || document.body.classList.contains('panel-open')) setMenu(false); })
     .observe(document.body, { attributes: true, attributeFilter: ['class'] });
   document.getElementById('ui')!.addEventListener('pointerdown', (e) => { if ((e.target as HTMLElement).closest?.('.panel-backdrop')) setMenu(false); }, true);
   hotbarEl = h('div', 'hotbar');
