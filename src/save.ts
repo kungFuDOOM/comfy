@@ -48,6 +48,7 @@ export function loadGame(): boolean {
     state.collection = sanitizeCollection(data.collection);
     state.talk = sanitizeTalk(data.talk); // saves from before the conversation rework: nothing said yet
     state.advent = sanitizeAdvent(data.advent); // saves from before the advent calendar: no doors opened yet
+    state.today = sanitizeToday(data.today); // saves from before the Today card: no streak, not shown yet
     if ((data.mapV ?? 1) < MAP_VERSION) migrateMap();
     state.mapV = MAP_VERSION;
     return true;
@@ -148,6 +149,18 @@ function sanitizeTalk(raw: unknown): SaveData['talk'] {
     if (keys.length) t.answers[id] = Object.fromEntries(keys.map((k) => [k, out[k]]));
   }
   return t;
+}
+
+/** Today-card progress is optional in old saves. Junk becomes a fresh note; a gap in the streak is not punished here. */
+function sanitizeToday(raw: unknown): SaveData['today'] {
+  const out: SaveData['today'] = { lastShown: '', streak: 0, lastDay: '' };
+  if (!raw || typeof raw !== 'object') return out;
+  const r = raw as Partial<SaveData['today']>;
+  const day = (v: unknown) => (typeof v === 'string' && /^\d{4}-\d{1,2}-\d{1,2}$/.test(v) ? v : '');
+  out.lastShown = day(r.lastShown);
+  out.lastDay = day(r.lastDay);
+  if (typeof r.streak === 'number' && Number.isFinite(r.streak) && r.streak > 0 && r.streak < 100000) out.streak = Math.floor(r.streak);
+  return out;
 }
 
 /** Advent progress is optional in old saves. Only door numbers 1–24 and a sane year are kept. */

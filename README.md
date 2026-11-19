@@ -116,4 +116,6 @@ For testing, `?input=keyboard|gamepad|touch` pins the prompt style, `?scene=game
 
 The **Twinkle Advent Calendar** (December 1–24) opens from the town tree during Twinkle Season, or from Journal › Events. One door a day; missed doors stay openable through December 25. `?advent=open` previews it on any date (outside December 1–25 it behaves like December 24). `?date=YYYY-MM-DD` and `?event=twinkle` still set the calendar day the doors follow. Example: `?scene=game&advent=open` or `?scene=game&date=2026-12-08`.
 
+The **Today** card greets you once each calendar day when you press Continue (errands still on the board, one friend to see, the boutique’s fresh rack, unread mail, and a festival or an unopened advent door when one is waiting). Tap anywhere or **Tuck it away** to close it. Open it again from the **♡ Today** chip or from Journal. `?today=show` opens it even if you already saw it today. It follows `?date=` and `?event=` the same way the rest of the calendar does. `?cutscene=` still plays its scene instead, and `?advent=open` still opens the calendar unless `?today=show` is set too. Example: `?scene=game&today=show` or `?scene=game&date=2026-12-08&today=show`.
+
 The game follows your local clock for the time of day and the real calendar month for the season. Progress autosaves in your browser (localStorage).

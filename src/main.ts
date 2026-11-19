@@ -21,6 +21,7 @@ initDevices(); // prompt glyphs + gamepad hot-plug from the very first screen
 //   ?scene=game  -> straight into play (a brand-new save still gets its arrival first)
 //   ?scene=intro -> replay the arrival cutscene, then play
 //   ?cutscene=<id> -> straight into play and preview that scene (harvest-feast, christmas-eve, christmas-day, first-snowfall, tree-lighting, first-pie, golden-pie); wins over ?scene=
+//   ?today=show -> open the Today card on load, even if it already opened today (?date= and ?event= still set the day)
 const scene = new URLSearchParams(location.search).get('scene');
 if (cutsceneParam) bootCutscenePreview(cutsceneParam);
 else if (scene === 'game') bootIntoGame();
