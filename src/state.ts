@@ -222,6 +222,11 @@ export interface SaveData {
    * `opened` is the door numbers (1–24) opened in `year`. A new year starts the list over; the gifts stay.
    */
   advent: AdventSave;
+  /**
+   * The Today card. Optional in older saves (missing becomes a fresh note).
+   * A missed day only starts the streak over; nothing is taken away.
+   */
+  today: TodaySave;
 }
 
 /** Doors opened on the Twinkle Advent Calendar for one calendar year. */
@@ -230,6 +235,17 @@ export interface AdventSave {
   /** Calendar year these openings belong to. 0 means none yet. */
   year: number;
 }
+
+/** Once-a-day greeting card (today.ts). Day keys match time.ts `dayKey`. */
+export interface TodaySave {
+  /** Day the card last opened, so it greets on its own only once per calendar day. */
+  lastShown: string;
+  /** Days in a row the player has loaded in. A gap starts this over at 1. */
+  streak: number;
+  /** Day key of the visit that last moved the streak. */
+  lastDay: string;
+}
+export const defaultToday = (): TodaySave => ({ lastShown: '', streak: 0, lastDay: '' });
 
 export function defaultState(): SaveData {
   return {
@@ -279,6 +295,7 @@ export function defaultState(): SaveData {
     merchant: defaultMerchant(),
     talk: defaultTalk(),
     advent: { opened: [], year: 0 },
+    today: defaultToday(),
   };
 }
 

@@ -14,6 +14,7 @@ import { getWeather, view, weatherBlurb, weatherLabel } from '../weather';
 import { buildEventBanner, refreshEventBanner } from './eventsUi';
 import { buildAdventNotice, refreshAdventNotice } from './adventUi';
 import { buildMerchantChip, refreshMerchantChip } from './merchantUi';
+import { buildTodayChip } from './todayUi';
 
 let mailEl: HTMLButtonElement, mailCount: HTMLElement;
 let weatherCanvas: HTMLCanvasElement, rainbowEl: HTMLElement, weatherKey = '';
@@ -40,6 +41,7 @@ export function buildHud(actions: { mail(): void; skills(): void; journal(tab: s
     mailEl,
     (() => { const b = h('button', 'chip lantern', lanternCanvas, lanternEl); b.title = 'Afterglow Lanterns (L)'; b.onclick = () => actions.journal('lanterns'); return b; })(),
   );
+  buildTodayChip(top);
   buildMerchantChip(top);
   buildAdventNotice(top);
   // Seven labelled buttons: an always-visible row on wide screens, a "Menu" toggle + drawer on phones (CSS decides).

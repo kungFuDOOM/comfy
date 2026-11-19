@@ -39,6 +39,7 @@ import { renderCollectionLog } from './collectionUi';
 import { currentTitle } from '../collection';
 import { eventItemOpen, getActiveEvents } from '../events';
 import { openShift } from './shiftUi';
+import { openToday } from './todayUi';
 import { openContest } from './contestUi';
 import { RIBBONS, THEMES, hostedToday, ribbonOf, themeFor } from '../contest';
 import { SHIFTS_PER_DAY, orderable, shiftsLeft } from '../shift';
@@ -520,6 +521,7 @@ export function openJournal(start = 'quests') {
   openPanel('Journal', (body, api) => {
     const t = (id: string, label: string) => tabBtn(label, tab === id, () => { tab = id; api.rerender(); });
     body.append(h('div', 'tabs', t('quests', 'Quests'), t('skills', 'Skills'), t('collection', '✿ Collection'), t('friends', 'Friends'), t('island', 'Island'), t('map', 'Map'), t('lanterns', 'Lanterns'), t('events', getActiveEvents().length ? `Events ${getActiveEvents()[0].icon}` : 'Events')));
+    body.append(h('div', 'row', btn('♡ Today', () => openToday(), 'today-open')));
     // the card widens / goes two-column for skills on phones (scenes.css); other tabs keep their usual size
     body.parentElement?.classList.toggle('skills-open', tab === 'skills');
     body.parentElement?.classList.toggle('collection-open', tab === 'collection');

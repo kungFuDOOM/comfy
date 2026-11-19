@@ -52,6 +52,7 @@ import { enterHome } from './ui/homeUi';
 import { syncFriendship, tickFriends } from './friends';
 import { adventWantsPreview } from './advent';
 import { openAdvent } from './ui/adventUi';
+import { maybeOfferToday, todayWantsShow } from './ui/todayUi';
 import { openBag, openBoutique, openCafe, openChest, openCrafting, openDialogue, openHelp, openJournal, openMarket } from './ui/panels';
 import { openPause } from './ui/menuPanels';
 import { barrierHint, barrierNear, syncUnlocks, useBarrier } from './unlocks';
@@ -328,7 +329,7 @@ function update(dt: number) {
   saveTimer += dt;
   if (saveTimer > 5) { saveTimer = 0; persist(); }
   if (petHintT > 0 && !state.pet && state.seenHelp) { petHintT -= dt; if (petHintT <= 0) toast('A cozy Pet Nook is set up beside your house. Come meet a kitten or puppy ♡'); }
-  if (seenHelpTimer > 0 && !state.seenHelp) { seenHelpTimer -= dt; if (seenHelpTimer <= 0) openHelp(); }
+  if (seenHelpTimer > 0 && !state.seenHelp && !todayWantsShow) { seenHelpTimer -= dt; if (seenHelpTimer <= 0) openHelp(); }
 }
 
 // Footsteps are paced by distance walked (not time), so they match the stride at any speed.
@@ -413,6 +414,7 @@ export function startGame() {
     world3d.snapCamera(player.x, player.y);
     changed();
     tickHud();
+    maybeOfferToday();
     return;
   }
   booted = true;
@@ -443,7 +445,7 @@ export function startGame() {
     last = now;
     if (sceneActive()) { requestAnimationFrame(frame); return; }
     // ?advent=open shows the calendar once play is on screen (after a cutscene, if one had the screen first).
-    if (!adventPreviewOpened && adventWantsPreview && !cutsceneParam && !isPanelOpen()) {
+    if (!adventPreviewOpened && adventWantsPreview && !todayWantsShow && !cutsceneParam && !isPanelOpen()) {
       adventPreviewOpened = true;
       openAdvent();
     }
@@ -455,4 +457,5 @@ export function startGame() {
   };
   tickHud();
   requestAnimationFrame(frame);
+  maybeOfferToday();
 }
