@@ -37,14 +37,14 @@ button.chip { cursor: pointer; }
 .toast { background: rgba(255, 248, 243, 0.96); border: 2px solid #ffc3da; border-radius: 16px; padding: 7px 14px; font-weight: 700; font-size: 13px; text-align: center; box-shadow: 0 3px 0 rgba(224, 112, 154, 0.25); animation: pop 0.25s ease-out; transition: opacity 0.5s; pointer-events: none; }
 .toast.out { opacity: 0; }
 @keyframes pop { from { transform: translateY(-8px) scale(0.95); opacity: 0; } to { transform: none; opacity: 1; } }
-@media (pointer: coarse) { .slot { width: 40px; height: 40px; } }
+@media (pointer: coarse) { .slot { width: 44px; height: 44px; } }
 
 .panel-backdrop { position: absolute; inset: 0; background: rgba(122, 59, 88, 0.28); display: grid; place-items: center; padding: 10px; z-index: 10; }
 .panel { position: relative; width: min(560px, 100%); max-height: calc(100vh - 20px); background: var(--cream); border: 3px solid #ffc3da; border-radius: 24px; box-shadow: 0 8px 0 rgba(224, 112, 154, 0.3); display: flex; flex-direction: column; overflow: hidden; animation: pop 0.2s ease-out; }
 .panel.wide { width: min(700px, 100%); }
 .panel-head { padding: 14px 56px 10px 18px; background: linear-gradient(#ffe3ee, #fff8f3); border-bottom: 2px dashed #ffc3da; }
 .panel-title { font-size: 20px; font-weight: 700; }
-.panel-body { padding: 12px 16px 16px; overflow: auto; display: flex; flex-direction: column; gap: 10px; touch-action: pan-y; }
+.panel-body { padding: 12px 16px 16px; overflow: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; min-height: 0; display: flex; flex-direction: column; gap: 10px; touch-action: pan-y; }
 .muted { color: var(--ink-l); font-size: 13px; font-weight: 600; } .small { font-size: 12px; }
 .sub { font-weight: 700; font-size: 14px; margin-top: 4px; }
 .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -208,7 +208,8 @@ body.input-touch .hint { bottom: calc(96px + var(--tb, 58px) * 3 + env(safe-area
 .toasts { top: calc(74px + env(safe-area-inset-top)); z-index: 20; }
 .panel-backdrop { padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left)); }
 .panel { max-height: calc(100vh - 20px); max-height: calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
-@media (pointer: coarse) { .slot { width: min(42px, calc((100vw - 48px) / 9)); height: min(42px, calc((100vw - 48px) / 9)); } }
+/* >=44px tap targets whenever 9 slots fit; shrink only on very narrow screens */
+@media (pointer: coarse) { .slot { width: min(44px, calc((100vw - 64px) / 9)); height: min(44px, calc((100vw - 64px) / 9)); } }
 /* HUD stacking: chips + banner under the menu, menu under panels (z 10) and toasts (z 20) */
 .hud-top { z-index: 5; }
 .hud-quick { z-index: 6; }
@@ -277,3 +278,26 @@ body.input-touch .help-menu-row { display: none; }
   filter: blur(1.2px); animation: rainbow-glow 5s ease-in-out infinite alternate; }
 @keyframes rainbow-glow { from { filter: blur(1.2px) saturate(0.95); } to { filter: blur(2px) saturate(1.25); } }
 @media (prefers-reduced-motion: reduce) { .rainbow { animation: none; } }
+
+/* ---- any window open: hide the play HUD + touch controls (same set cutscenes hide) ---- */
+body.panel-open .hud-top, body.panel-open .hud-quick, body.panel-open .hotbar, body.panel-open .hint,
+body.panel-open .touch-ui, body.panel-open .joy-base { display: none !important; }
+/* the backdrop may scroll on short screens; html/body stay touch-action:none for the canvas joystick */
+.panel-backdrop, .panel-body, .menu-drawer { touch-action: pan-y; overscroll-behavior: contain; }
+.panel-backdrop { -webkit-overflow-scrolling: touch; }
+
+/* ---- phone landscape (touch + short): keep chrome clear of the Dynamic Island / rounded corners ---- */
+@media (orientation: landscape) and (max-height: 540px) and (pointer: coarse) {
+  body .hud-top { left: max(48px, env(safe-area-inset-left)); max-width: calc(100% - 32px - 96px - max(48px, env(safe-area-inset-left)) - max(48px, env(safe-area-inset-right))); }
+  body .hud-quick { right: max(48px, env(safe-area-inset-right)); }
+  body .touch-ui { right: max(48px, env(safe-area-inset-right)); bottom: calc(78px + env(safe-area-inset-bottom)); }
+  /* resting joystick: fully in the bottom-left corner, left of the hotbar (centre = edge offset + 62px radius) */
+  body .joy-base { left: calc(max(48px, env(safe-area-inset-left)) + 62px); top: calc(100% - max(12px, env(safe-area-inset-bottom)) - 62px); }
+  body .panel-backdrop { padding: max(8px, env(safe-area-inset-top)) max(48px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(48px, env(safe-area-inset-left)); }
+  body .panel, body .panel.wide {
+    max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+  body .panel-head { padding-top: 8px; padding-bottom: 6px; }
+  body .panel-foot { padding-top: 4px; padding-bottom: 5px; }
+}
