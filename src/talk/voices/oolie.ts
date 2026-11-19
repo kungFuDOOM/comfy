@@ -39,6 +39,10 @@ export const oolie: Voice = {
   },
   holiday: {
     halloween: ['Halloween. I am going as... a moth. It is not a costume. But I am wearing a little hat, so.'],
+    petalpicnic: ['The picnic is... a quiet one. A small blanket. A few petals. I like it. Will you sit with me?', 'I pressed a petal from the picnic in my book. A very small one. It is mine now.'],
+    shoredays: ['I went to look for shells. The beach is... quiet in the evening. I found one that glows. A little.', 'The lemonade stand has a very short line. That is my favorite kind of line.'],
+    costumenight: ['Costume night. I went as a moth again. But this time I have a hood. So it is a real costume.', 'The costume rack has a ghost hood. I tried it. I felt like nobody could see me. It was lovely.'],
+    warmcup: ['The cocoa stall is small. And not too loud. A cup of cocoa, a quiet corner. Perfect.', 'I held a warm cup for a long time. I forgot to drink it. It was still nice.'],
     harvestSoon: ['The feast is coming soon. A big table. Lots of people. I am... a little nervous. Will you sit near me?', 'I am pressing autumn leaves for the feast table. As decorations. Small ones. Quiet ones.'],
     harvest: ['Feast season. Everyone is so warm right now. Even me.', 'I wrote down things I am thankful for. You are on the list. Near the top. Oh. At the top.'],
     feast: ['It is the feast. The candles flicker like little wings. I like it.', 'Today I am thankful for... you. And pie. You first. *whispers* Do not tell the pie.'],

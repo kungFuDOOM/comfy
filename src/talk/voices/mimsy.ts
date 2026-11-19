@@ -39,6 +39,10 @@ export const mimsy: Voice = {
   },
   holiday: {
     halloween: ['I am going as a sleepy ghost for Halloween. It is just me in a blanket. Boo... zzz.'],
+    petalpicnic: ['A picnic blanket is just a bed that lets you have snacks. I am here for it. Zzz... petals.', 'Petal Picnic Days! I lay on a blanket and a petal landed on my nose. Best day of spring.'],
+    shoredays: ['Sunsip Shore Days! The shells glow like little suns. I carried one around and fell asleep holding it.', 'The lemonade stand is so cold and so pink. I had a glass and then a nap. In that order.'],
+    costumenight: ['Costume night! I tried on the ghost hood. It is basically a blanket with eyes. I am never taking it off.', 'The paper bats in the square look sleepy. I feel seen.'],
+    warmcup: ['The Warm Cup Market! A warm cup in each paw and nowhere to be. This is my whole dream.', 'I had a cocoa. Then another cocoa. Then I looked at the kettle with love.'],
     harvestSoon: ['The Harvest Hush Feast is coming! I am practicing sitting at a long table. I am very good at it.', 'Soon the whole square will smell like pie. I plan to follow my nose and then sit down.'],
     harvest: ['Feast season! I am so thankful for pie. And friends. Friends first. Pie a close second.', 'I helped set out the pumpkins. By helped, I mean I sat next to them encouragingly.'],
     feast: ['Today is the feast! I set a place for you right beside me. I wrote your name on the napkin. In crumbs.', 'I am thankful for warm pie, long tables, and you. Mostly you. Okay, a little pie.'],

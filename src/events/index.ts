@@ -2,6 +2,10 @@
 import '../ui/events.css';
 import './harvest';
 import './twinkle';
+import './petalpicnic';
+import './shoredays';
+import './costumenight';
+import './warmcup';
 
 export { startFeast, feastPlaying } from './feast';
 export { openPieBake, canBakePie } from './pieBake';

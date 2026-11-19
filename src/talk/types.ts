@@ -9,7 +9,8 @@ export type Sky = 'sunny' | 'cloudy' | 'rain' | 'snow' | 'rainbow';
 export type Holiday =
   | 'halloween' | 'harvestSoon' | 'harvest' | 'feast'
   | 'twinkleSoon' | 'twinkle' | 'tree' | 'cookies' | 'cocoa' | 'giftweek' | 'xmasEve' | 'xmasDay' | 'afterglow'
-  | 'newYearEve' | 'newYear' | 'valentine';
+  | 'newYearEve' | 'newYear' | 'valentine'
+  | 'petalpicnic' | 'shoredays' | 'costumenight' | 'warmcup'; // the four small seasonal festivals (events/petalpicnic.ts...)
 
 /** Lifetime stats (state.stats) a villager notices when they change between chats. */
 export type Activity =

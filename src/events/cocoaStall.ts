@@ -13,7 +13,12 @@ export const COCOAS = ['cocoa_pink', 'cocoa_mint', 'cocoa_star'];
 
 export function openCocoaStall() {
   if (!chapterOpen('twinkle', 'wk3')) { toast('The cocoa stall opens in week 3 of Twinkle Season.'); return; }
-  openPanel('Cocoa Market ☕', (body, api) => {
+  openCocoaCups('twinkle', 'Cocoa Market ☕');
+}
+
+/** The same three cups for any event's stall (the Warm Cup Market reuses it). Buying counts for that event's `cocoa` counter. */
+export function openCocoaCups(eventId: string, title: string) {
+  openPanel(title, (body, api) => {
     body.append(h('div', 'muted', 'Steaming cups from the stall in the square. Sip one, or hand one to a friend: a warm cup makes a lovely moment.'));
     for (const id of COCOAS) {
       const cost = ITEMS[id].buy ?? 0;
@@ -23,7 +28,7 @@ export function openCocoaStall() {
         btn(`${cost} ${CURRENCY}`, () => {
           if (!spend(cost)) { toast('Not enough pips yet.'); return; }
           addItem(id);
-          bumpEvent('twinkle', 'cocoa', 1);
+          bumpEvent(eventId, 'cocoa', 1);
           startAct('sip', 1.5);
           toast(`${ITEMS[id].name}, steaming hot ☕`);
           api.rerender();

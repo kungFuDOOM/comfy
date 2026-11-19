@@ -213,6 +213,33 @@ export function drawDecor(ctx: CanvasRenderingContext2D, id: string, x: number, 
       heart(ctx, -1, -21, 1.6, '#ff8fb6'); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(4, -20.5, 1.8, -1.4, 1.4); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(-6, -15); ctx.lineTo(6, -15); ctx.stroke();
       break;
+    case 'd_pp_blanket':
+      ellipse(ctx, 0, -2, 15, 5, '#ffc9dc'); ctx.strokeStyle = '#ff9ec0'; ctx.lineWidth = 1; for (const x of [-9, -3, 3, 9]) { ctx.beginPath(); ctx.moveTo(x, -6); ctx.lineTo(x, 2); ctx.stroke(); }
+      rr(ctx, -5, -15, 10, 8, 2); ctx.fillStyle = '#f3d4a8'; ctx.fill(); ctx.strokeStyle = '#c98f5f'; ctx.lineWidth = 1.1; ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, -15, 4.5, Math.PI, 0); ctx.stroke(); circle(ctx, 9, -4, 1.6, '#ffffff'); circle(ctx, -10, -3, 1.3, '#ffb3cf');
+      break;
+    case 'd_sd_lemonade':
+      ellipse(ctx, 0, -1, 13, 3, 'rgba(120,70,100,0.18)');
+      rr(ctx, -10, -17, 20, 14, 2); ctx.fillStyle = '#fff7d6'; ctx.fill(); ctx.strokeStyle = '#e8c868'; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.fillStyle = '#ffb3cf'; for (const x of [-8, -2.7, 2.7]) ctx.fillRect(x, -17, 2.6, 5);
+      ctx.beginPath(); ctx.moveTo(-12, -17); ctx.quadraticCurveTo(0, -27, 12, -17); ctx.closePath(); ctx.fillStyle = '#ffe27a'; ctx.fill(); ctx.stroke();
+      circle(ctx, -3, -8, 3.4, '#fff3a8'); circle(ctx, 4, -8, 3.4, '#fff3a8'); circle(ctx, 0.6, -8, 1.1, '#ffffff');
+      break;
+    case 'd_cn_lantern':
+      ellipse(ctx, 0, -1, 11, 3, 'rgba(120,70,100,0.18)');
+      circle(ctx, 0, -11, 10, '#ffc9a8'); ctx.strokeStyle = '#f29bb0'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(0, -11, 10, 0, 7); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(0, -11, 4.6, 9.5, 0, 0, 7); ctx.stroke();
+      ctx.strokeStyle = '#7a5a78'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(-3.4, -12, 1.5, Math.PI, 0); ctx.arc(3.4, -12, 1.5, Math.PI, 0); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, -9.5, 2.6, 0.2, Math.PI - 0.2); ctx.stroke();
+      ctx.fillStyle = '#a3d19a'; ctx.fillRect(-1, -23, 2, 4); circle(ctx, 0, -11, 14, 'rgba(201,168,255,0.14)');
+      break;
+    case 'd_wc_kettle':
+      ellipse(ctx, 0, -1, 12, 3, 'rgba(120,70,100,0.18)');
+      ctx.beginPath(); ctx.moveTo(-9, -4); ctx.quadraticCurveTo(-12, -18, 0, -19); ctx.quadraticCurveTo(12, -18, 9, -4); ctx.closePath(); ctx.fillStyle = '#ffb3c6'; ctx.fill(); ctx.strokeStyle = '#e07a9a'; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(8, -13); ctx.quadraticCurveTo(16, -14, 14, -8); ctx.stroke(); ctx.beginPath(); ctx.arc(0, -19, 4, Math.PI, 0); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.85)'; for (const x of [-3, 3]) { ctx.beginPath(); ctx.moveTo(x, -26); ctx.quadraticCurveTo(x + 2, -28, x, -30); ctx.stroke(); }
+      heart(ctx, 0, -11, 2.6, '#ffffff');
+      break;
     default:
       circle(ctx, 0, -8, 6, '#ffb3cf');
   }

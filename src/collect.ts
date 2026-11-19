@@ -50,7 +50,7 @@ function tileFits(kind: string, x: number, y: number): boolean {
   if (ITEMS[kind]?.event && !eventItemOpen(kind)) return false; // seasonal finds vanish when their event ends (and wait for their chapter)
   if (isSolidTile(x, y) || !isAreaOpen(areaAt(x, y))) return false;
   switch (kind) {
-    case 'shell': return t === T.Sand;
+    case 'shell': case 'sd_shell': return t === T.Sand;
     case 'blossom': return inMeadow(x, y);
     case 'moth': return t === T.Grass || t === T.Path || t === T.Lawn || t === T.Plaza;
     case 'button': return t === T.Hill;

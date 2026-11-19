@@ -178,6 +178,26 @@ export function createDecor(id: string): THREE.Group {
       g.add(cyl(0.1, 0.08, 0.12, '#fff0f6', -0.08, 0.66, 0.05, 10)); g.add(ball(0.04, '#ff8fb6', -0.08, 0.7, 0.09, 6)); g.add(box(0.44, 0.03, 0.02, '#ffffff', 0, 0.5, 0.05));
       break;
     }
+    case 'd_pp_blanket': {
+      g.add(box(0.9, 0.04, 0.8, '#ffc9dc', 0, 0.02, 0)); g.add(box(0.9, 0.045, 0.1, '#ffffff', 0, 0.025, -0.2)); g.add(box(0.9, 0.045, 0.1, '#ffffff', 0, 0.025, 0.2));
+      g.add(box(0.26, 0.14, 0.18, '#f3d4a8', 0.12, 0.11, 0.05)); g.add(ball(0.04, '#ffb3cf', -0.25, 0.06, 0.15, 8));
+      break;
+    }
+    case 'd_sd_lemonade': {
+      g.add(box(0.7, 0.5, 0.4, '#fff7d6', 0, 0.3, 0)); for (const x of [-0.25, 0, 0.25]) g.add(box(0.12, 0.2, 0.42, '#ffb3cf', x, 0.5, 0));
+      g.add(cyl(0.02, 0.5, 0.2, '#ffe27a', 0, 0.78, 0, 4)); g.add(ball(0.1, '#fff3a8', -0.1, 0.62, 0.14, 8)); g.add(ball(0.1, '#fff3a8', 0.12, 0.62, 0.14, 8));
+      break;
+    }
+    case 'd_cn_lantern': {
+      const pk = ball(0.3, mat('#ffc9a8', '#c9a8ff', 'lamp'), 0, 0.32, 0, 14); pk.scale.y = 0.85; g.add(pk);
+      g.add(cyl(0.025, 0.035, 0.09, '#a3d19a', 0, 0.62, 0, 6)); g.add(ball(0.04, '#7a5a78', -0.1, 0.38, 0.27, 6)); g.add(ball(0.04, '#7a5a78', 0.1, 0.38, 0.27, 6));
+      break;
+    }
+    case 'd_wc_kettle': {
+      g.add(cyl(0.22, 0.28, 0.4, '#ffb3c6', 0, 0.22, 0, 14)); g.add(cyl(0.12, 0.2, 0.08, '#ffffff', 0, 0.46, 0, 14)); g.add(ball(0.05, '#ff8fb6', 0, 0.54, 0, 8));
+      g.add(cyl(0.03, 0.05, 0.2, '#e07a9a', 0.3, 0.3, 0, 6));
+      break;
+    }
     default: g.add(ball(0.3, '#ffb3cf', 0, 0.3, 0));
   }
   if (id !== 'd_rug') g.add(contactShadow(0.9));

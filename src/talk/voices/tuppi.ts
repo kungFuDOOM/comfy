@@ -39,6 +39,10 @@ export const tuppi: Voice = {
   },
   holiday: {
     halloween: ['Halloween! I am going as a cupcake! I am a cupcake every day, but this time with a hat! Hee!'],
+    petalpicnic: ['PICNIC! I brought a cupcake! And a cupcake for the cupcake! Hee! Petals on everything!', 'I sat on all three blankets! Not at once! One at a time! Hee!'],
+    shoredays: ['SHORE DAYS! Shells! Lemonade! Lemonade in a SHELL! Okay, no, that does not work. I tried.', 'I made lemon cupcakes and a pink sugar rim, like the stand! Hee! Do you want one?'],
+    costumenight: ['Costume night! I am a cupcake again! But with a bat on top! Hee!', 'I tried the ghost hood! I am a ghost cupcake! A BOO-cake!'],
+    warmcup: ['Warm Cup Market! Cocoa! With a cupcake on top! And then a smaller cupcake!', 'I had three cups. I am a very warm little cupcake now. Hee!'],
     harvestSoon: ['The feast is coming! The feast is coming! I am making a cake shaped like a pie! Hee!', 'Feast soon! Do you think I can bring a dessert AND a second dessert? Yes. The answer is yes.'],
     harvest: ['Feast season! I am so thankful for frosting! And you! And frosting!', 'Pie pie pie! Have you baked a pie? Bake a pie! Bring it here! Hee!'],
     feast: ['IT IS FEAST DAY! Everybody is here! Everybody! Wiggle wiggle!', 'Hee! I made a cake shaped like a pie! It is confused! I am thankful for confused cakes!'],

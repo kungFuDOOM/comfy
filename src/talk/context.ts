@@ -28,6 +28,7 @@ function feastDayOf(year: number): number {
 const MOOD: Record<Holiday, string> = {
   halloween: '🎃', harvestSoon: '🍂', harvest: '🍂', feast: '🥧', twinkleSoon: '❄️', twinkle: '🎄', tree: '🎄', cookies: '🍪',
   cocoa: '☕', giftweek: '🎁', xmasEve: '✨', xmasDay: '🎁', afterglow: '🌟', newYearEve: '🎉', newYear: '🎉', valentine: '💌',
+  petalpicnic: '🌸', shoredays: '🍋', costumenight: '🌙', warmcup: '☕',
 };
 
 /** Holidays for a day. Day-of moments weigh 9 (villagers can hardly talk about anything else); seasons weigh 4-5. */
@@ -35,6 +36,12 @@ export function holidaysOn(d: Date): { key: Holiday; w: number; mood: string }[]
   const m = d.getMonth() + 1, day = d.getDate();
   const out: { key: Holiday; w: number }[] = [];
   const add = (key: Holiday, w: number) => { if (!out.some((o) => o.key === key)) out.push({ key, w }); };
+
+  // the four small seasonal festivals (each only while its event runs; Halloween calendar talk stays below)
+  if (isEventActive('petalpicnic')) add('petalpicnic', isPeakDay('petalpicnic') ? 9 : 5);
+  if (isEventActive('shoredays')) add('shoredays', isPeakDay('shoredays') ? 9 : 5);
+  if (isEventActive('costumenight')) add('costumenight', isPeakDay('costumenight') ? 9 : 5);
+  if (isEventActive('warmcup')) add('warmcup', isPeakDay('warmcup') ? 9 : 5);
 
   if (m === 10 && day >= 25) add('halloween', day === 31 ? 9 : 4);
 

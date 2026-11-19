@@ -108,6 +108,12 @@ function draw(g: G, id: string): boolean {
       circle(g, 16, 8, 3.4, '#9ae0d4'); circle(g, 14.4, 7.6, 1, '#4a3a4a'); circle(g, 17.6, 7.6, 1, '#4a3a4a'); star(g, 16, 22, 1.6, '#fff');
       return true;
     // ---- shells ----
+    case 'sd_shell':
+      g.beginPath(); g.moveTo(16, 27); g.quadraticCurveTo(3, 20, 5, 11); g.quadraticCurveTo(16, 1, 27, 11); g.quadraticCurveTo(29, 20, 16, 27); g.closePath();
+      g.fillStyle = '#ffd9a8'; g.fill(); outline(g);
+      g.strokeStyle = '#ffb07a'; g.lineWidth = 1.3; for (const x of [9, 12.5, 16, 19.5, 23]) { g.beginPath(); g.moveTo(16, 26); g.quadraticCurveTo(x, 17, x, 8 + Math.abs(16 - x) * 0.5); g.stroke(); }
+      star(g, 16, 14, 2.2, '#fff6c2');
+      return true;
     case 'conch':
       g.beginPath(); g.moveTo(5, 24); g.quadraticCurveTo(3, 12, 14, 8); g.quadraticCurveTo(26, 5, 28, 14); g.quadraticCurveTo(29, 24, 18, 26); g.quadraticCurveTo(10, 28, 5, 24); g.closePath();
       g.fillStyle = '#ffc2da'; g.fill(); outline(g);
