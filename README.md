@@ -114,4 +114,6 @@ Sound effects (clicks, panel open/close, footsteps by surface, pickups, pips, gi
 
 For testing, `?input=keyboard|gamepad|touch` pins the prompt style, `?scene=game` skips the menu and `?scene=intro` replays the intro.
 
+The **Twinkle Advent Calendar** (December 1–24) opens from the town tree during Twinkle Season, or from Journal › Events. One door a day; missed doors stay openable through December 25. `?advent=open` previews it on any date (outside December 1–25 it behaves like December 24). `?date=YYYY-MM-DD` and `?event=twinkle` still set the calendar day the doors follow. Example: `?scene=game&advent=open` or `?scene=game&date=2026-12-08`.
+
 The game follows your local clock for the time of day and the real calendar month for the season. Progress autosaves in your browser (localStorage).

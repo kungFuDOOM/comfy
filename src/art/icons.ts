@@ -321,6 +321,20 @@ export function drawItem(ctx: CanvasRenderingContext2D, id: string) {
       circle(ctx, 16, 8.4, 2.6, '#ff5c8a'); ctx.strokeStyle = '#6fbf7e'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(16, 6); ctx.quadraticCurveTo(18, 3, 20, 4); ctx.stroke();
       break;
     }
+    case 'adv_dawn_cookie': case 'adv_cocoa_drop': case 'adv_mint_crisp': case 'adv_cloud_bun':
+    case 'adv_snow_puff': case 'adv_star_biscuit': case 'adv_honey_shortbread': {
+      const icing = id === 'adv_cocoa_drop' ? '#c98a6a' : id === 'adv_mint_crisp' ? '#fff' : id === 'adv_cloud_bun' ? '#f3d2a4' : id === 'adv_snow_puff' ? '#fffaf5' : id === 'adv_honey_shortbread' ? '#ffe08a' : '#ffd0e4';
+      ellipse(ctx, 16, 27, 10, 2.4, 'rgba(120,70,100,0.16)');
+      circle(ctx, 16, 17, 10, id === 'adv_cocoa_drop' ? '#7a4a3a' : '#f3d2a4');
+      ctx.strokeStyle = '#d9a56a'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(16, 17, 10, 0, 7); ctx.stroke();
+      if (id !== 'adv_cloud_bun') circle(ctx, 16, 16, 7.2, icing);
+      if (id === 'adv_dawn_cookie' || id === 'adv_star_biscuit') star(ctx, 16, 16, 3.2, '#fff6d4');
+      else if (id === 'adv_mint_crisp') heart(ctx, 16, 16, 3, '#ff8fb6');
+      else if (id === 'adv_cloud_bun') { ctx.strokeStyle = '#c9926a'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.arc(16, 17, 4, 0.6, 5.4); ctx.stroke(); }
+      else if (id === 'adv_honey_shortbread') { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.moveTo(16, 12); ctx.lineTo(17.4, 16); ctx.lineTo(16, 15); ctx.lineTo(14.6, 16); ctx.fill(); }
+      else { circle(ctx, 13, 15, 1.1, '#fff'); circle(ctx, 18, 14.5, 1, '#fff6d4'); circle(ctx, 16, 18, 1, '#fff'); }
+      break;
+    }
     default:
       if (drawCollectIcon(ctx, id)) break;
       if (ITEMS[id]?.kind === 'decor') { drawDecor(ctx, id, 16, 30, 0.95); break; }

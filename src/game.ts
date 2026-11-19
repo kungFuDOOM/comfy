@@ -50,6 +50,8 @@ import { MERCHANT_SPOT, STALL_APPROACH, STALL_CENTER, STALL_TAP } from './mercha
 import { openMailbox } from './ui/friendsUi';
 import { enterHome } from './ui/homeUi';
 import { syncFriendship, tickFriends } from './friends';
+import { adventWantsPreview } from './advent';
+import { openAdvent } from './ui/adventUi';
 import { openBag, openBoutique, openCafe, openChest, openCrafting, openDialogue, openHelp, openJournal, openMarket } from './ui/panels';
 import { openPause } from './ui/menuPanels';
 import { barrierHint, barrierNear, syncUnlocks, useBarrier } from './unlocks';
@@ -379,6 +381,7 @@ function openPhoto() {
 }
 
 let booted = false;
+let adventPreviewOpened = false;
 /**
  * Enter (or re-enter) gameplay. The first call builds the renderer, HUD, input and the loop; later calls (after
  * "Back to title" -> Continue) only re-seat the world from the current state, so nothing is built twice.
@@ -439,6 +442,11 @@ export function startGame() {
     const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
     last = now;
     if (sceneActive()) { requestAnimationFrame(frame); return; }
+    // ?advent=open shows the calendar once play is on screen (after a cutscene, if one had the screen first).
+    if (!adventPreviewOpened && adventWantsPreview && !cutsceneParam && !isPanelOpen()) {
+      adventPreviewOpened = true;
+      openAdvent();
+    }
     update(dt);
     render(now / 1000, dt);
     hudT += dt;

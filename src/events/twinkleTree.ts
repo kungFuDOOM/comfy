@@ -5,6 +5,7 @@ import { startAct } from '../actions';
 import { sfx } from '../audio';
 import { changed } from '../bus';
 import { bumpEvent, eventProgress } from '../events';
+import { adventTreeRow } from '../ui/adventUi';
 import { btn, h, openPanel } from '../ui/dom';
 import { TREE_STEPS } from './twinkleLayout';
 import { queueTreeLighting } from './treeLighting';
@@ -17,6 +18,8 @@ export function openTreePanel(onGather?: { label: string; run: () => void }) {
   openPanel('Twinkle Tree 🎄', (body, api) => {
     const c = eventProgress('twinkle').counters;
     const done = TREE_STEPS.every((s) => (c[s.key] ?? 0) > 0);
+    const advent = adventTreeRow();
+    if (advent) body.append(advent);
     if (onGather) body.append(h('div', 'card tw-step', h('b', '', 'Everyone is by the tree'), btn(onGather.label, () => { api.close(); onGather.run(); })));
     body.append(h('div', 'muted', done
       ? 'The tree is twinkling, and it looks wonderful. Changed your mind about a colour? Pick again any time.'

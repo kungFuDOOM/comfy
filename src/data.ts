@@ -109,6 +109,22 @@ add({ id: 'd_tw_cocoa', name: 'Cocoa Mug Stand', kind: 'decor', event: 'twinkle'
 add({ id: 'd_tw_gifts', name: 'Ribbon Gift Stack', kind: 'decor', event: 'twinkle', desc: 'Three wrapped boxes, pink, cream and mint, with enormous bows.' });
 add({ id: 'd_tw_star', name: 'Eve Wishing Star', kind: 'decor', event: 'twinkle', desc: 'A soft golden star on a stand. It listens when you whisper.' });
 add({ id: 'd_tw_wreath', name: 'Twinkle Wreath', kind: 'decor', event: 'twinkle', desc: 'A snowy wreath with berries, bows and little lights.' });
+// Twinkle Advent Calendar (advent.ts): small treats and decor, one door a day, Dec 1–24. Never sold.
+add({ id: 'adv_dawn_cookie', name: 'Sugarplum Dawn Cookie', kind: 'treat', sell: 24, desc: 'A pale cookie with a pink sugarplum star. Tastes like the first morning of December.' });
+add({ id: 'adv_cocoa_drop', name: 'Pink Melt Cocoa Drop', kind: 'treat', sell: 22, desc: 'A little chocolate drop that melts into pink cocoa on your tongue.' });
+add({ id: 'adv_mint_crisp', name: 'Peppermint Heart Crisp', kind: 'treat', sell: 26, desc: 'A heart-shaped crisp with a cool peppermint middle.' });
+add({ id: 'adv_cloud_bun', name: 'Cinnamon Cloud Bun', kind: 'treat', sell: 28, desc: 'A bun so soft it feels like a cloud, with a cinnamon swirl.' });
+add({ id: 'adv_snow_puff', name: 'Marshmallow Snow Puff', kind: 'treat', sell: 24, desc: 'A toasted marshmallow puff dusted like fresh snow.' });
+add({ id: 'adv_star_biscuit', name: 'Star Sprinkle Biscuit', kind: 'treat', sell: 30, desc: 'A star biscuit covered in pink and gold sprinkles.' });
+add({ id: 'adv_honey_shortbread', name: 'Honeybell Shortbread', kind: 'treat', sell: 34, desc: 'Buttery shortbread with a drop of meadow honey and a tiny bell of icing.' });
+add({ id: 'd_adv_candle', name: 'Doorstep Twinkle Candle', kind: 'decor', desc: 'A rosy candle that never burns down. It smells like warm sugar.' });
+add({ id: 'd_adv_stockings', name: 'Mini Stocking Row', kind: 'decor', desc: 'Three tiny stockings in pink, cream and mint, hung on a ribbon.' });
+add({ id: 'd_adv_froststar', name: 'Window Frost Star', kind: 'decor', desc: 'A frosted star for the windowsill. It glows when the room is quiet.' });
+add({ id: 'd_adv_sleigh', name: 'Tiny Sleigh Planter', kind: 'decor', desc: 'A little pink sleigh with a sprig of something green in the seat.' });
+add({ id: 'd_adv_wreath', name: 'Berry Bow Wreath', kind: 'decor', desc: 'A small wreath of berries and one big pink bow.' });
+add({ id: 'd_adv_globe', name: 'Lullaby Snowglobe', kind: 'decor', desc: 'Shake it and the snow inside hums a very small song.' });
+add({ id: 'd_adv_pillow', name: 'Hearth Present Pillow', kind: 'decor', desc: 'A squashy pillow tied like a present, for the coziest chair.' });
+add({ id: 'd_adv_bellstar', name: 'Midnight Bell Star', kind: 'decor', desc: 'The last door keepsake: a golden bell under a star that stays lit.' });
 // Seasonal festivals (events/petalpicnic.ts, shoredays.ts, costumenight.ts, warmcup.ts): small, short, exclusives never sold
 add({ id: 'd_pp_blanket', name: 'Petal Picnic Blanket', kind: 'decor', event: 'petalpicnic', desc: 'A pink gingham blanket with a basket, a thermos and one drifting petal.' });
 add({ id: 'sd_shell', name: 'Glowday Shell', kind: 'collectible', sell: 12, event: 'shoredays', findWeight: 6, desc: 'A peach-and-gold shell that holds a little sunshine inside.' });

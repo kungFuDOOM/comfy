@@ -4,6 +4,7 @@ import './catalogTop';
 import './catalogGear';
 import './catalogSpecial';
 import './catalogEvents';
+import './catalogAdvent';
 import './catalogFriends';
 import './catalogStyle';
 import './catalogMerchant';

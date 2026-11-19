@@ -1,0 +1,124 @@
+/* Twinkle Advent Calendar. Every rule is scoped to advent classes so shared panel and HUD styles stay untouched. */
+
+.advent-notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 6px 12px 6px 8px;
+  border-radius: 16px;
+  border: 2px solid #ffb3cf;
+  background: linear-gradient(135deg, #fff7fb, #ffe4f0);
+  color: var(--ink);
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.15;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgba(224, 112, 154, 0.28);
+}
+.advent-notice[hidden] { display: none; }
+.advent-notice-ico { font-size: 18px; line-height: 1; }
+.advent-notice-text { display: flex; flex-direction: column; }
+.advent-notice-sub { font-size: 11px; font-weight: 600; color: var(--ink-l); }
+
+.advent-panel {
+  width: min(620px, calc(100vw - 16px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+  max-height: calc(100dvh - 12px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+
+.advent-blurb { margin: 0; }
+.advent-status { margin: 0; }
+
+.advent-result {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 16px;
+  border: 2px solid #ffc3da;
+  background: #fffafc;
+  box-shadow: 0 4px 0 rgba(255, 255, 255, 0.9);
+}
+.advent-result.is-best { border-color: #f0c14a; background: linear-gradient(#fffaf0, #fff5f8); }
+.advent-result-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.advent-result-copy b { font-size: 14px; }
+.advent-where { font-size: 12px; font-weight: 600; color: var(--ink-l); }
+
+.advent-pics { display: flex; gap: 6px; flex: none; }
+.advent-pics canvas { border-radius: 12px; border: 2px solid #ffe0ec; background: #fff0f6; }
+
+.advent-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(44px, 1fr));
+  gap: 8px;
+}
+@media (min-width: 640px) {
+  .advent-grid { grid-template-columns: repeat(6, minmax(44px, 1fr)); }
+}
+
+.advent-door {
+  box-sizing: border-box;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 4px 2px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border-radius: 16px;
+  border: 2px solid #ffc3da;
+  background: linear-gradient(#fff, #fff0f6);
+  color: var(--ink);
+  font-family: var(--font);
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+  box-shadow: 0 3px 0 rgba(224, 112, 154, 0.22);
+}
+.advent-door:active { transform: translateY(1px); }
+.advent-num { font-size: 16px; line-height: 1; }
+.advent-mark { font-size: 11px; line-height: 1.1; font-weight: 600; color: var(--ink-l); }
+
+.advent-door.is-today {
+  border-color: #ff8fb6;
+  background: linear-gradient(#ffe3ef, #fff);
+  animation: advent-glow 2.4s ease-in-out infinite;
+}
+.advent-door.is-ready { border-style: dashed; background: #fff; }
+.advent-door.is-opened { border-color: #bfe6b8; background: #f3fbf2; box-shadow: 0 3px 0 rgba(90, 160, 110, 0.18); }
+.advent-door.is-opened .advent-mark { color: #3d9a52; }
+.advent-door.is-locked,
+.advent-door:disabled {
+  opacity: 0.55;
+  cursor: default;
+  box-shadow: none;
+  background: #f6f1f3;
+}
+.advent-door.is-best { box-shadow: inset 0 0 0 2px #f0c14a, 0 3px 0 rgba(224, 112, 154, 0.22); }
+.advent-door.is-best.is-opened { box-shadow: inset 0 0 0 2px #f0c14a, 0 3px 0 rgba(90, 160, 110, 0.18); }
+.advent-door.is-best .advent-mark { color: #b8860b; }
+
+button.btn.advent-open {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 10px 16px;
+  touch-action: manipulation;
+}
+.advent-entry { flex-wrap: wrap; align-items: center; }
+.advent-entry .advent-open { flex: 1 1 160px; justify-content: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .advent-door.is-today { animation: none; }
+}
+
+@keyframes advent-glow {
+  0%, 100% { box-shadow: 0 3px 0 rgba(224, 112, 154, 0.22), 0 0 0 0 rgba(255, 158, 192, 0); }
+  50% { box-shadow: 0 3px 0 rgba(224, 112, 154, 0.22), 0 0 12px 2px rgba(255, 158, 192, 0.55); }
+}
