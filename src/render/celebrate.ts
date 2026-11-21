@@ -189,6 +189,13 @@ export function twinkleAt(at: THREE.Vector3) {
   celebrate.burst(at, { count: 20, colors: ['#ff8fb6', '#ffd9e8'], shapes: [Shape.Heart], spread: 1.4, speed: 1.5, up: 3.4, gravity: 1.0, size: [0.2, 0.3], life: [1.4, 2.0], stagger: 0.5 });
 }
 
+/** Twinkle New Year: a soft pastel shell that opens high in the sky, with a few slow glitter trails falling after it. */
+export function fireworkAt(at: THREE.Vector3) {
+  const cols = ['#ff8fb6', '#ffd9e8', '#ffe27a', '#c9f2e3', '#d9c9ff', '#ffffff'];
+  celebrate.burst(at, { count: 46, colors: cols, shapes: [Shape.Star], spread: 0.1, speed: 3.4, up: 0.4, gravity: 0.9, size: [0.2, 0.34], life: [1.3, 1.9] });
+  celebrate.burst(at, { count: 22, colors: ['#fff3a8', '#ffffff', '#ffd9e8'], shapes: [Shape.Dot, Shape.Heart], spread: 0.2, speed: 1.6, up: 0.2, gravity: 1.4, size: [0.12, 0.2], life: [1.6, 2.4], stagger: 0.3 });
+}
+
 /** Petting the pet companion: a small bubble of hearts and a twinkle or two. */
 export function petHeartsAt(at: THREE.Vector3) {
   celebrate.burst(at, { count: 9, colors: ['#ff8fb6', '#ffb3cf', '#ff6fa3', '#ffd9e8'], shapes: [Shape.Heart], spread: 0.25, speed: 0.5, up: 1.9, gravity: -0.2, size: [0.2, 0.3], life: [1.0, 1.5], stagger: 0.35 });

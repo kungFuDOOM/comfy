@@ -114,7 +114,7 @@ Sound effects (clicks, panel open/close, footsteps by surface, pickups, pips, gi
 
 For testing, `?input=keyboard|gamepad|touch` pins the prompt style, `?scene=game` skips the menu and `?scene=intro` replays the intro.
 
-`?cutscene=<id>` jumps into play and previews one scene without marking it seen or paying anything: `harvest-feast`, `christmas-eve`, `christmas-day`, `first-snowfall`, `tree-lighting`, `first-pie`, `golden-pie`, `first-pet`. The first Mimsy errand, "Make Mimsy a Pink Puff Latte", starts by itself once the help window has been seen, and adopting a kitten or puppy at the Pet Nook plays the short `first-pet` scene once.
+`?cutscene=<id>` jumps into play and previews one scene without marking it seen or paying anything: `harvest-feast`, `christmas-eve`, `christmas-day`, `first-snowfall`, `tree-lighting`, `new-year`, `first-pie`, `golden-pie`, `first-pet`. The first Mimsy errand, "Make Mimsy a Pink Puff Latte", starts by itself once the help window has been seen, and adopting a kitten or puppy at the Pet Nook plays the short `first-pet` scene once. **Twinkle New Year** (Dec 31 to Jan 1) is a one-night event with a short countdown and fireworks scene in the square: `?cutscene=new-year` previews it, `?event=newyear` forces the event (Dec 31).
 
 The **Twinkle Advent Calendar** (December 1–24) opens from the town tree during Twinkle Season, or from Journal › Events. One door a day; missed doors stay openable through December 25. `?advent=open` previews it on any date (outside December 1–25 it behaves like December 24). `?date=YYYY-MM-DD` and `?event=twinkle` still set the calendar day the doors follow. Example: `?scene=game&advent=open` or `?scene=game&date=2026-12-08`.
 

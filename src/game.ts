@@ -34,6 +34,7 @@ import { maybeStartFirstSnowfall } from './events/firstSnowfall';
 import { maybeStartFirstPie } from './events/firstPie';
 import { maybeStartGoldenPie } from './events/goldenPie';
 import { maybeStartTreeLighting } from './events/treeLighting';
+import { maybeStartNewYear } from './events/newYearScene';
 import { cutsceneParam } from './cutscene/presets';
 import { state } from './state';
 import { getClock } from './time';
@@ -409,6 +410,7 @@ export function startGame() {
   if (!cutsceneParam) maybeStartFirstSnowfall(() => isPanelOpen()); // first login on / after Nov 27: the First Snowfall scene, once per save
   if (!cutsceneParam) maybeStartFirstPie(() => isPanelOpen()); // first login during the Harvest Hush Feast: Brioche's pie lesson, once per save
   if (!cutsceneParam) maybeStartTreeLighting(() => isPanelOpen()); // a tree that was already finished: the lighting, once per save
+  if (!cutsceneParam) maybeStartNewYear(() => isPanelOpen()); // Dec 31 evening: the Twinkle New Year countdown, once per save
   if (!cutsceneParam) maybeStartGoldenPie(() => isPanelOpen()); // a Golden Pie reveal that was still waiting when the game last closed
   cancelAct();
   if (booted) {
