@@ -15,22 +15,27 @@ const CAP = lowMem ? { tuft: 0, flower: 0 } : coarse ? { tuft: 650, flower: 160 
 
 const FLOWER_COLS = ['#ffffff', '#fff3a8', '#ffc2d8', '#ffd9ec', '#d9c8ff', '#ffe0b8'];
 
+// Perf: a tuft is ~110 tris (7 four-sided blades + a tiny low dome), a flower ~200; both are capped instance counts above.
 function tuftGeo() {
   const b = new Batch();
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2 + 0.4, lean = 0.2 + (i % 3) * 0.13, h = 0.14 + (i % 2) * 0.07 + (i % 3) * 0.02;
-    b.add(G.cone(0.016, h, 3), i % 2 ? '#ffffff' : '#e9f6e4', { x: Math.cos(a) * 0.028, y: h / 2, z: Math.sin(a) * 0.028, rx: Math.sin(a) * lean, rz: -Math.cos(a) * lean });
+  // a soft little mound the blades grow out of, so a tuft reads as a fluffy clump rather than loose spikes
+  b.add(new THREE.SphereGeometry(0.05, 7, 4, 0, Math.PI * 2, 0, Math.PI / 2), '#e9f6e4', { s: [1, 0.55, 1] });
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * Math.PI * 2 + 0.4, lean = 0.22 + (i % 3) * 0.13, h = 0.13 + (i % 2) * 0.07 + (i % 3) * 0.025;
+    b.add(G.cone(0.019, h, 4), i % 2 ? '#ffffff' : '#e9f6e4', { x: Math.cos(a) * 0.03, y: h / 2, z: Math.sin(a) * 0.03, rx: Math.sin(a) * lean, rz: -Math.cos(a) * lean, s: [1, 1, 0.7] });
   }
   return b.geometry();
 }
 function flowerGeo() {
   const b = new Batch();
-  b.add(G.cyl(0.006, 0.008, 0.13, 4), '#9bd69a', { y: 0.065 });
+  b.add(G.cyl(0.006, 0.008, 0.13, 5), '#9bd69a', { y: 0.065 });
+  // two little leaves on the stem
+  for (const sx of [-1, 1]) b.add(G.ball(0.022, 5), '#9bd69a', { x: sx * 0.02, y: 0.05 + (sx > 0 ? 0.02 : 0), rz: -sx * 0.9, s: [1.4, 0.45, 0.8] });
   for (let i = 0; i < 5; i++) {
     const a = (i / 5) * Math.PI * 2;
-    b.add(G.ball(0.026, 5), '#ffffff', { x: Math.cos(a) * 0.03, y: 0.14, z: Math.sin(a) * 0.03, s: [1, 0.55, 1] });
+    b.add(G.ball(0.028, 6), '#ffffff', { x: Math.cos(a) * 0.031, y: 0.14, z: Math.sin(a) * 0.031, s: [1, 0.55, 1] });
   }
-  b.add(G.ball(0.02, 5), '#ffd45e', { y: 0.148 });
+  b.add(G.ball(0.021, 6), '#ffd45e', { y: 0.15 });
   return b.geometry();
 }
 

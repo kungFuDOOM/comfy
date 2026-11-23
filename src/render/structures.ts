@@ -18,72 +18,163 @@ const ROOF_H = 1.7;
 
 /** Everything one model needs: body, glowing glass, and the two prints. */
 class Kit {
-  v = new Batch(); glow = new Batch(); classic = new Batch(); pink = new Batch();
+  v = new Batch(); scallops = new Batch(); glow = new Batch(); classic = new Batch(); pink = new Batch();
   print(k: CheetahKind) { return k === 'classic' ? this.classic : this.pink; }
   into(g: THREE.Group) {
     if (!this.v.empty) g.add(this.v.build());
+    if (!this.scallops.empty) { const m = this.scallops.build(); m.castShadow = false; g.add(m); } // roof shingles: lit, but not in the shadow map
     if (!this.glow.empty) g.add(this.glow.build(vertexToon(PALETTE.windowGlow)));
     if (!this.classic.empty) g.add(this.classic.build(cheetahToon('classic')));
     if (!this.pink.empty) g.add(this.pink.build(cheetahToon('pink')));
   }
 }
 
-/** Gabled roof prism spanning width w (x) and depth d (z), ridge along x. */
+/**
+ * Puffy gabled roof spanning width w (x) and depth d (z), ridge along x, eave at y = 0, apex at about h.
+ * The slopes bow out a little (a soft pillow look), the apex is rounded, and a small bevel rounds every edge.
+ * Built once per building, so the extra curve / bevel segments are cheap.
+ */
+const ROOF_BULGE = 0.12, ROOF_APEX = 0.1; // bulge of each slope at its middle; fraction of the slope rounded into the apex
+function roofCurve(d: number, h: number) {
+  const A = new THREE.Vector2(-d / 2, 0), P = new THREE.Vector2((-d / 2) * ROOF_APEX, h * (1 - ROOF_APEX));
+  const n = new THREE.Vector2(-h, d / 2).normalize(); // outward normal of the left slope
+  const C = A.clone().add(P).multiplyScalar(0.5).addScaledVector(n, ROOF_BULGE * 2);
+  return { A, P, C };
+}
 function roofGeo(w: number, d: number, h: number): THREE.BufferGeometry {
+  const { A, P, C } = roofCurve(d, h);
   const shape = new THREE.Shape();
-  shape.moveTo(-d / 2, 0); shape.lineTo(d / 2, 0); shape.lineTo(0, h); shape.closePath();
-  const geo = new THREE.ExtrudeGeometry(shape, { depth: w, bevelEnabled: false });
+  shape.moveTo(A.x, A.y);
+  shape.quadraticCurveTo(C.x, C.y, P.x, P.y);
+  shape.quadraticCurveTo(0, h * (1 + ROOF_APEX * 0.6), -P.x, P.y);
+  shape.quadraticCurveTo(-C.x, C.y, -A.x, A.y);
+  shape.closePath();
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: w, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.05, bevelSegments: 3, curveSegments: 12 });
   geo.translate(0, 0, -w / 2);
   geo.rotateY(Math.PI / 2);
   return geo;
 }
+/** A point on the front roof slope: f = 0 at the eave, 1 near the apex. Returns height, z and the slope tilt (for rx). */
+function roofAt(d: number, h: number, f: number) {
+  const { A, P, C } = roofCurve(d, h);
+  const u = Math.min(1, Math.max(0, f)), iu = 1 - u;
+  const x = iu * iu * A.x + 2 * u * iu * C.x + u * u * P.x, y = iu * iu * A.y + 2 * u * iu * C.y + u * u * P.y;
+  const tx = 2 * iu * (C.x - A.x) + 2 * u * (P.x - C.x), ty = 2 * iu * (C.y - A.y) + 2 * u * (P.y - C.y);
+  const a = Math.atan2(ty, tx);
+  return { y: y + Math.cos(a) * 0.05, z: -x + Math.sin(a) * 0.05, a }; // the bevel puffs the surface out by ~0.05
+}
+const tint = (hex: string, toward: string, k: number) => '#' + new THREE.Color(hex).lerp(new THREE.Color(toward), k).getHexString();
 
-function windowAt(k: Kit, x: number, y: number, z: number, w: number, h: number, frame = '#ffffff') {
-  k.v.add(G.box(w + 0.18, h + 0.18, 0.08), frame, { x, y, z });
+/**
+ * Rows of round scalloped shingles over the front slope (the side the camera sees), alternating offsets.
+ * Perf: ~7 rows x ~17 flattened 10-segment balls per roof, three roofs on the island.
+ */
+function roofScallops(b: Batch, roofW: number, roofD: number, h: number, y0: number, color: string, from = 0.06) {
+  const rows = 7, light = tint(color, '#ffffff', 0.16), deep = tint(color, '#a8456f', 0.08);
+  for (let r = 0; r < rows; r++) {
+    const f = from + (r / rows) * (0.86 - from);
+    const p = roofAt(roofD, h, f);
+    const sw = 0.46, n = Math.floor((roofW - 0.3) / sw), off = r % 2 ? sw / 2 : 0;
+    for (let i = 0; i < n - (r % 2); i++) {
+      const x = -((n - 1) * sw) / 2 + i * sw + off;
+      b.add(G.ball(1, 10), r % 2 ? light : deep, { x, y: y0 + p.y - Math.cos(p.a) * 0.01, z: p.z - Math.sin(p.a) * 0.01 + 0.0, rx: p.a, s: [sw * 0.56, 0.05, 0.24] });
+    }
+  }
+}
+
+/** Rounded window: soft frame, glowing glass, mullions, a deep sill. `arch` adds a half-round fanlight on top. */
+function windowAt(k: Kit, x: number, y: number, z: number, w: number, h: number, frame = '#ffffff', arch = false) {
+  k.v.add(G.rbox(w + 0.2, h + 0.2, 0.1, 0.05), frame, { x, y, z });
   k.glow.add(G.box(w, h, 0.06), GLASS, { x, y, z: z + 0.04 });
-  k.v.add(G.box(0.05, h, 0.04), frame, { x, y, z: z + 0.07 });
-  k.v.add(G.box(w, 0.05, 0.04), frame, { x, y, z: z + 0.07 });
-  k.v.add(G.box(w + 0.3, 0.07, 0.18), frame, { x, y: y - h / 2 - 0.1, z: z + 0.06 });
+  if (arch) {
+    const r = w / 2, top = y + h / 2;
+    k.v.add(new THREE.CylinderGeometry(r + 0.1, r + 0.1, 0.1, 24, 1, false, Math.PI / 2, Math.PI), frame, { x, y: top, z, rx: Math.PI / 2 });
+    k.glow.add(new THREE.CylinderGeometry(r, r, 0.06, 24, 1, false, Math.PI / 2, Math.PI), GLASS, { x, y: top + 0.001, z: z + 0.04, rx: Math.PI / 2 });
+    for (let i = 1; i < 4; i++) { const t = (i / 4) * Math.PI; k.v.add(G.rbox(0.04, r, 0.04, 0.015), frame, { x: x + Math.cos(t) * r * 0.5, y: top + Math.sin(t) * r * 0.5, z: z + 0.07, rz: t - Math.PI / 2 }); }
+  }
+  k.v.add(G.rbox(0.05, h, 0.04, 0.018), frame, { x, y, z: z + 0.07 });
+  k.v.add(G.rbox(w, 0.05, 0.04, 0.018), frame, { x, y, z: z + 0.07 });
+  k.v.add(G.rbox(w + 0.34, 0.08, 0.2, 0.035), frame, { x, y: y - h / 2 - 0.1, z: z + 0.06 });
+  // tiny round corner studs make the frame read as soft trim
+  for (const sx of [-1, 1]) k.v.add(G.ball(0.035, 8), frame, { x: x + sx * (w / 2 + 0.17), y: y - h / 2 - 0.1, z: z + 0.1 });
 }
 
+/** Planter under a window: rounded wooden box, a cream rim, a leafy back row, blooms with centres, and trailing leaves. */
 function flowerBox(b: Batch, x: number, y: number, z: number, w: number) {
-  b.add(G.box(w, 0.16, 0.22), PALETTE.wood, { x, y, z });
-  const n = Math.round(w / 0.2);
-  for (let i = 0; i < n; i++) b.add(G.ball(0.095, 8), ['#ff8fb6', '#ffffff', '#ffc9dc', PALETTE.leaf][i % 4], { x: x - w / 2 + (i + 0.5) * (w / n), y: y + 0.12 + (i % 2) * 0.03, z: z + (i % 3) * 0.02 });
+  b.add(G.rbox(w, 0.18, 0.24, 0.05), PALETTE.wood, { x, y, z });
+  b.add(G.rbox(w + 0.05, 0.05, 0.27, 0.022), '#fff4e6', { x, y: y + 0.09, z });
+  const leafA = PALETTE.leaf, leafB = tint(PALETTE.leaf, '#ffffff', 0.25);
+  const nl = Math.round(w / 0.17);
+  for (let i = 0; i < nl; i++) b.add(G.ball(0.085, 9), i % 2 ? leafA : leafB, { x: x - w / 2 + (i + 0.5) * (w / nl), y: y + 0.13, z: z - 0.05, s: [1, 0.8, 0.9] });
+  const n = Math.round(w / 0.2), cols = ['#ff8fb6', '#ffffff', '#ffc9dc', '#ffb3cf'];
+  for (let i = 0; i < n; i++) {
+    const fx = x - w / 2 + (i + 0.5) * (w / n), fy = y + 0.17 + (i % 2) * 0.04, fz = z + 0.03 + (i % 3) * 0.02;
+    b.add(G.ball(0.08, 10), cols[i % 4], { x: fx, y: fy, z: fz, s: [1, 0.85, 1] });
+    b.add(G.ball(0.026, 6), i % 4 === 1 ? '#ffd45e' : '#fff3c4', { x: fx, y: fy + 0.03, z: fz + 0.065 });
+  }
+  for (let i = 0; i < Math.max(2, Math.round(w / 0.5)); i++) b.add(G.ball(0.05, 8), leafA, { x: x - w / 2 + 0.2 + i * 0.5, y: y - 0.06, z: z + 0.13, s: [0.9, 1.3, 0.7] });
 }
 
-/** Striped awning with a scalloped front edge. (x,y,z) is the centre of the sloped sheet. */
+/** Striped awning with a rolled valance rod and a plump scalloped front edge. (x,y,z) is the centre of the sloped sheet. */
 function stripedAwning(b: Batch, x: number, y: number, z: number, w: number, depth: number, c1: string, c2: string, tilt = 0.5) {
   const n = Math.max(4, Math.round(w * 3)), sw = w / n;
   const ez = z + (Math.cos(tilt) * depth) / 2, ey = y - (Math.sin(tilt) * depth) / 2;
+  const bz = z - (Math.cos(tilt) * depth) / 2, by = y + (Math.sin(tilt) * depth) / 2;
   for (let i = 0; i < n; i++) {
     const sx = x - w / 2 + (i + 0.5) * sw, c = i % 2 ? c1 : c2;
-    b.add(G.box(sw, 0.06, depth), c, { x: sx, y, z, rx: tilt });
-    b.add(G.cyl(sw / 2, sw / 2, 0.05, 10), c, { x: sx, y: ey - 0.01, z: ez, rx: Math.PI / 2 });
+    b.add(G.rbox(sw + 0.002, 0.07, depth, 0.03), c, { x: sx, y, z, rx: tilt });
+    b.add(G.cyl(sw / 2, sw / 2, 0.06, 16), c, { x: sx, y: ey - 0.01, z: ez, rx: Math.PI / 2 });
   }
+  b.add(G.cyl(0.05, 0.05, w + 0.08, 14), '#ffffff', { x, y: by, z: bz, rz: Math.PI / 2 });
+  for (const sx of [-1, 1]) b.add(G.ball(0.07, 10), '#ffffff', { x: x + sx * (w / 2 + 0.06), y: by, z: bz });
 }
 
 /** Cheetah-print awning with a pink scalloped edge. */
 function cheetahAwning(k: Kit, kind: CheetahKind, x: number, y: number, z: number, w: number, depth: number, tilt = 0.5) {
-  k.print(kind).add(G.box(w, 0.06, depth), '#ffffff', { x, y, z, rx: tilt, uv: [w / 0.9, depth / 0.9] });
+  k.print(kind).add(G.rbox(w, 0.07, depth, 0.03), '#ffffff', { x, y, z, rx: tilt, uv: [w / 0.9, depth / 0.9] });
   const n = Math.max(4, Math.round(w * 3)), sw = w / n;
   const ez = z + (Math.cos(tilt) * depth) / 2, ey = y - (Math.sin(tilt) * depth) / 2;
-  for (let i = 0; i < n; i++) k.v.add(G.cyl(sw / 2, sw / 2, 0.05, 10), i % 2 ? PALETTE.pink : '#ffffff', { x: x - w / 2 + (i + 0.5) * sw, y: ey - 0.01, z: ez, rx: Math.PI / 2 });
+  const bz = z - (Math.cos(tilt) * depth) / 2, by = y + (Math.sin(tilt) * depth) / 2;
+  for (let i = 0; i < n; i++) k.v.add(G.cyl(sw / 2, sw / 2, 0.06, 16), i % 2 ? PALETTE.pink : '#ffffff', { x: x - w / 2 + (i + 0.5) * sw, y: ey - 0.01, z: ez, rx: Math.PI / 2 });
+  k.v.add(G.cyl(0.05, 0.05, w + 0.08, 14), '#ffffff', { x, y: by, z: bz, rz: Math.PI / 2 });
+  for (const sx of [-1, 1]) k.v.add(G.ball(0.07, 10), PALETTE.pink, { x: x + sx * (w / 2 + 0.06), y: by, z: bz });
+}
+
+/** Front door with a rounded top: soft frame, slab, two inset panels, gold knob. Total height h stays the same. */
+function archDoor(k: Kit, w: number, h: number, z: number, color: string, frame = '#ffffff') {
+  const r = w / 2, rectH = h - r;
+  k.v.add(G.rbox(w + 0.18, rectH, 0.08, 0.035), frame, { y: rectH / 2, z });
+  k.v.add(new THREE.CylinderGeometry(r + 0.09, r + 0.09, 0.08, 24, 1, false, Math.PI / 2, Math.PI), frame, { y: rectH, z, rx: Math.PI / 2 });
+  k.v.add(G.rbox(w, rectH - 0.06, 0.08, 0.035), color, { y: (rectH - 0.06) / 2, z: z + 0.03 });
+  k.v.add(new THREE.CylinderGeometry(r, r, 0.08, 24, 1, false, Math.PI / 2, Math.PI), color, { y: rectH - 0.06, z: z + 0.03, rx: Math.PI / 2 });
+  const panel = tint(color, '#ffffff', 0.22);
+  for (const f of [0.27, 0.66]) k.v.add(G.rbox(w * 0.62, rectH * 0.28, 0.03, 0.03), panel, { y: f * rectH, z: z + 0.08 });
+  k.v.add(G.ball(0.055, 12), PALETTE.gold, { x: w * 0.32, y: h * 0.45, z: z + 0.1 });
+}
+
+/** A little wall lantern on a bracket: glows with the windows at night. */
+function wallLantern(k: Kit, x: number, y: number, z: number) {
+  k.v.add(G.rbox(0.06, 0.06, 0.2, 0.02), PALETTE.cocoa, { x, y: y + 0.16, z: z + 0.08 });
+  k.v.add(G.cyl(0.05, 0.11, 0.07, 14), '#ffffff', { x, y: y + 0.14, z: z + 0.16 });
+  k.glow.add(G.ball(0.085, 12), GLASS, { x, y: y + 0.04, z: z + 0.16, s: [1, 1.15, 1] });
+  k.v.add(G.ball(0.03, 8), '#ffffff', { x, y: y - 0.07, z: z + 0.16 });
 }
 
 /** Mug on a saucer with coffee in it. s = size multiplier (1 = table mug). */
 function mug(b: Batch, x: number, y: number, z: number, s = 1, color = '#ffffff', stripe?: string) {
-  b.add(G.cyl(0.1, 0.075, 0.016, 14), '#ffffff', { x, y: y + 0.008 * s, z, s });
-  b.add(G.cyl(0.07, 0.055, 0.1, 14), color, { x, y: y + 0.066 * s, z, s });
-  if (stripe) b.add(G.cyl(0.068, 0.062, 0.035, 14), stripe, { x, y: y + 0.06 * s, z, s: [s * 1.03, s, s * 1.03] });
-  b.add(G.cyl(0.06, 0.06, 0.01, 14), COFFEE, { x, y: y + 0.113 * s, z, s });
-  b.add(G.torus(0.032, 0.011, 12), color, { x: x + 0.078 * s, y: y + 0.066 * s, z, s });
+  const seg = s > 2 ? 32 : 18; // the giant roof-sign mug needs a rounder rim than a table mug
+  b.add(G.cyl(0.1, 0.075, 0.016, seg), '#ffffff', { x, y: y + 0.008 * s, z, s });
+  b.add(G.cyl(0.07, 0.055, 0.1, seg), color, { x, y: y + 0.066 * s, z, s });
+  b.add(G.torus(0.07, 0.006, seg), color, { x, y: y + 0.116 * s, z, s, rx: Math.PI / 2 }); // rolled lip
+  if (stripe) b.add(G.cyl(0.068, 0.062, 0.035, seg), stripe, { x, y: y + 0.06 * s, z, s: [s * 1.03, s, s * 1.03] });
+  b.add(G.cyl(0.06, 0.06, 0.01, seg), COFFEE, { x, y: y + 0.113 * s, z, s });
+  b.add(G.torus(0.032, 0.011, seg), color, { x: x + 0.078 * s, y: y + 0.066 * s, z, s });
 }
 
 /** Shopping bag with rope handles and a cheetah band. s = size multiplier (1 = about 0.3 tall). */
 function shoppingBag(k: Kit, x: number, y: number, z: number, s = 1, color: string = PALETTE.pink, band: CheetahKind = 'classic', ry = 0) {
-  k.v.add(G.box(0.26, 0.3, 0.12), color, { x, y: y + 0.15 * s, z, s, ry });
-  k.print(band).add(G.box(0.265, 0.09, 0.125), '#ffffff', { x, y: y + 0.2 * s, z, s, ry, uv: [0.26 * s / 0.7, 0.09 * s / 0.7] });
+  k.v.add(G.rbox(0.26, 0.3, 0.12, 0.025), color, { x, y: y + 0.15 * s, z, s, ry });
+  k.print(band).add(G.rbox(0.265, 0.09, 0.125, 0.02), '#ffffff', { x, y: y + 0.2 * s, z, s, ry, uv: [0.26 * s / 0.7, 0.09 * s / 0.7] });
   const c = Math.cos(ry), sn = Math.sin(ry);
   for (const dz of [-0.045, 0.045]) k.v.add(G.torus(0.06, 0.012, 10, Math.PI), PALETTE.cocoa, { x: x + sn * dz * s, y: y + 0.3 * s, z: z + c * dz * s, s, ry });
   // little heart on the front
@@ -98,8 +189,9 @@ function dressForm(k: Kit, x: number, y: number, z: number, s: number, fill: str
     k.v.add(G.cyl(0.16, 0.19, 0.05, 14), '#ffffff', { x, y: y + 0.025 * s, z, s });
     k.v.add(G.cyl(0.025, 0.025, 0.4, 8), PALETTE.gold, { x, y: y + 0.22 * s, z, s });
   }
-  b.add(G.cyl(0.13, 0.36, 0.62, 16), col, { x, y: y + 0.66 * s, z, s, uv: [2.2, 0.8] });
-  b.add(G.ball(0.17, 12), col, { x, y: y + 1.02 * s, z, s: [s, s * 1.05, s * 0.85], uv: [1.2, 0.6] });
+  b.add(G.cyl(0.13, 0.36, 0.62, 24), col, { x, y: y + 0.66 * s, z, s, uv: [2.2, 0.8] });
+  b.add(G.torus(0.355, 0.025, 24), col, { x, y: y + 0.35 * s, z, s, rx: Math.PI / 2 }); // rolled hem
+  b.add(G.ball(0.17, 18), col, { x, y: y + 1.02 * s, z, s: [s, s * 1.05, s * 0.85], uv: [1.2, 0.6] });
   k.v.add(G.cyl(0.14, 0.14, 0.06, 14), '#ffffff', { x, y: y + 0.94 * s, z, s: [s * 1.02, s, s * 0.9] }); // sash
   k.v.add(G.cyl(0.05, 0.06, 0.1, 8), '#fff3ea', { x, y: y + 1.22 * s, z, s });
   k.v.add(G.ball(0.045, 8), PALETTE.gold, { x, y: y + 1.3 * s, z, s });
@@ -154,8 +246,8 @@ function chalkboard(x: number, z: number): THREE.Group {
 /** Pedestal poking out of the front roof slope, to carry a big 3D shop sign. Returns the y of its top. */
 function roofPedestal(b: Batch, wallH: number, color: string, x: number, z = 1.85): number {
   const top = wallH + 0.6; // kept low so the sign stays in frame from the default follow camera
-  b.add(G.box(1.5, 0.8, 1.0), color, { x, y: top - 0.4, z });
-  b.add(G.box(1.66, 0.1, 1.16), '#ffffff', { x, y: top, z });
+  b.add(G.rbox(1.5, 0.8, 1.0, 0.1), color, { x, y: top - 0.4, z });
+  b.add(G.rbox(1.66, 0.12, 1.16, 0.055), '#ffffff', { x, y: top, z });
   return top + 0.05;
 }
 
@@ -172,19 +264,26 @@ export function createBuilding(b: Building): THREE.Group {
   const W = w - 0.3, D = d - 0.3, front = D / 2 + 0.02;
   const roofW = w + 0.6, roofD = d + 0.5;
 
-  // shell: walls, plinth, corner posts, roof with white piping
-  k.v.add(G.box(W, wallH, D), st.wall, { y: wallH / 2 });
-  k.v.add(G.box(W + 0.1, 0.36, D + 0.1), st.base, { y: 0.18 });
-  for (const sx of [-1, 1]) k.v.add(G.box(0.22, wallH, 0.22), '#ffffff', { x: sx * (W / 2 - 0.05), y: wallH / 2, z: D / 2 - 0.05 });
-  k.v.add(roofGeo(roofW, roofD, ROOF_H), st.roof, { y: wallH });
-  k.v.add(G.cyl(0.11, 0.11, roofW + 0.1, 10), st.ridge, { y: wallH + ROOF_H, rz: Math.PI / 2 });
-  k.v.add(G.cyl(0.09, 0.09, roofW + 0.06, 10), st.ridge, { y: wallH + 0.03, z: roofD / 2, rz: Math.PI / 2 });
-  // rows of rounded shingle bumps on the front slope
-  const slope = Math.atan2(ROOF_H, roofD / 2);
-  for (let r = 1; r <= 3; r++) {
-    const s = (r / 4) * Math.hypot(ROOF_H, roofD / 2);
-    k.v.add(G.cyl(0.05, 0.05, roofW - 0.1, 8), '#ffffff', { y: wallH + s * Math.sin(slope) + 0.02, z: roofD / 2 - s * Math.cos(slope), rz: Math.PI / 2, s: [1, 1, 0.6] });
+  // shell: soft rounded walls, plinth, round corner posts, a trim belt under the eave
+  k.v.add(G.rbox(W, wallH, D, 0.14, 3), st.wall, { y: wallH / 2 });
+  k.v.add(G.rbox(W + 0.12, 0.36, D + 0.12, 0.1), st.base, { y: 0.18 });
+  for (const sx of [-1, 1]) {
+    const px = sx * (W / 2 - 0.04), pz = D / 2 - 0.04;
+    k.v.add(G.cyl(0.12, 0.13, wallH, 16), '#ffffff', { x: px, y: wallH / 2, z: pz });
+    k.v.add(G.torus(0.13, 0.035, 18), '#ffffff', { x: px, y: 0.4, z: pz, rx: Math.PI / 2 });
   }
+  k.v.add(G.rbox(W + 0.06, 0.12, 0.08, 0.04), '#ffffff', { y: wallH - 0.08, z: D / 2 + 0.01 });
+  // puffy roof: bowed slopes, rounded ridge with round end caps, eave piping and a scalloped gingerbread trim
+  k.v.add(roofGeo(roofW, roofD, ROOF_H), st.roof, { y: wallH });
+  k.v.add(G.cyl(0.12, 0.12, roofW + 0.1, 16), st.ridge, { y: wallH + ROOF_H, rz: Math.PI / 2 });
+  for (const sx of [-1, 1]) k.v.add(G.ball(0.16, 14), st.ridge, { x: sx * (roofW / 2 + 0.08), y: wallH + ROOF_H });
+  k.v.add(G.cyl(0.09, 0.09, roofW + 0.06, 14), st.ridge, { y: wallH + 0.03, z: roofD / 2 + 0.03, rz: Math.PI / 2 });
+  for (const sx of [-1, 1]) k.v.add(G.ball(0.11, 12), st.ridge, { x: sx * (roofW / 2 + 0.05), y: wallH + 0.03, z: roofD / 2 + 0.03 });
+  { const n = Math.round(roofW / 0.32), sw = roofW / n;
+    for (let i = 0; i < n; i++) k.v.add(G.cyl(sw * 0.5, sw * 0.5, 0.05, 12), st.ridge, { x: -roofW / 2 + (i + 0.5) * sw, y: wallH - 0.05, z: roofD / 2 + 0.02, rx: Math.PI / 2 }); }
+  // round scalloped shingles over the front slope (the boutique keeps its print band clear near the eave)
+  roofScallops(k.scallops, roofW, roofD, ROOF_H, wallH, st.roof, b.id === 'boutique' ? 0.2 : 0.06);
+  const slope = Math.atan2(ROOF_H, roofD / 2);
 
   g.add(contactShadow(w + 0.9, d + 0.9, 'rect', 0.3));
   // warm window light spilling onto the ground in front at night
@@ -197,21 +296,28 @@ export function createBuilding(b: Building): THREE.Group {
       flowerBox(k.v, wx, 0.36, front + 0.16, 1.5);
       stripedAwning(k.v, wx, 2.28, front + 0.27, 1.9, 0.6, PALETTE.pink, '#ffffff');
     }
-    // door: cocoa-rose with a round glowing window
-    k.v.add(G.box(1.1, 1.82, 0.08), '#ffffff', { y: 0.91, z: front });
-    k.v.add(G.box(0.92, 1.7, 0.08), '#e58aa6', { y: 0.85, z: front + 0.03 });
-    k.glow.add(G.cyl(0.24, 0.24, 0.05, 18), GLASS, { y: 1.25, z: front + 0.07, rx: Math.PI / 2 });
-    k.v.add(G.torus(0.25, 0.03, 20), '#ffffff', { y: 1.25, z: front + 0.08 });
-    k.v.add(G.ball(0.05, 8), PALETTE.gold, { x: 0.32, y: 0.85, z: front + 0.1 });
-    k.v.add(G.box(1.3, 0.1, 0.4), '#ffffff', { y: 0.05, z: front + 0.2 });
-    // chimney
-    k.v.add(G.box(0.5, 1.1, 0.5), '#ffe1d2', { x: -2.6, y: wallH + 1.25, z: -0.6 });
-    k.v.add(G.box(0.62, 0.14, 0.62), '#ffffff', { x: -2.6, y: wallH + 1.84, z: -0.6 });
+    // door: cocoa-rose with a rounded top and a round glowing window, a lantern either side
+    archDoor(k, 0.92, 1.82, front, '#e58aa6');
+    k.glow.add(G.cyl(0.22, 0.22, 0.05, 24), GLASS, { y: 1.3, z: front + 0.1, rx: Math.PI / 2 });
+    k.v.add(G.torus(0.235, 0.035, 24), '#ffffff', { y: 1.3, z: front + 0.12 });
+    k.v.add(G.rbox(1.34, 0.1, 0.42, 0.045), '#ffffff', { y: 0.05, z: front + 0.2 });
+    wallLantern(k, -0.85, 1.55, front);
+    // a round hanging sign with a heart, on a little bracket between the door and the right window
+    { const hx = 1.16, hz = front + 0.3;
+      k.v.add(G.rbox(0.06, 0.06, 0.36, 0.02), PALETTE.cocoa, { x: hx, y: 2.16, z: front + 0.16 });
+      for (const sx of [-1, 1]) k.v.add(G.cyl(0.007, 0.007, 0.16, 6), PALETTE.gold, { x: hx + sx * 0.1, y: 2.06, z: hz });
+      k.v.add(G.cyl(0.21, 0.21, 0.05, 28), '#ffffff', { x: hx, y: 1.78, z: hz, rx: Math.PI / 2 });
+      k.v.add(G.cyl(0.17, 0.17, 0.06, 28), PALETTE.pink, { x: hx, y: 1.78, z: hz, rx: Math.PI / 2 });
+      for (const sx of [-1, 1]) k.v.add(G.ball(0.055, 12), '#ffffff', { x: hx + sx * 0.042, y: 1.81, z: hz + 0.035, s: [1, 1, 0.4] });
+      k.v.add(G.cone(0.088, 0.1, 12), '#ffffff', { x: hx, y: 1.74, z: hz + 0.035, rx: Math.PI, s: [1, 1, 0.3] }); }
+    // chimney: rounded stack with a soft cap
+    k.v.add(G.rbox(0.5, 1.1, 0.5, 0.08), '#ffe1d2', { x: -2.6, y: wallH + 1.25, z: -0.6 });
+    k.v.add(G.rbox(0.64, 0.16, 0.64, 0.07), '#ffffff', { x: -2.6, y: wallH + 1.84, z: -0.6 });
     // giant coffee cup sign on the roof, with steam
     const sx = -2.35, sz = 1.85, top = roofPedestal(k.v, wallH, '#ffe1d2', sx, sz);
     mug(k.v, sx - 0.06, top, sz, 6, '#ffffff', PALETTE.pink);
     // latte-art heart
-    for (const dx of [-0.07, 0.07]) k.v.add(G.ball(0.1, 10), '#fff4e6', { x: sx - 0.06 + dx, y: top + 0.69, z: sz - 0.03, s: [1, 0.12, 1] });
+    for (const dx of [-0.07, 0.07]) k.v.add(G.ball(0.1, 14), '#fff4e6', { x: sx - 0.06 + dx, y: top + 0.69, z: sz - 0.03, s: [1, 0.12, 1] });
     k.v.add(G.cone(0.16, 0.2, 3), '#fff4e6', { x: sx - 0.06, y: top + 0.69, z: sz + 0.09, rx: Math.PI / 2, s: [1, 1, 0.1] });
     // steam is animated by particles.ts
     steamVents.push({ x: cx + sx - 0.06, y: base + top + 0.72, z: cz + sz, big: true });
@@ -219,11 +325,15 @@ export function createBuilding(b: Building): THREE.Group {
     // display bays: glowing backdrop, ledge, dresses on forms, cheetah awning
     const looks: [string | CheetahKind, string | CheetahKind][] = [['classic', '#ff8fb6'], ['pink', '#ffffff']];
     [-2.3, 2.3].forEach((wx, i) => {
-      k.v.add(G.box(1.86, 1.62, 0.1), '#ffffff', { x: wx, y: 1.13, z: front });
+      k.v.add(G.rbox(1.86, 1.62, 0.1, 0.05), '#ffffff', { x: wx, y: 1.13, z: front });
       k.glow.add(G.box(1.66, 1.42, 0.06), GLASS, { x: wx, y: 1.15, z: front + 0.04 });
-      k.v.add(G.box(1.96, 0.12, 0.5), PALETTE.pink, { x: wx, y: 0.38, z: front + 0.22 });
-      k.v.add(G.box(1.9, 0.38, 0.44), '#ffd6e7', { x: wx, y: 0.19, z: front + 0.2 });
-      for (const sx of [-1, 1]) k.v.add(G.box(0.08, 1.5, 0.08), '#ffffff', { x: wx + sx * 0.92, y: 1.15, z: front + 0.42 });
+      k.v.add(G.rbox(1.96, 0.12, 0.5, 0.05), PALETTE.pink, { x: wx, y: 0.38, z: front + 0.22 });
+      k.v.add(G.rbox(1.9, 0.38, 0.44, 0.08), '#ffd6e7', { x: wx, y: 0.19, z: front + 0.2 });
+      for (let j = 0; j < 6; j++) k.v.add(G.ball(0.07, 10), j % 2 ? '#ffffff' : PALETTE.pink, { x: wx - 0.8 + j * 0.32, y: 0.3, z: front + 0.43, s: [1, 1, 0.5] }); // scalloped ledge front
+      for (const sx of [-1, 1]) {
+        k.v.add(G.cyl(0.045, 0.045, 1.5, 12), '#ffffff', { x: wx + sx * 0.92, y: 1.15, z: front + 0.42 });
+        k.v.add(G.ball(0.07, 10), PALETTE.gold, { x: wx + sx * 0.92, y: 1.92, z: front + 0.42 });
+      }
       dressForm(k, wx - 0.42, 0.44, front + 0.24, 0.82, looks[i][0], false);
       dressForm(k, wx + 0.42, 0.44, front + 0.24, 0.82, looks[i][1], false);
       // sunhat / bow accents on the forms
@@ -233,29 +343,39 @@ export function createBuilding(b: Building): THREE.Group {
       cheetahAwning(k, 'classic', wx, 2.28, front + 0.27, 2.1, 0.6);
     });
     // pink door with a heart window under a little pink-cheetah canopy
-    k.v.add(G.box(1.14, 1.84, 0.08), '#ffffff', { y: 0.92, z: front });
-    k.v.add(G.box(0.94, 1.72, 0.08), '#ff7fae', { y: 0.86, z: front + 0.03 });
-    k.v.add(G.cyl(0.47, 0.47, 0.08, 18), '#ff7fae', { y: 1.72, z: front + 0.03, rx: Math.PI / 2, s: [1, 1, 0.55] });
+    k.v.add(G.rbox(1.14, 1.84, 0.08, 0.035), '#ffffff', { y: 0.92, z: front });
+    k.v.add(G.rbox(0.94, 1.72, 0.08, 0.035), '#ff7fae', { y: 0.86, z: front + 0.03 });
+    k.v.add(G.cyl(0.47, 0.47, 0.08, 28), '#ff7fae', { y: 1.72, z: front + 0.03, rx: Math.PI / 2, s: [1, 1, 0.55] });
+    for (const py of [0.42, 0.85]) k.v.add(G.rbox(0.6, 0.3, 0.03, 0.03), '#ff9cc2', { y: py, z: front + 0.08 });
+    for (const sx of [-1, 1]) wallLantern(k, sx * 0.9, 1.5, front);
     for (const dx of [-0.075, 0.075]) k.glow.add(G.ball(0.11, 10), GLASS, { x: dx, y: 1.32, z: front + 0.07, s: [1, 1, 0.25] });
     k.glow.add(G.cone(0.17, 0.2, 3), GLASS, { y: 1.19, z: front + 0.07, rz: Math.PI, s: [1, 1, 0.15] });
-    k.v.add(G.ball(0.055, 8), PALETTE.gold, { x: 0.33, y: 0.86, z: front + 0.1 });
-    k.v.add(G.box(1.3, 0.1, 0.4), '#ffffff', { y: 0.05, z: front + 0.2 });
+    k.v.add(G.ball(0.055, 12), PALETTE.gold, { x: 0.33, y: 0.86, z: front + 0.1 });
+    k.v.add(G.rbox(1.34, 0.1, 0.42, 0.045), '#ffffff', { y: 0.05, z: front + 0.2 });
     cheetahAwning(k, 'pink', 0, 2.3, front + 0.25, 1.4, 0.55);
+    // a white bow over the door
+    for (const sx of [-1, 1]) k.v.add(G.ball(0.13, 14), '#ffffff', { x: sx * 0.13, y: 2.02, z: front + 0.12, s: [1.1, 0.8, 0.45], rz: sx * 0.25 });
+    k.v.add(G.ball(0.06, 10), PALETTE.rose, { y: 2.02, z: front + 0.16 });
     // cheetah-print trim: a wide band along the bottom of the front roof slope and along the ridge
-    const s = 0.42;
-    k.classic.add(G.box(roofW + 0.02, 0.05, 0.7), '#ffffff', { y: wallH + s * Math.sin(slope) + 0.04, z: roofD / 2 - s * Math.cos(slope) + 0.02, rx: slope, uv: [roofW / 0.9, 0.78] });
-    k.classic.add(G.box(roofW + 0.04, 0.3, 0.5), '#ffffff', { y: wallH + ROOF_H - 0.08, uv: [roofW / 0.9, 0.5] });
+    { const rb = roofAt(roofD, ROOF_H, 0.1);
+      k.classic.add(G.rbox(roofW + 0.02, 0.06, 0.7, 0.025), '#ffffff', { y: wallH + rb.y + 0.01, z: rb.z, rx: rb.a, uv: [roofW / 0.9, 0.78] }); }
+    void slope;
+    k.classic.add(G.rbox(roofW + 0.04, 0.3, 0.5, 0.12), '#ffffff', { y: wallH + ROOF_H - 0.08, uv: [roofW / 0.9, 0.5] });
     // giant shopping-bag sign on the roof
     const top = roofPedestal(k.v, wallH, '#ffd6e7', 2.35);
     shoppingBag(k, 2.15, top, 1.8, 3, PALETTE.rose, 'classic', 0.12);
     shoppingBag(k, 2.78, top, 1.95, 1.9, '#ffffff', 'pink', -0.3);
   } else {
-    for (const wx of [-w / 2 + 1.3, w / 2 - 1.3]) { windowAt(k, wx, wallH * 0.55, front, 1.0, 0.85); flowerBox(k.v, wx, wallH * 0.55 - 0.66, front + 0.16, 1.1); }
-    k.v.add(G.box(1.06, 1.6, 0.08), '#ffffff', { y: 0.8, z: front });
-    k.v.add(G.box(0.88, 1.5, 0.08), PALETTE.pink, { y: 0.75, z: front + 0.03 });
-    k.v.add(G.ball(0.05, 8), PALETTE.gold, { x: 0.3, y: 0.75, z: front + 0.1 });
-    k.v.add(G.box(0.5, 1.2, 0.5), '#ffc3da', { x: w / 2 - 0.9, y: wallH + 1.2 });
-    k.v.add(G.box(0.62, 0.14, 0.62), '#ffffff', { x: w / 2 - 0.9, y: wallH + 1.84 });
+    // arched cottage windows (kept short so the fanlight stays under the eave) over full planters
+    for (const wx of [-w / 2 + 1.3, w / 2 - 1.3]) { windowAt(k, wx, wallH * 0.5, front, 1.0, 0.7, '#ffffff', true); flowerBox(k.v, wx, wallH * 0.5 - 0.58, front + 0.16, 1.1); }
+    // round-topped pink door with a little heart window, a lantern and a soft step
+    archDoor(k, 0.88, 1.6, front, PALETTE.pink);
+    for (const dx of [-0.05, 0.05]) k.glow.add(G.ball(0.075, 12), GLASS, { x: dx, y: 1.3, z: front + 0.1, s: [1, 1, 0.25] });
+    k.glow.add(G.cone(0.115, 0.13, 12), GLASS, { y: 1.22, z: front + 0.1, rx: Math.PI, s: [1, 1, 0.2] });
+    wallLantern(k, 0, 1.78, front); // above the door, under the eave trim
+    k.v.add(G.rbox(1.2, 0.1, 0.4, 0.045), '#ffffff', { y: 0.05, z: front + 0.2 });
+    k.v.add(G.rbox(0.5, 1.2, 0.5, 0.08), '#ffc3da', { x: w / 2 - 0.9, y: wallH + 1.2 });
+    k.v.add(G.rbox(0.64, 0.16, 0.64, 0.07), '#ffffff', { x: w / 2 - 0.9, y: wallH + 1.84 });
   }
   k.into(g);
 
@@ -277,26 +397,26 @@ export function createStation(s: Station): THREE.Group {
   switch (s.id) {
     case 'cafe': {
       // espresso bar: striped counter, machine, cake dome, mugs, awning on posts
-      k.v.add(G.box(2.4, 0.8, 0.8), '#f6c3ad', { y: 0.4 });
-      for (let i = 0; i < 8; i++) k.v.add(G.box(0.15, 0.62, 0.03), i % 2 ? '#ffffff' : PALETTE.pink, { x: -1.05 + i * 0.3, y: 0.42, z: 0.405 });
-      k.v.add(G.box(2.56, 0.1, 0.94), '#fff7ee', { y: 0.85 });
+      k.v.add(G.rbox(2.4, 0.8, 0.8), '#f6c3ad', { y: 0.4 });
+      for (let i = 0; i < 8; i++) k.v.add(G.rbox(0.15, 0.62, 0.03), i % 2 ? '#ffffff' : PALETTE.pink, { x: -1.05 + i * 0.3, y: 0.42, z: 0.405 });
+      k.v.add(G.rbox(2.56, 0.1, 0.94), '#fff7ee', { y: 0.85 });
       // espresso machine
-      k.v.add(G.box(0.62, 0.42, 0.44), PALETTE.rose, { x: -0.72, y: 1.11, z: -0.12 });
-      k.v.add(G.box(0.66, 0.06, 0.48), '#ffffff', { x: -0.72, y: 1.35, z: -0.12 });
-      k.v.add(G.box(0.5, 0.05, 0.2), '#ffffff', { x: -0.72, y: 0.93, z: 0.16 });
-      for (const dx of [-0.14, 0.14]) k.v.add(G.cyl(0.04, 0.05, 0.09, 8), PALETTE.gold, { x: -0.72 + dx, y: 1.1, z: 0.14 });
+      k.v.add(G.rbox(0.62, 0.42, 0.44), PALETTE.rose, { x: -0.72, y: 1.11, z: -0.12 });
+      k.v.add(G.rbox(0.66, 0.06, 0.48), '#ffffff', { x: -0.72, y: 1.35, z: -0.12 });
+      k.v.add(G.rbox(0.5, 0.05, 0.2), '#ffffff', { x: -0.72, y: 0.93, z: 0.16 });
+      for (const dx of [-0.14, 0.14]) k.v.add(G.cyl(0.04, 0.05, 0.09, 12), PALETTE.gold, { x: -0.72 + dx, y: 1.1, z: 0.14 });
       mug(k.v, -0.86, 0.955, 0.17, 0.75);
       steamVents.push({ x: cx - 0.86, y: base + 1.05, z: cz + 0.17, big: false });
       for (const dx of [-0.16, 0, 0.16]) k.v.add(G.cyl(0.055, 0.045, 0.08, 10), dx ? '#ffffff' : PALETTE.blush, { x: -0.72 + dx, y: 1.42, z: -0.12 });
       // cake under a dome plate
       k.v.add(G.cyl(0.05, 0.1, 0.1, 10), '#ffffff', { x: 0.75, y: 0.95, z: -0.05 });
-      k.v.add(G.cyl(0.24, 0.24, 0.03, 16), '#ffffff', { x: 0.75, y: 1.01, z: -0.05 });
-      k.v.add(G.cyl(0.18, 0.18, 0.14, 16), '#ffb3cf', { x: 0.75, y: 1.09, z: -0.05 });
-      k.v.add(G.cyl(0.185, 0.185, 0.04, 16), '#fff7ee', { x: 0.75, y: 1.17, z: -0.05 });
-      k.v.add(G.ball(0.045, 8), '#ff5c8a', { x: 0.75, y: 1.22, z: -0.05 });
+      k.v.add(G.cyl(0.24, 0.24, 0.03, 24), '#ffffff', { x: 0.75, y: 1.01, z: -0.05 });
+      k.v.add(G.cyl(0.18, 0.18, 0.14, 24), '#ffb3cf', { x: 0.75, y: 1.09, z: -0.05 });
+      k.v.add(G.cyl(0.185, 0.185, 0.04, 24), '#fff7ee', { x: 0.75, y: 1.17, z: -0.05 });
+      k.v.add(G.ball(0.045, 16), '#ff5c8a', { x: 0.75, y: 1.22, z: -0.05 });
       mug(k.v, 0.05, 0.9, 0.12, 1.15, '#ffffff', PALETTE.pink);
       mug(k.v, 0.36, 0.9, 0.22, 1.0, PALETTE.blush);
-      for (const x of [-1.2, 1.2]) k.v.add(G.cyl(0.04, 0.05, 2.0, 8), '#ffffff', { x, y: 1.0, z: -0.38 });
+      for (const x of [-1.2, 1.2]) k.v.add(G.cyl(0.04, 0.05, 2.0, 12), '#ffffff', { x, y: 1.0, z: -0.38 });
       stripedAwning(k.v, 0, 2.02, -0.08, 2.8, 0.8, PALETTE.pink, '#ffffff', 0.4);
       const l = makeLabel('Café', 1.5); l.position.set(0, 2.55, 0.35); g.add(l);
       g.add(contactShadow(3, 1.5, 'rect', 0.22));
@@ -305,17 +425,17 @@ export function createStation(s: Station): THREE.Group {
     }
     case 'boutique': {
       // clothes rail with little dresses, hat stand, stacked shopping bags
-      k.v.add(G.box(2.0, 0.1, 0.8), '#ffd6e7', { y: 0.05 });
-      for (const x of [-0.8, 0.8]) k.v.add(G.cyl(0.03, 0.03, 1.45, 8), PALETTE.gold, { x, y: 0.8, z: -0.1 });
-      k.v.add(G.cyl(0.03, 0.03, 1.7, 8), PALETTE.gold, { y: 1.5, z: -0.1, rz: Math.PI / 2 });
-      for (const x of [-0.8, 0.8]) k.v.add(G.ball(0.06, 8), PALETTE.gold, { x, y: 1.55, z: -0.1 });
+      k.v.add(G.rbox(2.0, 0.1, 0.8), '#ffd6e7', { y: 0.05 });
+      for (const x of [-0.8, 0.8]) k.v.add(G.cyl(0.03, 0.03, 1.45, 12), PALETTE.gold, { x, y: 0.8, z: -0.1 });
+      k.v.add(G.cyl(0.03, 0.03, 1.7, 12), PALETTE.gold, { y: 1.5, z: -0.1, rz: Math.PI / 2 });
+      for (const x of [-0.8, 0.8]) k.v.add(G.ball(0.06, 16), PALETTE.gold, { x, y: 1.55, z: -0.1 });
       const rail: (string | CheetahKind)[] = ['pink', '#ffffff', 'classic', '#ff8fb6', 'pink'];
       rail.forEach((f, i) => {
         const x = -0.58 + i * 0.29, print = f === 'classic' || f === 'pink';
         const bt = print ? k.print(f as CheetahKind) : k.v, col = print ? '#ffffff' : f;
         k.v.add(G.torus(0.04, 0.01, 8, Math.PI), '#ffffff', { x, y: 1.5, z: -0.1, ry: Math.PI / 2 });
         bt.add(G.cyl(0.05, 0.2, 0.5, 12), col, { x, y: 1.15, z: -0.1, s: [0.55, 1, 1], uv: [1.2, 0.6] });
-        bt.add(G.ball(0.09, 8), col, { x, y: 1.38, z: -0.1, s: [0.55, 0.8, 1.3], uv: [0.6, 0.3] });
+        bt.add(G.ball(0.09, 16), col, { x, y: 1.38, z: -0.1, s: [0.55, 0.8, 1.3], uv: [0.6, 0.3] });
       });
       shoppingBag(k, -0.55, 0.1, 0.24, 1.5, PALETTE.rose, 'classic', 0.2);
       shoppingBag(k, -0.1, 0.1, 0.28, 1.15, '#ffffff', 'pink', -0.25);
@@ -327,40 +447,40 @@ export function createStation(s: Station): THREE.Group {
     case 'crafting': {
       // Crafting Table: a chunky pink wooden worktable with a pale top, shelf, and little craft supplies
       const WOOD = '#f4a9c4', WOOD_D = '#e58aae', TOP = '#ffd9e6';
-      for (const x of [-0.62, 0.62]) for (const z of [-0.3, 0.3]) k.v.add(G.box(0.14, 0.8, 0.14), WOOD_D, { x, y: 0.4, z });
-      k.v.add(G.box(1.5, 0.08, 0.1), WOOD, { y: 0.34, z: 0.3 });
-      k.v.add(G.box(1.5, 0.08, 0.1), WOOD, { y: 0.34, z: -0.3 });
-      k.v.add(G.box(1.46, 0.05, 0.56), WOOD, { y: 0.28 });
-      k.v.add(G.box(1.64, 0.12, 0.82), TOP, { y: 0.86 });
-      k.v.add(G.box(1.68, 0.05, 0.86), '#ffffff', { y: 0.8 });
+      for (const x of [-0.62, 0.62]) for (const z of [-0.3, 0.3]) k.v.add(G.rbox(0.14, 0.8, 0.14), WOOD_D, { x, y: 0.4, z });
+      k.v.add(G.rbox(1.5, 0.08, 0.1), WOOD, { y: 0.34, z: 0.3 });
+      k.v.add(G.rbox(1.5, 0.08, 0.1), WOOD, { y: 0.34, z: -0.3 });
+      k.v.add(G.rbox(1.46, 0.05, 0.56), WOOD, { y: 0.28 });
+      k.v.add(G.rbox(1.64, 0.12, 0.82), TOP, { y: 0.86 });
+      k.v.add(G.rbox(1.68, 0.05, 0.86), '#ffffff', { y: 0.8 });
       // pegboard back with hanging tools
-      k.v.add(G.box(1.5, 0.7, 0.05), WOOD, { y: 1.3, z: -0.36 });
-      k.v.add(G.box(0.05, 0.76, 0.07), WOOD_D, { x: -0.76, y: 1.3, z: -0.36 });
-      k.v.add(G.box(0.05, 0.76, 0.07), WOOD_D, { x: 0.76, y: 1.3, z: -0.36 });
-      for (const [x, y] of [[-0.45, 1.4], [0, 1.3], [0.45, 1.45]]) k.v.add(G.ball(0.03, 8), PALETTE.gold, { x, y, z: -0.32 });
-      k.v.add(G.box(0.05, 0.3, 0.03), PALETTE.cocoa, { x: -0.45, y: 1.22, z: -0.32 }); // hammer handle
-      k.v.add(G.box(0.2, 0.1, 0.06), '#d8d0dc', { x: -0.45, y: 1.4, z: -0.32 });
+      k.v.add(G.rbox(1.5, 0.7, 0.05), WOOD, { y: 1.3, z: -0.36 });
+      k.v.add(G.rbox(0.05, 0.76, 0.07), WOOD_D, { x: -0.76, y: 1.3, z: -0.36 });
+      k.v.add(G.rbox(0.05, 0.76, 0.07), WOOD_D, { x: 0.76, y: 1.3, z: -0.36 });
+      for (const [x, y] of [[-0.45, 1.4], [0, 1.3], [0.45, 1.45]]) k.v.add(G.ball(0.03, 16), PALETTE.gold, { x, y, z: -0.32 });
+      k.v.add(G.rbox(0.05, 0.3, 0.03), PALETTE.cocoa, { x: -0.45, y: 1.22, z: -0.32 }); // hammer handle
+      k.v.add(G.rbox(0.2, 0.1, 0.06), '#d8d0dc', { x: -0.45, y: 1.4, z: -0.32 });
       k.v.add(G.torus(0.09, 0.016, 10), PALETTE.gold, { x: 0.45, y: 1.28, z: -0.32 }); // scissor loop
-      k.v.add(G.box(0.03, 0.26, 0.02), '#d8d0dc', { x: 0, y: 1.14, z: -0.32 });
+      k.v.add(G.rbox(0.03, 0.26, 0.02), '#d8d0dc', { x: 0, y: 1.14, z: -0.32 });
       // on the table: thread spools, a bow in progress, a plank stack, a tiny heart pincushion
       k.v.add(G.cyl(0.07, 0.07, 0.14, 10), '#ffffff', { x: -0.55, y: 0.99, z: 0.1 });
       k.v.add(G.cyl(0.075, 0.075, 0.07, 10), '#ff8fb6', { x: -0.55, y: 0.99, z: 0.1 });
       k.v.add(G.cyl(0.06, 0.06, 0.12, 10), '#ffffff', { x: -0.38, y: 0.98, z: 0.2 });
       k.v.add(G.cyl(0.065, 0.065, 0.06, 10), PALETTE.blush, { x: -0.38, y: 0.98, z: 0.2 });
-      for (const dx of [-0.1, 0.1]) k.v.add(G.ball(0.085, 10), '#ff8fb6', { x: 0.05 + dx, y: 0.97, z: 0.12, s: [1, 0.8, 0.6] });
-      k.v.add(G.ball(0.045, 8), '#ffffff', { x: 0.05, y: 0.97, z: 0.12 });
-      for (let i = 0; i < 3; i++) k.v.add(G.box(0.4, 0.045, 0.16), i % 2 ? '#e8c39a' : '#dcae80', { x: 0.55, y: 0.95 + i * 0.048, z: 0.08, ry: i * 0.12 });
-      k.v.add(G.ball(0.07, 8), '#ff5c8a', { x: 0.2, y: 0.96, z: -0.15, s: [1, 0.7, 1] });
+      for (const dx of [-0.1, 0.1]) k.v.add(G.ball(0.085, 14), '#ff8fb6', { x: 0.05 + dx, y: 0.97, z: 0.12, s: [1, 0.8, 0.6] });
+      k.v.add(G.ball(0.045, 16), '#ffffff', { x: 0.05, y: 0.97, z: 0.12 });
+      for (let i = 0; i < 3; i++) k.v.add(G.rbox(0.4, 0.045, 0.16), i % 2 ? '#e8c39a' : '#dcae80', { x: 0.55, y: 0.95 + i * 0.048, z: 0.08, ry: i * 0.12 });
+      k.v.add(G.ball(0.07, 16), '#ff5c8a', { x: 0.2, y: 0.96, z: -0.15, s: [1, 0.7, 1] });
       const l = makeLabel('Crafting Table', 2.2); l.position.set(0, 1.95, 0.2); g.add(l);
       g.add(contactShadow(2.0, 1.2, 'rect', 0.22));
       break;
     }
     case 'market': {
       const w = s.w;
-      k.v.add(G.box(w - 0.2, 0.7, 0.8), '#f7d5b8', { y: 0.45 });
+      k.v.add(G.rbox(w - 0.2, 0.7, 0.8), '#f7d5b8', { y: 0.45 });
       for (const x of [-w / 2 + 0.2, w / 2 - 0.2]) {
-        k.v.add(G.cyl(0.3, 0.3, 0.08, 16), PALETTE.wood, { x, y: 0.3, z: 0.45, rx: Math.PI / 2 });
-        k.v.add(G.box(0.08, 1.9, 0.08), PALETTE.wood, { x, y: 1.0, z: -0.35 });
+        k.v.add(G.cyl(0.3, 0.3, 0.08, 24), PALETTE.wood, { x, y: 0.3, z: 0.45, rx: Math.PI / 2 });
+        k.v.add(G.rbox(0.08, 1.9, 0.08), PALETTE.wood, { x, y: 1.0, z: -0.35 });
       }
       stripedAwning(k.v, 0, 1.98, -0.05, w + 0.3, 0.8, '#c3e8d6', '#ffffff', 0.4);
       k.v.add(G.ball(0.17), '#ff8fb6', { x: -0.5, y: 0.95 }).add(G.ball(0.17), '#ff8fb6', { x: -0.1, y: 0.95 }).add(G.ball(0.17), '#ffffff', { x: 0.4, y: 0.95 });
@@ -369,12 +489,12 @@ export function createStation(s: Station): THREE.Group {
     }
     case 'chest': {
       // Softkeep Chest: a plump wooden chest with a pink lid, gold clasp and a little bow
-      k.v.add(G.box(0.9, 0.45, 0.6), '#d9a77a', { y: 0.225 });
-      k.v.add(G.box(0.94, 0.08, 0.64), PALETTE.gold, { y: 0.14 });
-      k.v.add(G.cyl(0.3, 0.3, 0.94, 14), '#ffb3cf', { y: 0.5, rz: Math.PI / 2, s: [1, 1, 1.0] });
-      k.v.add(G.box(0.14, 0.16, 0.05), PALETTE.gold, { y: 0.46, z: 0.32 });
-      k.v.add(G.ball(0.07, 8), '#ffffff', { x: -0.06, y: 0.82, z: 0.0 }).add(G.ball(0.07, 8), '#ffffff', { x: 0.06, y: 0.82, z: 0.0 });
-      k.v.add(G.ball(0.05, 8), '#ff8fb6', { y: 0.81, z: 0.0 });
+      k.v.add(G.rbox(0.9, 0.45, 0.6), '#d9a77a', { y: 0.225 });
+      k.v.add(G.rbox(0.94, 0.08, 0.64), PALETTE.gold, { y: 0.14 });
+      k.v.add(G.cyl(0.3, 0.3, 0.94, 30), '#ffb3cf', { y: 0.5, rz: Math.PI / 2, s: [1, 1, 1.0] });
+      k.v.add(G.rbox(0.14, 0.16, 0.05), PALETTE.gold, { y: 0.46, z: 0.32 });
+      k.v.add(G.ball(0.07, 16), '#ffffff', { x: -0.06, y: 0.82, z: 0.0 }).add(G.ball(0.07, 16), '#ffffff', { x: 0.06, y: 0.82, z: 0.0 });
+      k.v.add(G.ball(0.05, 16), '#ff8fb6', { y: 0.81, z: 0.0 });
       const l = makeLabel('Softkeep Chest', 1.9); l.position.set(0, 1.55, 0.2); g.add(l);
       g.add(contactShadow(1.5, 1.0, 'rect', 0.22));
       break;
@@ -383,35 +503,35 @@ export function createStation(s: Station): THREE.Group {
       // Bulletin Board: two wooden posts, a cream cork panel in a pink frame with a scalloped little roof,
       // pastel notes pinned at tilted angles, and a bow. Faces the camera (+z).
       for (const sx of [-1, 1]) {
-        k.v.add(G.box(0.12, 1.5, 0.12), PALETTE.wood, { x: sx * 0.62, y: 0.75 });
-        k.v.add(G.ball(0.1, 8), '#fff4f8', { x: sx * 0.62, y: 1.54 });
+        k.v.add(G.rbox(0.12, 1.5, 0.12), PALETTE.wood, { x: sx * 0.62, y: 0.75 });
+        k.v.add(G.ball(0.1, 16), '#fff4f8', { x: sx * 0.62, y: 1.54 });
       }
-      k.v.add(G.box(1.5, 0.98, 0.1), '#ff9ec0', { y: 1.02, z: 0.02 });
-      k.v.add(G.box(1.32, 0.8, 0.06), '#f6dcb8', { y: 1.02, z: 0.07 });
+      k.v.add(G.rbox(1.5, 0.98, 0.1), '#ff9ec0', { y: 1.02, z: 0.02 });
+      k.v.add(G.rbox(1.32, 0.8, 0.06), '#f6dcb8', { y: 1.02, z: 0.07 });
       const notes: [number, number, number, string][] = [[-0.38, 1.2, 0.12, '#fff3a8'], [0.02, 1.26, -0.08, '#ffd0e0'], [0.4, 1.14, 0.1, '#cfeedd'], [-0.3, 0.84, -0.1, '#e4d6ff'], [0.2, 0.86, 0.14, '#fff4f8']];
       for (const [x, y, rz, c] of notes) {
-        k.v.add(G.box(0.3, 0.34, 0.015), c, { x, y, z: 0.11, rz });
-        k.v.add(G.ball(0.03, 6), '#ff5c8a', { x, y: y + 0.12, z: 0.13 });
-        for (const ly of [-0.02, -0.08]) k.v.add(G.box(0.18, 0.015, 0.005), '#c9a8b8', { x, y: y + ly, z: 0.12, rz });
+        k.v.add(G.rbox(0.3, 0.34, 0.015), c, { x, y, z: 0.11, rz });
+        k.v.add(G.ball(0.03, 14), '#ff5c8a', { x, y: y + 0.12, z: 0.13 });
+        for (const ly of [-0.02, -0.08]) k.v.add(G.rbox(0.18, 0.015, 0.005), '#c9a8b8', { x, y: y + ly, z: 0.12, rz });
       }
       const ridge = 7;
-      for (let i = 0; i < ridge; i++) k.v.add(G.ball(0.12, 8), i % 2 ? '#ffffff' : '#ffc3da', { x: -0.72 + i * 0.24, y: 1.55, z: 0.08, s: [1, 0.8, 0.9] });
-      k.v.add(G.box(1.62, 0.08, 0.2), '#ff7fa9', { y: 1.62, z: 0.04 });
-      k.v.add(G.ball(0.08, 8), '#ffffff', { x: -0.06, y: 1.74 }).add(G.ball(0.08, 8), '#ffffff', { x: 0.06, y: 1.74 });
-      k.v.add(G.ball(0.05, 8), '#ff5c8a', { y: 1.73 });
+      for (let i = 0; i < ridge; i++) k.v.add(G.ball(0.12, 16), i % 2 ? '#ffffff' : '#ffc3da', { x: -0.72 + i * 0.24, y: 1.55, z: 0.08, s: [1, 0.8, 0.9] });
+      k.v.add(G.rbox(1.62, 0.08, 0.2), '#ff7fa9', { y: 1.62, z: 0.04 });
+      k.v.add(G.ball(0.08, 16), '#ffffff', { x: -0.06, y: 1.74 }).add(G.ball(0.08, 16), '#ffffff', { x: 0.06, y: 1.74 });
+      k.v.add(G.ball(0.05, 16), '#ff5c8a', { y: 1.73 });
       const l = makeLabel('Bulletin Board', 1.9); l.position.set(0, 2.2, 0.2); g.add(l);
       g.add(contactShadow(1.6, 0.8, 'rect', 0.22));
       break;
     }
     case 'mailbox': {
       // Mailbox: a pink post with a plump rounded box, a gold heart plate and a little flag that rises when a letter waits
-      k.v.add(G.box(0.12, 0.95, 0.12), '#f4d9b8', { y: 0.475 });
-      k.v.add(G.box(0.34, 0.06, 0.34), '#ffd9e6', { y: 0.04 });
-      k.v.add(G.box(0.62, 0.34, 0.4), '#ff9ec0', { y: 1.1 });
-      k.v.add(G.cyl(0.2, 0.2, 0.62, 14), '#ff9ec0', { y: 1.27, rz: Math.PI / 2 });
-      k.v.add(G.box(0.2, 0.16, 0.03), '#fff4f8', { y: 1.08, z: 0.21 });
-      k.v.add(G.ball(0.045, 8), PALETTE.gold, { y: 1.08, z: 0.235 });
-      k.v.add(G.ball(0.06, 8), '#ffffff', { x: -0.31, y: 1.45 });
+      k.v.add(G.rbox(0.12, 0.95, 0.12), '#f4d9b8', { y: 0.475 });
+      k.v.add(G.rbox(0.34, 0.06, 0.34), '#ffd9e6', { y: 0.04 });
+      k.v.add(G.rbox(0.62, 0.34, 0.4), '#ff9ec0', { y: 1.1 });
+      k.v.add(G.cyl(0.2, 0.2, 0.62, 30), '#ff9ec0', { y: 1.27, rz: Math.PI / 2 });
+      k.v.add(G.rbox(0.2, 0.16, 0.03), '#fff4f8', { y: 1.08, z: 0.21 });
+      k.v.add(G.ball(0.045, 16), PALETTE.gold, { y: 1.08, z: 0.235 });
+      k.v.add(G.ball(0.06, 16), '#ffffff', { x: -0.31, y: 1.45 });
       const flag = new THREE.Group();
       flag.name = 'mailFlag';
       flag.position.set(0.34, 1.12, 0);
@@ -424,29 +544,29 @@ export function createStation(s: Station): THREE.Group {
     }
     case 'wardrobe': {
       // Home wardrobe: a tall pink cabinet with two doors, gold knobs, a heart and a bow on top
-      k.v.add(G.box(1.2, 1.7, 0.6), '#ffd0e0', { y: 0.85 });
-      k.v.add(G.box(1.28, 0.1, 0.66), '#fff4f8', { y: 1.72 });
+      k.v.add(G.rbox(1.2, 1.7, 0.6), '#ffd0e0', { y: 0.85 });
+      k.v.add(G.rbox(1.28, 0.1, 0.66), '#fff4f8', { y: 1.72 });
       for (const sx of [-1, 1]) {
-        k.v.add(G.box(0.5, 1.4, 0.04), '#ffe3ee', { x: sx * 0.29, y: 0.85, z: 0.31 });
-        k.v.add(G.ball(0.045, 8), PALETTE.gold, { x: sx * 0.08, y: 0.85, z: 0.35 });
-        k.v.add(G.ball(0.1, 10), '#ff8fb6', { x: sx * 0.12, y: 1.9, s: [1.1, 0.8, 0.5], rz: sx * 0.3 });
+        k.v.add(G.rbox(0.5, 1.4, 0.04), '#ffe3ee', { x: sx * 0.29, y: 0.85, z: 0.31 });
+        k.v.add(G.ball(0.045, 16), PALETTE.gold, { x: sx * 0.08, y: 0.85, z: 0.35 });
+        k.v.add(G.ball(0.1, 14), '#ff8fb6', { x: sx * 0.12, y: 1.9, s: [1.1, 0.8, 0.5], rz: sx * 0.3 });
       }
-      k.v.add(G.ball(0.06, 8), '#ffffff', { y: 1.9 });
-      k.v.add(G.ball(0.06, 8), '#ff7fa9', { x: -0.03, y: 1.2, z: 0.34 }).add(G.ball(0.06, 8), '#ff7fa9', { x: 0.03, y: 1.2, z: 0.34 });
-      for (const x of [-0.5, 0.5]) k.v.add(G.ball(0.07, 8), '#fff4f8', { x, y: 0.05 });
+      k.v.add(G.ball(0.06, 16), '#ffffff', { y: 1.9 });
+      k.v.add(G.ball(0.06, 16), '#ff7fa9', { x: -0.03, y: 1.2, z: 0.34 }).add(G.ball(0.06, 16), '#ff7fa9', { x: 0.03, y: 1.2, z: 0.34 });
+      for (const x of [-0.5, 0.5]) k.v.add(G.ball(0.07, 16), '#fff4f8', { x, y: 0.05 });
       const l = makeLabel('Wardrobe', 1.6); l.position.set(0, 2.45, 0.3); g.add(l);
       g.add(contactShadow(1.7, 1.0, 'rect', 0.22));
       break;
     }
     case 'home': {
       // Front Door: a plush welcome mat with a pink border, twin potted blooms and a little heart sign on a post
-      k.v.add(G.box(1.1, 0.06, 0.6), '#ff9ec0', { y: 0.03 });
-      k.v.add(G.box(0.96, 0.08, 0.46), '#fff3e6', { y: 0.04 });
-      k.v.add(G.ball(0.09, 10), '#ff8fb6', { x: -0.06, y: 0.1, s: [1, 0.5, 0.7] }).add(G.ball(0.09, 10), '#ff8fb6', { x: 0.06, y: 0.1, s: [1, 0.5, 0.7] });
+      k.v.add(G.rbox(1.1, 0.06, 0.6), '#ff9ec0', { y: 0.03 });
+      k.v.add(G.rbox(0.96, 0.08, 0.46), '#fff3e6', { y: 0.04 });
+      k.v.add(G.ball(0.09, 14), '#ff8fb6', { x: -0.06, y: 0.1, s: [1, 0.5, 0.7] }).add(G.ball(0.09, 14), '#ff8fb6', { x: 0.06, y: 0.1, s: [1, 0.5, 0.7] });
       for (const sx of [-1, 1]) {
         k.v.add(G.cyl(0.17, 0.12, 0.26, 12), '#ffd0e2', { x: sx * 0.78, y: 0.13, z: -0.05 });
-        k.v.add(G.ball(0.2, 10), '#9fe0b8', { x: sx * 0.78, y: 0.4, z: -0.05 });
-        for (const [dx, dy, c] of [[-0.08, 0.5, '#ff8fb6'], [0.1, 0.46, '#fff3a8'], [0, 0.58, '#ffffff']] as [number, number, string][]) k.v.add(G.ball(0.06, 8), c, { x: sx * 0.78 + dx, y: dy, z: 0.05 });
+        k.v.add(G.ball(0.2, 14), '#9fe0b8', { x: sx * 0.78, y: 0.4, z: -0.05 });
+        for (const [dx, dy, c] of [[-0.08, 0.5, '#ff8fb6'], [0.1, 0.46, '#fff3a8'], [0, 0.58, '#ffffff']] as [number, number, string][]) k.v.add(G.ball(0.06, 16), c, { x: sx * 0.78 + dx, y: dy, z: 0.05 });
       }
       const l = makeLabel('Home ♡', 1.1); l.position.set(0, 1.0, 0.1); g.add(l);
       g.add(contactShadow(1.4, 0.9, 'rect', 0.18));
@@ -454,12 +574,12 @@ export function createStation(s: Station): THREE.Group {
     }
     case 'petbed': {
       // Pet Nook: a woven basket with a pink cushion, a little heart pillow and a ball of yarn
-      k.v.add(G.cyl(0.58, 0.5, 0.26, 20), '#e8c79a', { y: 0.13 });
+      k.v.add(G.cyl(0.58, 0.5, 0.26, 30), '#e8c79a', { y: 0.13 });
       k.v.add(G.torus(0.56, 0.07, 22), '#f6dfb8', { y: 0.27, rx: Math.PI / 2 });
-      k.v.add(G.cyl(0.48, 0.48, 0.07, 20), '#ffc3d6', { y: 0.22 });
-      for (const sx of [-1, 1]) k.v.add(G.ball(0.1, 10), '#ff8fb6', { x: sx * 0.07 - 0.2, y: 0.34, z: -0.12, s: [1, 1, 0.55] });
-      k.v.add(G.ball(0.11, 10), '#ff8fb6', { x: -0.2, y: 0.28, z: -0.12, s: [1.3, 1, 0.55] });
-      k.v.add(G.ball(0.13, 12), '#fff3a8', { x: 0.72, y: 0.13, z: 0.3 });
+      k.v.add(G.cyl(0.48, 0.48, 0.07, 30), '#ffc3d6', { y: 0.22 });
+      for (const sx of [-1, 1]) k.v.add(G.ball(0.1, 14), '#ff8fb6', { x: sx * 0.07 - 0.2, y: 0.34, z: -0.12, s: [1, 1, 0.55] });
+      k.v.add(G.ball(0.11, 14), '#ff8fb6', { x: -0.2, y: 0.28, z: -0.12, s: [1.3, 1, 0.55] });
+      k.v.add(G.ball(0.13, 16), '#fff3a8', { x: 0.72, y: 0.13, z: 0.3 });
       k.v.add(G.torus(0.1, 0.012, 14), '#f0b24f', { x: 0.72, y: 0.14, z: 0.3, rx: Math.PI / 2, ry: 0.4 });
       const l = makeLabel('Pet Nook', 1.4); l.position.set(0, 1.05, 0.2); g.add(l);
       g.add(contactShadow(1.5, 1.4, 'round', 0.22));
@@ -486,76 +606,95 @@ export function createProp(p: Prop): THREE.Group | null {
   switch (p.type) {
     case 'fence':
       if (p.v === 1) g.rotation.y = Math.PI / 2; // runs north-south (a border fence)
-      k.v.add(G.box(1, 0.1, 0.1), '#ffc3da', { y: 0.45 });
-      for (const x of [-0.4, -0.13, 0.13, 0.4]) { k.v.add(G.box(0.12, 0.7, 0.12), '#ffffff', { x, y: 0.35 }); k.v.add(G.ball(0.08, 8), '#ffffff', { x, y: 0.72 }); }
+      // rounded picket fence: soft round rails and pickets with ball tops. Repeated along borders, so modest segment counts.
+      for (const ry of [0.28, 0.5]) k.v.add(G.cyl(0.045, 0.045, 1, 10), '#ffc3da', { y: ry, rz: Math.PI / 2 });
+      for (const x of [-0.4, -0.13, 0.13, 0.4]) { k.v.add(G.cyl(0.06, 0.065, 0.66, 10), '#ffffff', { x, y: 0.33 }); k.v.add(G.ball(0.085, 10), '#ffffff', { x, y: 0.7 }); }
       break;
     case 'table':
       // café table: lace-edged top, two mugs, a bud vase and a pair of stools
-      k.v.add(G.cyl(0.2, 0.26, 0.05, 14), '#ffffff', { y: 0.025 });
-      k.v.add(G.cyl(0.05, 0.05, 0.6, 8), '#ffffff', { y: 0.3 });
-      k.v.add(G.cyl(0.46, 0.46, 0.05, 20), '#ffd0e2', { y: 0.63 });
+      k.v.add(G.cyl(0.2, 0.26, 0.05, 30), '#ffffff', { y: 0.025 });
+      k.v.add(G.cyl(0.05, 0.05, 0.6, 12), '#ffffff', { y: 0.3 });
+      k.v.add(G.cyl(0.46, 0.46, 0.05, 30), '#ffd0e2', { y: 0.63 });
       k.v.add(G.torus(0.46, 0.035, 22), '#ffffff', { y: 0.63, rx: Math.PI / 2 });
       mug(k.v, -0.2, 0.655, 0.1, 1.25, '#ffffff', PALETTE.pink);
       mug(k.v, 0.17, 0.655, -0.14, 1.25, PALETTE.blush);
-      k.v.add(G.cyl(0.035, 0.05, 0.12, 8), '#aee2f5', { x: 0.05, y: 0.715, z: 0.2 });
-      k.v.add(G.ball(0.06, 8), PALETTE.rose, { x: 0.05, y: 0.83, z: 0.2 });
+      k.v.add(G.cyl(0.035, 0.05, 0.12, 12), '#aee2f5', { x: 0.05, y: 0.715, z: 0.2 });
+      k.v.add(G.ball(0.06, 16), PALETTE.rose, { x: 0.05, y: 0.83, z: 0.2 });
       for (const sx of [-1, 1]) {
         // stools tucked in so they stay inside the table's (blocked) tile
-        k.v.add(G.cyl(0.035, 0.035, 0.36, 8), '#ffffff', { x: sx * 0.52, y: 0.18, z: 0.22 });
-        k.v.add(G.cyl(0.16, 0.16, 0.09, 14), sx > 0 ? PALETTE.pink : '#ffffff', { x: sx * 0.52, y: 0.4, z: 0.22 });
+        k.v.add(G.cyl(0.035, 0.035, 0.36, 12), '#ffffff', { x: sx * 0.52, y: 0.18, z: 0.22 });
+        k.v.add(G.cyl(0.16, 0.16, 0.09, 30), sx > 0 ? PALETTE.pink : '#ffffff', { x: sx * 0.52, y: 0.4, z: 0.22 });
       }
-      k.pink.add(G.cyl(0.14, 0.14, 0.04, 14), '#ffffff', { x: -0.52, y: 0.46, z: 0.22, uv: [1.2, 0.4] }); // cheetah cushion
+      k.pink.add(G.cyl(0.14, 0.14, 0.04, 30), '#ffffff', { x: -0.52, y: 0.46, z: 0.22, uv: [1.2, 0.4] }); // cheetah cushion
       g.add(contactShadow(1.5, 1.1));
       break;
     case 'mannequin': {
       // boutique dress form on a pedestal, wearing the print
-      k.v.add(G.cyl(0.34, 0.38, 0.14, 18), '#ffffff', { y: 0.07 });
-      k.v.add(G.cyl(0.3, 0.3, 0.03, 18), PALETTE.pink, { y: 0.15 });
+      k.v.add(G.cyl(0.34, 0.38, 0.14, 28), '#ffffff', { y: 0.07 });
+      k.v.add(G.cyl(0.3, 0.3, 0.03, 28), PALETTE.pink, { y: 0.15 });
       dressForm(k, 0, 0.14, 0, 1, p.v ? 'pink' : 'classic');
       if (p.v) {
-        for (const sx of [-1, 1]) k.v.add(G.ball(0.09, 8), PALETTE.rose, { x: sx * 0.085, y: 1.52, z: 0.02, s: [1, 0.8, 0.5] });
+        for (const sx of [-1, 1]) k.v.add(G.ball(0.09, 16), PALETTE.rose, { x: sx * 0.085, y: 1.52, z: 0.02, s: [1, 0.8, 0.5] });
       } else {
-        k.v.add(G.cyl(0.3, 0.32, 0.03, 16), '#fff4dc', { y: 1.47, rx: -0.15 });
-        k.v.add(G.ball(0.14, 10), '#fff4dc', { y: 1.5, s: [1, 0.7, 1] });
-        k.v.add(G.cyl(0.145, 0.15, 0.05, 14), PALETTE.rose, { y: 1.5 });
+        k.v.add(G.cyl(0.3, 0.32, 0.03, 24), '#fff4dc', { y: 1.47, rx: -0.15 });
+        k.v.add(G.ball(0.14, 14), '#fff4dc', { y: 1.5, s: [1, 0.7, 1] });
+        k.v.add(G.cyl(0.145, 0.15, 0.05, 30), PALETTE.rose, { y: 1.5 });
       }
       g.add(contactShadow(1.0));
       break;
     }
     case 'fountain':
-      k.v.add(G.cyl(1.0, 1.1, 0.4, 24), '#ffe0ec', { y: 0.2 });
-      k.v.add(G.cyl(0.85, 0.85, 0.06, 24), '#cfeefe', { y: 0.4 });
-      k.v.add(G.cyl(0.15, 0.2, 0.9), '#ffd0e2', { y: 0.7 });
-      k.v.add(G.ball(0.2), '#ffd36e', { y: 1.25 });
+      // tiered fountain: a basin with a rolled rim, a vase-shaped column, a scalloped upper bowl and a gold top (same footprint)
+      k.v.add(G.lathe([[0.001, 0], [1.06, 0], [1.1, 0.04], [1.1, 0.3], [1.06, 0.38], [0.98, 0.42], [0.9, 0.4], [0.88, 0.34], [0.001, 0.34]], 40), '#ffe0ec');
+      k.v.add(G.torus(1.0, 0.06, 40), '#fff4f8', { y: 0.4, rx: Math.PI / 2 });
+      k.v.add(G.cyl(0.89, 0.89, 0.04, 40), '#cfeefe', { y: 0.36 });
+      for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2; k.v.add(G.ball(0.07, 10), i % 2 ? '#ffc3da' : '#ffffff', { x: Math.cos(a) * 1.1, y: 0.18, z: Math.sin(a) * 1.1, s: [1, 1, 1] }); }
+      k.v.add(G.lathe([[0.001, 0.34], [0.22, 0.36], [0.17, 0.5], [0.13, 0.72], [0.15, 0.86], [0.2, 0.92], [0.001, 0.94]], 24), '#ffd0e2');
+      k.v.add(G.lathe([[0.001, 0.9], [0.18, 0.9], [0.4, 0.98], [0.48, 1.06], [0.46, 1.1], [0.38, 1.06], [0.001, 1.04]], 32), '#ffe0ec');
+      k.v.add(G.cyl(0.39, 0.39, 0.02, 32), '#cfeefe', { y: 1.06 });
+      for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2; k.v.add(G.ball(0.05, 10), '#ffffff', { x: Math.cos(a) * 0.47, y: 1.05, z: Math.sin(a) * 0.47 }); }
+      k.v.add(G.cyl(0.06, 0.08, 0.16, 14), '#ffd0e2', { y: 1.14 });
+      k.v.add(G.ball(0.18, 20), '#ffd36e', { y: 1.3 });
+      k.v.add(G.ball(0.06, 12), '#fff3c4', { x: -0.06, y: 1.38, z: 0.12 });
       g.add(contactShadow(2.8));
       g.userData.fountain = true;
       break;
     case 'lamp':
-      k.v.add(G.cyl(0.05, 0.06, 1.5), PALETTE.wood, { y: 0.75 });
-      { const bulb = ball(0.2, mat('#fff3c4', PALETTE.lampGlow, 'lamp'), 0, 1.6, 0); bulb.castShadow = false; g.add(bulb); }
+      // lamp post: a rounded foot, a slim post with a collar, a cup under the glowing bulb and a little cap with a knob
+      k.v.add(G.lathe([[0.001, 0], [0.16, 0], [0.17, 0.04], [0.12, 0.1], [0.07, 0.16], [0.001, 0.17]], 18), PALETTE.wood);
+      k.v.add(G.cyl(0.045, 0.055, 1.36, 14), PALETTE.wood, { y: 0.8 });
+      k.v.add(G.torus(0.06, 0.02, 14), '#ffffff', { y: 0.9, rx: Math.PI / 2 });
+      k.v.add(G.cyl(0.13, 0.06, 0.08, 16), '#ffffff', { y: 1.44 });
+      k.v.add(G.ball(0.13, 16), '#ffffff', { y: 1.8, s: [1, 0.45, 1] });
+      k.v.add(G.ball(0.04, 10), PALETTE.pink, { y: 1.87 });
+      { const bulb = ball(0.2, mat('#fff3c4', PALETTE.lampGlow, 'lamp'), 0, 1.6, 0, 20); bulb.castShadow = false; g.add(bulb); }
       g.add(contactShadow(0.6));
       break;
     case 'sign': {
-      k.v.add(G.box(0.08, 0.7, 0.08), PALETTE.wood, { y: 0.35 });
+      k.v.add(G.rbox(0.08, 0.7, 0.08), PALETTE.wood, { y: 0.35 });
       const l = makeLabel(p.text ?? '', 1.5); l.position.set(0, 0.95, 0.05); g.add(l);
       break;
     }
     case 'lighthouse': {
       // The Hush Bell lighthouse: a plump pink-and-cream tower, a gold gallery, a glowing lantern room and a tiny bell on top.
-      k.v.add(G.cyl(1.35, 1.5, 0.5, 20), '#f3e4ee', { y: 0.25 });
-      k.v.add(G.cyl(1.15, 1.3, 0.3, 20), '#ffd0e2', { y: 0.62 });
+      k.v.add(G.cyl(1.35, 1.5, 0.5, 30), '#f3e4ee', { y: 0.25 });
+      k.v.add(G.cyl(1.15, 1.3, 0.3, 30), '#ffd0e2', { y: 0.62 });
       const bands = ['#ffffff', '#ffc3da', '#ffffff', '#ffc3da', '#ffffff'];
-      bands.forEach((c, i) => k.v.add(G.cyl(0.95 - i * 0.07, 1.05 - i * 0.07, 0.8, 20), c, { y: 1.25 + i * 0.8 }));
-      for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; k.v.add(G.ball(0.1, 8), '#ff8fb6', { x: Math.cos(a) * 0.62, y: 2.2 + (i % 2) * 1.2, z: Math.sin(a) * 0.62 + 0.4, s: [1, 1, 0.3] }); }
-      k.v.add(G.cyl(0.9, 0.7, 0.18, 20), PALETTE.gold, { y: 5.35 });
+      bands.forEach((c, i) => k.v.add(G.cyl(0.95 - i * 0.07, 1.05 - i * 0.07, 0.8, 30), c, { y: 1.25 + i * 0.8 }));
+      // soft rolled seams between the bands
+      for (let i = 0; i < 5; i++) k.v.add(G.torus(1.05 - i * 0.07, 0.035, 30), '#fff4f8', { y: 0.85 + i * 0.8, rx: Math.PI / 2 });
+      for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; k.v.add(G.ball(0.1, 16), '#ff8fb6', { x: Math.cos(a) * 0.62, y: 2.2 + (i % 2) * 1.2, z: Math.sin(a) * 0.62 + 0.4, s: [1, 1, 0.3] }); }
+      k.v.add(G.cyl(0.9, 0.7, 0.18, 30), PALETTE.gold, { y: 5.35 });
       for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; k.v.add(G.cyl(0.03, 0.03, 0.34, 6), '#ffffff', { x: Math.cos(a) * 0.84, y: 5.62, z: Math.sin(a) * 0.84 }); }
       k.v.add(G.torus(0.84, 0.03, 24), '#ffffff', { y: 5.8, rx: Math.PI / 2 });
-      k.v.add(G.cyl(0.5, 0.55, 0.12, 16), '#f3e4ee', { y: 5.5 });
-      k.v.add(G.cone(0.72, 0.8, 18), '#ff9ec0', { y: 6.75 });
-      k.v.add(G.ball(0.12, 8), PALETTE.gold, { y: 7.22 });
+      k.v.add(G.cyl(0.5, 0.55, 0.12, 24), '#f3e4ee', { y: 5.5 });
+      // a rounded dome cap instead of a sharp cone, with a scalloped rim
+      k.v.add(G.lathe([[0.001, 6.33], [0.76, 6.33], [0.78, 6.38], [0.7, 6.55], [0.52, 6.78], [0.3, 6.98], [0.12, 7.1], [0.001, 7.14]], 32), '#ff9ec0');
+      for (let i = 0; i < 14; i++) { const a = (i / 14) * Math.PI * 2; k.v.add(G.ball(0.08, 10), i % 2 ? '#ffffff' : '#ffc3da', { x: Math.cos(a) * 0.76, y: 6.32, z: Math.sin(a) * 0.76 }); }
+      k.v.add(G.ball(0.12, 16), PALETTE.gold, { y: 7.22 });
       k.v.add(G.cyl(0.04, 0.04, 0.3, 6), PALETTE.wood, { y: 7.1 });
       // door with a heart window
-      k.v.add(G.box(0.46, 0.7, 0.1), '#c9a8e8', { y: 0.95, z: 1.33, s: 1 }).add(G.ball(0.07, 8), '#fff3a8', { x: -0.03, y: 1.12, z: 1.4 }).add(G.ball(0.07, 8), '#fff3a8', { x: 0.03, y: 1.12, z: 1.4 });
+      k.v.add(G.rbox(0.46, 0.7, 0.1), '#c9a8e8', { y: 0.95, z: 1.33, s: 1 }).add(G.ball(0.07, 16), '#fff3a8', { x: -0.03, y: 1.12, z: 1.4 }).add(G.ball(0.07, 16), '#fff3a8', { x: 0.03, y: 1.12, z: 1.4 });
       const lantern = ball(0.4, mat('#fff3c4', PALETTE.lampGlow, 'lamp'), 0, 5.85, 0);
       lantern.castShadow = false;
       lantern.scale.set(1, 1.1, 1);
@@ -568,14 +707,14 @@ export function createProp(p: Prop): THREE.Group | null {
     case 'picnic': {
       // Brioche's picnic: a checkered blanket, a basket of pastries, a teapot and a cheetah cushion
       for (let i = 0; i < 6; i++) for (let j = 0; j < 4; j++) k.v.add(G.box(0.4, 0.025, 0.4), (i + j) % 2 ? '#ffffff' : '#ffb3cf', { x: -1.0 + i * 0.4 + 0.2, y: 0.013, z: -0.6 + j * 0.4 + 0.2 });
-      k.v.add(G.cyl(0.26, 0.22, 0.2, 14), '#e0b27c', { x: -0.55, y: 0.13, z: -0.1 });
+      k.v.add(G.cyl(0.26, 0.22, 0.2, 30), '#e0b27c', { x: -0.55, y: 0.13, z: -0.1 });
       k.v.add(G.torus(0.25, 0.025, 16, Math.PI), '#c8955f', { x: -0.55, y: 0.24, z: -0.1, ry: 0.4 });
-      for (const [x, z, c] of [[-0.62, -0.08, '#f2b765'], [-0.5, -0.14, '#f7c98c'], [-0.52, -0.02, '#e49c5a']] as [number, number, string][]) k.v.add(G.ball(0.08, 8), c, { x, y: 0.27, z, s: [1.3, 0.8, 0.9] });
-      k.v.add(G.ball(0.15, 12), '#ffffff', { x: 0.35, y: 0.18, z: 0.1, s: [1, 0.85, 1] });
+      for (const [x, z, c] of [[-0.62, -0.08, '#f2b765'], [-0.5, -0.14, '#f7c98c'], [-0.52, -0.02, '#e49c5a']] as [number, number, string][]) k.v.add(G.ball(0.08, 16), c, { x, y: 0.27, z, s: [1.3, 0.8, 0.9] });
+      k.v.add(G.ball(0.15, 16), '#ffffff', { x: 0.35, y: 0.18, z: 0.1, s: [1, 0.85, 1] });
       k.v.add(G.cyl(0.07, 0.1, 0.1, 10), '#ffffff', { x: 0.35, y: 0.33, z: 0.1 });
-      k.v.add(G.ball(0.04, 8), '#ff8fb6', { x: 0.35, y: 0.4, z: 0.1 });
+      k.v.add(G.ball(0.04, 16), '#ff8fb6', { x: 0.35, y: 0.4, z: 0.1 });
       k.v.add(G.cyl(0.02, 0.02, 0.14, 6), '#ffffff', { x: 0.5, y: 0.2, z: 0.1, rz: 1 });
-      k.pink.add(G.cyl(0.2, 0.2, 0.1, 14), '#ffffff', { x: 0.7, y: 0.07, z: -0.3, uv: [1.2, 0.4] });
+      k.pink.add(G.cyl(0.2, 0.2, 0.1, 30), '#ffffff', { x: 0.7, y: 0.07, z: -0.3, uv: [1.2, 0.4] });
       k.v.add(G.cyl(0.04, 0.04, 1.3, 6), PALETTE.wood, { x: 1.15, y: 0.65, z: -0.6 });
       for (let i = 0; i < 6; i++) k.v.add(new THREE.ConeGeometry(0.65, 0.3, 3, 1, true, (i / 6) * Math.PI * 2, Math.PI / 3), i % 2 ? '#ffb3cf' : '#ffffff', { x: 1.15, y: 1.4, z: -0.6 });
       g.add(contactShadow(2.4, 1.8, 'rect', 0.16));
@@ -585,26 +724,26 @@ export function createProp(p: Prop): THREE.Group | null {
       // Oolie's pressed-flower easel: a wooden A-frame holding a framed pressed bloom
       for (const sx of [-1, 1]) k.v.add(G.cyl(0.03, 0.03, 1.2, 6), PALETTE.wood, { x: sx * 0.3, y: 0.6, z: 0.0, rz: -sx * 0.18 });
       k.v.add(G.cyl(0.03, 0.03, 1.1, 6), PALETTE.wood, { y: 0.55, z: -0.32, rx: 0.3 });
-      k.v.add(G.box(0.62, 0.62, 0.05), '#fff4e6', { y: 0.82, z: 0.04 });
-      k.v.add(G.box(0.7, 0.07, 0.07), '#e6d4ff', { y: 1.17, z: 0.05 }).add(G.box(0.7, 0.07, 0.07), '#e6d4ff', { y: 0.47, z: 0.05 });
-      k.v.add(G.box(0.07, 0.7, 0.07), '#e6d4ff', { x: -0.35, y: 0.82, z: 0.05 }).add(G.box(0.07, 0.7, 0.07), '#e6d4ff', { x: 0.35, y: 0.82, z: 0.05 });
-      for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; k.v.add(G.ball(0.09, 8), i % 2 ? '#ff9ec0' : '#ffc9dc', { x: Math.cos(a) * 0.12, y: 0.86 + Math.sin(a) * 0.12, z: 0.08, s: [1, 1, 0.3] }); }
-      k.v.add(G.ball(0.06, 8), '#fff3a8', { y: 0.86, z: 0.1, s: [1, 1, 0.4] });
+      k.v.add(G.rbox(0.62, 0.62, 0.05), '#fff4e6', { y: 0.82, z: 0.04 });
+      k.v.add(G.rbox(0.7, 0.07, 0.07), '#e6d4ff', { y: 1.17, z: 0.05 }).add(G.rbox(0.7, 0.07, 0.07), '#e6d4ff', { y: 0.47, z: 0.05 });
+      k.v.add(G.rbox(0.07, 0.7, 0.07), '#e6d4ff', { x: -0.35, y: 0.82, z: 0.05 }).add(G.rbox(0.07, 0.7, 0.07), '#e6d4ff', { x: 0.35, y: 0.82, z: 0.05 });
+      for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; k.v.add(G.ball(0.09, 16), i % 2 ? '#ff9ec0' : '#ffc9dc', { x: Math.cos(a) * 0.12, y: 0.86 + Math.sin(a) * 0.12, z: 0.08, s: [1, 1, 0.3] }); }
+      k.v.add(G.ball(0.06, 16), '#fff3a8', { y: 0.86, z: 0.1, s: [1, 1, 0.4] });
       k.v.add(G.cyl(0.01, 0.01, 0.35, 5), '#7fcf8e', { y: 0.62, z: 0.08 });
       g.add(contactShadow(1.0, 1.0));
       break;
     }
     case 'cakestand': {
       // Tuppi's cake stand: two pink tiers with swirls of frosting and a cherry
-      k.v.add(G.cyl(0.38, 0.42, 0.06, 18), '#ffffff', { y: 0.03 });
-      k.v.add(G.cyl(0.05, 0.05, 0.5, 8), '#ffffff', { y: 0.31 });
-      k.v.add(G.cyl(0.4, 0.4, 0.05, 18), '#ffffff', { y: 0.58 });
-      k.v.add(G.cyl(0.32, 0.32, 0.22, 18), '#ffc9dc', { y: 0.72 });
-      k.v.add(G.cyl(0.33, 0.33, 0.04, 18), '#ffffff', { y: 0.84 });
-      k.v.add(G.cyl(0.22, 0.22, 0.2, 18), '#ffb3cf', { y: 0.96 });
-      k.v.add(G.ball(0.16, 12), '#ffffff', { y: 1.1, s: [1, 0.7, 1] });
-      k.v.add(G.ball(0.07, 8), '#ff4f7e', { y: 1.2 });
-      for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; k.v.add(G.ball(0.045, 6), '#ffffff', { x: Math.cos(a) * 0.3, y: 0.83, z: Math.sin(a) * 0.3 }); }
+      k.v.add(G.cyl(0.38, 0.42, 0.06, 28), '#ffffff', { y: 0.03 });
+      k.v.add(G.cyl(0.05, 0.05, 0.5, 12), '#ffffff', { y: 0.31 });
+      k.v.add(G.cyl(0.4, 0.4, 0.05, 28), '#ffffff', { y: 0.58 });
+      k.v.add(G.cyl(0.32, 0.32, 0.22, 28), '#ffc9dc', { y: 0.72 });
+      k.v.add(G.cyl(0.33, 0.33, 0.04, 28), '#ffffff', { y: 0.84 });
+      k.v.add(G.cyl(0.22, 0.22, 0.2, 28), '#ffb3cf', { y: 0.96 });
+      k.v.add(G.ball(0.16, 16), '#ffffff', { y: 1.1, s: [1, 0.7, 1] });
+      k.v.add(G.ball(0.07, 16), '#ff4f7e', { y: 1.2 });
+      for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; k.v.add(G.ball(0.045, 14), '#ffffff', { x: Math.cos(a) * 0.3, y: 0.83, z: Math.sin(a) * 0.3 }); }
       g.add(contactShadow(1.0, 1.0));
       break;
     }

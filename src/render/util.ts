@@ -1,6 +1,7 @@
 // Small shared helpers for the Three.js layer.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { markOwned, registerUnlit, toon, vertexToon, type GlowKind } from './materials';
 
 /** Cached soft-toon material from the shared palette/ramp (materials.ts). Emissive colors fade in at night. */
@@ -126,6 +127,9 @@ export const G = {
   ball: (r: number, seg = 12) => new THREE.SphereGeometry(r, seg, Math.max(6, seg - 4)),
   cone: (r: number, h: number, seg = 10) => new THREE.ConeGeometry(r, h, seg),
   torus: (r: number, tube: number, seg = 18, arc = Math.PI * 2) => new THREE.TorusGeometry(r, tube, 8, seg, arc),
-  capsule: (r: number, len: number) => new THREE.CapsuleGeometry(r, len, 4, 10),
+  capsule: (r: number, len: number, capSeg = 4, radial = 10) => new THREE.CapsuleGeometry(r, len, capSeg, radial),
+  /** Box with softly rounded edges and corners (the toy-block look). r is clamped so thin boxes stay valid.
+   *  segments 2 keeps it cheap (~ 3x a plain box): use it for buildings, counters and furniture, not instanced scenery. */
+  rbox: (w: number, h: number, d: number, r = 0.06, segments = 2) => new RoundedBoxGeometry(w, h, d, segments, Math.max(0.002, Math.min(r, w / 2 - 0.001, h / 2 - 0.001, d / 2 - 0.001))),
   lathe: (pts: [number, number][], seg = 18) => new THREE.LatheGeometry(pts.map((p) => new THREE.Vector2(p[0], p[1])), seg),
 };

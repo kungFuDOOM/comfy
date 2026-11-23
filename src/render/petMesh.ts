@@ -24,11 +24,12 @@ export interface PetMesh extends ActorMesh {
 }
 
 const EYE = '#4f2b40', BLUSH = '#ff9dbd', NOSE = '#ff8fb6';
-const sphere = new THREE.SphereGeometry(1, 18, 14);
-const cone = new THREE.ConeGeometry(1, 1, 10);
-const capsule = new THREE.CapsuleGeometry(1, 1, 4, 10);
-const torus = new THREE.TorusGeometry(1, 0.22, 8, 22);
-const halfSphere = new THREE.SphereGeometry(1, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2);
+// shared by every part (one pet on screen), so smoother segment counts cost almost nothing
+const sphere = new THREE.SphereGeometry(1, 26, 20);
+const cone = new THREE.ConeGeometry(1, 1, 18);
+const capsule = new THREE.CapsuleGeometry(1, 1, 6, 16);
+const torus = new THREE.TorusGeometry(1, 0.22, 12, 28);
+const halfSphere = new THREE.SphereGeometry(1, 26, 12, 0, Math.PI * 2, 0, Math.PI / 2);
 
 function part(geo: THREE.BufferGeometry, color: string, s: [number, number, number], p: [number, number, number] = [0, 0, 0], parent?: THREE.Object3D): THREE.Mesh {
   const m = new THREE.Mesh(geo, toon(color));
@@ -76,8 +77,9 @@ function baseRig(c: Coat): Rig {
   part(sphere, NOSE, [0.03, 0.022, 0.022], [0, 0.03, 0.2], head);
   const eyes = pivot(head, 0, 0.09, 0.18);
   for (const sx of [-1, 1]) {
-    part(sphere, EYE, [0.034, 0.045, 0.02], [sx * 0.085, 0, 0], eyes);
-    part(sphere, '#ffffff', [0.012, 0.014, 0.01], [sx * 0.085 + 0.008, 0.015, 0.015], eyes);
+    part(sphere, EYE, [0.037, 0.048, 0.02], [sx * 0.085, 0, 0], eyes);
+    part(sphere, '#ffffff', [0.013, 0.015, 0.01], [sx * 0.085 - 0.01, 0.017, 0.015], eyes);
+    part(sphere, '#ffffff', [0.006, 0.006, 0.006], [sx * 0.085 + 0.012, -0.016, 0.016], eyes);
   }
   const tail = pivot(body, 0, 0.04, -0.3);
   const headTop = pivot(head, 0, 0.24, -0.01);

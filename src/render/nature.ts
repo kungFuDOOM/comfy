@@ -7,7 +7,7 @@ import { tileHeight } from './terrain';
 
 export interface Nature { group: THREE.Group; setSeason(s: Season): void; update(t: number, cx?: number, cz?: number): void }
 
-const PUFFS = 9;       // crown puffs per tree
+const PUFFS = 10;      // crown puffs per tree (perf: 9 -> 10, the extra one rounds out the underside of the crown)
 const SPECKS = 12;     // little blossoms dotted over the crown
 const PETALS = 3;      // drifting petals per tree
 
@@ -19,10 +19,17 @@ type Tone = 'main' | 'alt' | 'light' | 'white';
 export function createNature(): Nature {
   const group = new THREE.Group();
   const n = trees.length;
-  const trunkGeo = new THREE.CylinderGeometry(0.075, 0.16, 1, 8).translate(0, 0.5, 0);
+  // soft trunk: a lathe with a little root flare at the foot and a rounded taper (10 sides, about what the cylinder cost)
+  const trunkGeo = new THREE.LatheGeometry([[0.001, 0], [0.22, 0], [0.18, 0.05], [0.14, 0.16], [0.115, 0.45], [0.09, 0.8], [0.075, 1]].map(([x, y]) => new THREE.Vector2(x, y)), 10);
   const trunk = new THREE.InstancedMesh(trunkGeo, toon(PALETTE.wood), n * 2); // trunk + one leaning branch
-  const puff = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 12, 8), makeToon('#ffffff'), n * PUFFS); // ~180 tris per puff (was 320): a big island has hundreds of trees
-  const speck = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), makeToon('#ffffff', { flatShading: true }), n * SPECKS);
+  // Perf: 12x8 puffs = 168 tris (the original 320 was cut for phones). Puffs don't cast shadows (only trunks do),
+  // so the crowns cost nothing in the shadow map; still one instanced draw for every tree on the island.
+  const puff = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 12, 8), makeToon('#ffffff'), n * PUFFS);
+  // blossom specks: the same 20-tri icosahedron, but with smooth (radial) normals so they read as round buds, not facets
+  const speckGeo = new THREE.IcosahedronGeometry(1, 0);
+  { const pos = speckGeo.attributes.position, nr = speckGeo.attributes.normal, v = new THREE.Vector3();
+    for (let i = 0; i < pos.count; i++) { v.fromBufferAttribute(pos, i).normalize(); nr.setXYZ(i, v.x, v.y, v.z); } }
+  const speck = new THREE.InstancedMesh(speckGeo, makeToon('#ffffff'), n * SPECKS);
   const petalGeo = new THREE.CircleGeometry(0.055, 5).scale(1, 0.62, 1);
   const petalMat = makeToon('#ffffff', { ground: true });
   petalMat.side = THREE.DoubleSide;
@@ -31,7 +38,8 @@ export function createNature(): Nature {
   // soft contact patch under every tree so the fluffy crowns sit on the ground
   const patch = new THREE.InstancedMesh(contactGeometry, contactMaterial('round', 0.22), n);
   patch.renderOrder = 1;
-  trunk.castShadow = trunk.receiveShadow = puff.castShadow = puff.receiveShadow = true;
+  trunk.castShadow = trunk.receiveShadow = puff.receiveShadow = true;
+  puff.castShadow = false;
 
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3(1, 1, 1);
   const e = new THREE.Euler(), q0 = new THREE.Quaternion();
@@ -69,6 +77,8 @@ export function createNature(): Nature {
     }
     place(7, 0.12, 0.5, -0.08, 0.4, 'light');
     place(8, -0.22, 0.42, 0.12, 0.3, 'white');
+    // a low, wide puff under the front of the ring so the crown reads as one round cloud from the high camera
+    place(9, (h01(seed + 50) - 0.5) * 0.2, -0.26, 0.16, 0.44, 'alt');
 
     // blossom specks scattered on the upper/front crown surface
     for (let j = 0; j < SPECKS; j++) {
@@ -82,7 +92,7 @@ export function createNature(): Nature {
   });
   group.add(trunk, puff, speck, petal, patch);
 
-  const fl = new THREE.InstancedMesh(new THREE.SphereGeometry(0.07, 6, 5), makeToon('#ffffff'), flowers.length);
+  const fl = new THREE.InstancedMesh(new THREE.SphereGeometry(0.07, 8, 6), makeToon('#ffffff'), flowers.length);
   fl.receiveShadow = true;
   const col = new THREE.Color();
   flowers.forEach((f, i) => {

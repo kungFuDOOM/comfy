@@ -3,9 +3,27 @@
 import * as THREE from 'three';
 import { NODES, type NodeDef } from '../data';
 import { isReady } from '../nodes';
-import { contactShadow, PALETTE } from './materials';
+import { contactShadow, PALETTE, vertexToon } from './materials';
 import { tileHeight } from './terrain';
-import { ball, cyl, mat } from './util';
+import { ball, Batch, cyl, G, mat } from './util';
+
+/** Merged, cached bush geometry (one draw per group instead of a mesh per puff). Shared by every node of the same look. */
+const geoCache = new Map<string, THREE.BufferGeometry>();
+function merged(key: string, fill: (b: Batch) => void, ...groups: THREE.Group[]) {
+  let geo = geoCache.get(key);
+  if (!geo) { const b = new Batch(); fill(b); geo = b.geometry(); geoCache.set(key, geo); }
+  for (const g of groups) { const m = new THREE.Mesh(geo, vertexToon()); m.castShadow = m.receiveShadow = true; g.add(m); }
+}
+/** A round, layered shrub: a core puff, a ring of side puffs, a top puff and a few pale highlight puffs. */
+function shrub(b: Batch, cy: number, r: number, dark: string, light: string) {
+  b.add(G.ball(r, 16), dark, { y: cy, s: [1, 0.9, 1] });
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2 + 0.3, rr = r * (0.62 + (i % 3) * 0.06);
+    b.add(G.ball(rr, 14), i % 2 ? light : dark, { x: Math.cos(a) * r * 0.72, y: cy - r * 0.25 + (i % 2) * r * 0.12, z: Math.sin(a) * r * 0.72, s: [1, 0.88, 1] });
+  }
+  b.add(G.ball(r * 0.62, 14), light, { x: r * 0.1, y: cy + r * 0.62, z: -r * 0.05, s: [1, 0.85, 1] });
+  for (const [x, y, z] of [[-0.35, 0.45, 0.55], [0.4, 0.3, 0.5], [0.05, 0.85, 0.3]]) b.add(G.ball(r * 0.3, 10), '#c8f2cf', { x: x * r, y: cy + y * r, z: z * r });
+}
 
 interface Rec { n: NodeDef; root: THREE.Group; full: THREE.Group; bare: THREE.Group; fx: THREE.Object3D; ready: boolean | null; phase: number }
 
@@ -21,14 +39,21 @@ function build(n: NodeDef): Rec {
   let fx: THREE.Object3D = new THREE.Group();
   switch (n.kind) {
     case 'berry': {
-      const leaf = '#7fcf8e';
-      for (const g of [full, bare]) { g.add(ball(0.42, leaf, 0, 0.36, 0, 10)); g.add(ball(0.3, '#8fe0a0', 0.28, 0.28, 0.1, 8)); g.add(ball(0.28, '#8fe0a0', -0.26, 0.26, -0.1, 8)); }
-      for (const [x, y, z] of [[0.15, 0.62, 0.32], [-0.2, 0.5, 0.34], [0.36, 0.42, 0.18], [0, 0.78, 0.1], [-0.38, 0.4, -0.05]]) full.add(ball(0.08, BERRY[hi], x, y, z, 6));
+      merged('berry-bush', (b) => shrub(b, 0.36, 0.4, '#7fcf8e', '#8fe0a0'), full, bare);
+      merged('berry-fruit-' + hi, (b) => {
+        for (const [x, y, z] of [[0.15, 0.66, 0.36], [-0.2, 0.52, 0.4], [0.4, 0.42, 0.24], [0, 0.82, 0.14], [-0.42, 0.38, 0.02], [0.24, 0.3, 0.42], [-0.08, 0.32, 0.46]]) {
+          b.add(G.ball(0.075, 12), BERRY[hi], { x, y, z });
+          b.add(G.ball(0.02, 6), '#ffffff', { x: x - 0.025, y: y + 0.035, z: z + 0.055 }); // a glossy glint
+        }
+      }, full);
       root.add(contactShadow(1.1));
       break;
     }
     case 'flower': {
-      for (const g of [full, bare]) { const m = ball(0.34, '#8fe0a0', 0, 0.1, 0, 8); m.scale.set(1.4, 0.35, 1.4); g.add(m); }
+      merged('flower-mound', (b) => {
+        b.add(G.ball(0.34, 18), '#8fe0a0', { y: 0.1, s: [1.4, 0.35, 1.4] });
+        for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; b.add(G.ball(0.12, 10), i % 2 ? '#7fcf8e' : '#a6e8b2', { x: Math.cos(a) * 0.36, y: 0.08, z: Math.sin(a) * 0.36, s: [1.2, 0.6, 1] }); }
+      }, full, bare);
       for (const [x, z, h2] of [[0, 0, 0.42], [0.22, 0.14, 0.32], [-0.2, 0.1, 0.36], [0.05, -0.22, 0.3], [-0.12, -0.18, 0.38]] as number[][]) {
         full.add(cyl(0.015, 0.02, h2, '#7fcf8e', x, h2 / 2 + 0.1, z, 5));
         full.add(ball(0.1, PETAL[hi], x, h2 + 0.14, z, 7));
@@ -45,8 +70,13 @@ function build(n: NodeDef): Rec {
       break;
     }
     case 'coffee': {
-      for (const g of [full, bare]) { g.add(cyl(0.05, 0.07, 0.4, '#8a6a52', 0, 0.2, 0, 6)); g.add(ball(0.36, '#5fae78', 0, 0.62, 0, 9)); g.add(ball(0.24, '#6fc088', 0.24, 0.5, 0.06, 7)); }
-      for (const [x, y, z] of [[0.1, 0.75, 0.3], [-0.24, 0.6, 0.22], [0.3, 0.55, 0.2], [0, 0.88, -0.1]]) full.add(ball(0.065, BEAN[hi], x, y, z, 6));
+      merged('coffee-shrub', (b) => {
+        b.add(G.cyl(0.05, 0.08, 0.4, 10), '#8a6a52', { y: 0.2 });
+        shrub(b, 0.66, 0.34, '#5fae78', '#6fc088');
+      }, full, bare);
+      merged('coffee-bean-' + hi, (b) => {
+        for (const [x, y, z] of [[0.1, 0.8, 0.32], [-0.24, 0.62, 0.3], [0.32, 0.56, 0.24], [0, 0.94, -0.06], [-0.1, 0.48, 0.36]]) b.add(G.ball(0.06, 10), BEAN[hi], { x, y, z, s: [1, 1.2, 0.9] });
+      }, full);
       root.add(contactShadow(1.0));
       break;
     }

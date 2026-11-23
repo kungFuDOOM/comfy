@@ -104,7 +104,7 @@ const ring = (r: number, h: number, rb = r, seg = 20) => new THREE.CylinderGeome
 type HatFn = (p: Piece, c: ClothDef, d: (k: string) => boolean) => void;
 const bowParts = (p: Piece, k = 1, tails = false) => {
   for (const sx of [-1, 1]) {
-    p.f(G.ball(0.12, 10), { x: sx * 0.11 * k, s: [1.05 * k, 0.8 * k, 0.5 * k], rz: sx * 0.25, uv: [0.6, 0.4] });
+    p.f(G.ball(0.12, 16), { x: sx * 0.11 * k, s: [1.05 * k, 0.8 * k, 0.5 * k], rz: sx * 0.25, uv: [0.6, 0.4] });
     if (tails) p.f(G.capsule(0.022 * k, 0.16 * k), { x: sx * 0.07 * k, y: -0.14 * k, rz: sx * 0.35 });
   }
   p.t(G.ball(0.055, 8), { s: k });
@@ -340,7 +340,7 @@ const SHOES: Record<string, (p: Piece, c: ClothDef, d: (k: string) => boolean) =
   slipper(p, _c, d) { foot(p, 1.12); if (d('ears')) for (const sx of [-1, 1]) p.f(G.capsule(0.025, 0.1), { x: sx * 0.04, y: -0.1, z: 0.0, rz: sx * 0.2, s: [1, 1, 0.6] }); if (d('eyes')) for (const sx of [-1, 1]) { p.t(G.ball(0.04, 8), { x: sx * 0.05, y: -0.15, z: 0.1 }, '#ffffff'); p.t(G.ball(0.02, 6), { x: sx * 0.05, y: -0.15, z: 0.13 }, '#4f2b40'); } },
   sandal(p) { p.t(G.ball(0.1, 10), { y: -0.235, z: 0.03, s: [1.05, 0.2, 1.3] }); p.f(G.ball(0.08, 10), { y: -0.2, z: 0.05, s: [1, 0.55, 1.1] }, ); p.t(G.torus(0.065, 0.012, 12, Math.PI), { y: -0.2, z: 0.06, rx: 0.3 }); },
 };
-function foot(p: Piece, k = 1, lift = 0) { p.f(G.ball(0.105, 12), { y: -0.2 + lift, z: 0.03, s: [1.05 * k, 0.72 * k, 1.25 * k] }); }
+function foot(p: Piece, k = 1, lift = 0) { p.f(G.ball(0.105, 20), { y: -0.2 + lift, z: 0.03, s: [1.05 * k, 0.72 * k, 1.25 * k] }); }
 
 // ---------- bags ----------
 const BAGS: Record<string, { mount: 'hand' | 'body'; build: (p: Piece, c: ClothDef, d: (k: string) => boolean) => void }> = {

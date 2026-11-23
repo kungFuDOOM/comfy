@@ -1,5 +1,8 @@
-// Player + villagers: chunky original toy characters. Big round head, small flared outfit, stubby limbs,
-// blush cheeks, shiny eyes, and cheetah print somewhere on everyone.
+// Player + villagers: soft original toy characters. Big round head, small flared outfit, stubby limbs,
+// see-through blush cheeks, big glossy eyes with unlit catchlights, and cheetah print somewhere on everyone.
+// Perf: there are only ~10 actors on screen, so heads use 40-segment spheres and limbs 18-segment capsules
+// (a few thousand triangles per character). The rig numbers below (HEAD_Y, head radii, pivots) are what
+// clothes3d.ts / playerActs.ts attach to, so the shapes got smoother without moving any of them.
 // The rest of the game only uses the ActorMesh interface below.
 import * as THREE from 'three';
 import type { Facing } from '../art/characters';
@@ -52,9 +55,15 @@ function on(yaw: number, pitch: number, out = 1): [number, number, number] {
 }
 const at = (v: [number, number, number]) => ({ x: v[0], y: v[1], z: v[2] });
 
-/** Flared bell outfit profile, relative to the hip. */
-const DRESS: [number, number][] = [[0.001, 0], [0.3, 0], [0.35, 0.04], [0.345, 0.11], [0.29, 0.25], [0.2, 0.42], [0.14, 0.52], [0.001, 0.56]];
-const BAND: [number, number][] = [[0.3, -0.012], [0.365, 0.035], [0.36, 0.115], [0.325, 0.19], [0.3, 0.2]];
+/** Flared bell outfit profile, relative to the hip: a rolled, rounded hem and a soft shoulder (same size as before). */
+const DRESS: [number, number][] = [[0.001, 0], [0.29, 0], [0.33, 0.01], [0.348, 0.035], [0.352, 0.075], [0.342, 0.13], [0.315, 0.2], [0.27, 0.29], [0.222, 0.375], [0.18, 0.448], [0.142, 0.505], [0.1, 0.54], [0.05, 0.556], [0.001, 0.56]];
+const BAND: [number, number][] = [[0.3, -0.012], [0.338, -0.004], [0.36, 0.022], [0.368, 0.06], [0.364, 0.11], [0.348, 0.158], [0.322, 0.19], [0.3, 0.2]];
+/** Smooth capsule for limbs and ears (more cap rings + sides than G.capsule's default). */
+const softCap = (r: number, len: number) => G.capsule(r, len, 8, 18);
+/** Small "w" mouth: two soft arcs side by side. (x, y, z) is its centre. */
+function wMouth(b: Batch, x: number, y: number, z: number, k = 1, color = '#c0577d', rx = 0.3) {
+  for (const sx of [-1, 1]) b.add(G.torus(0.022 * k, 0.0075 * k, 12, Math.PI), color, { x: x + sx * 0.021 * k, y, z, rz: Math.PI, rx });
+}
 let dressGeo: THREE.BufferGeometry | null = null, bandGeo: THREE.BufferGeometry | null = null, sleeveGeo: THREE.BufferGeometry | null = null, forearmGeo: THREE.BufferGeometry | null = null, legGeo: THREE.BufferGeometry | null = null;
 const scaleUv = (g: THREE.BufferGeometry, su: number, sv: number) => {
   const uv = g.attributes.uv;
@@ -75,21 +84,23 @@ function setFill(m: THREE.MeshToonMaterial, f: Fill) {
 
 function buildHead(kind: Kind, skin: string, accent: string): THREE.Mesh {
   const b = new Batch();
-  b.add(G.ball(1, 26), skin, { s: [HA, HB, HC] });
-  // rosy cheeks (the player gets soft see-through blush discs instead, in buildPlayerHead)
-  if (kind !== 'player') for (const sx of [-1, 1]) b.add(G.ball(0.075, 10), BLUSH, { ...at(on(sx * 40, -14, 0.985)), ry: sx * 40 * DEG, s: [1, 0.62, 0.3] });
+  b.add(G.ball(1, 40), skin, { s: [HA, HB, HC] });
+  // rosy cheeks are soft see-through discs (buildBlush), shared with the player's look
   const earInner = '#ffb3cf';
   switch (kind) {
     case 'player':
       break; // built by buildPlayerHead()
     case 'dormouse':
       for (const sx of [-1, 1]) {
-        b.add(G.ball(0.2), skin, { x: sx * 0.36, y: 0.24, z: -0.02, s: [1, 1, 0.55] });
-        b.add(G.ball(0.13, 10), earInner, { x: sx * 0.36, y: 0.235, z: 0.06, s: [1, 1, 0.35] });
+        // big round mouse ears with a soft rim and a pink inner pad
+        b.add(G.ball(0.21, 22), skin, { x: sx * 0.36, y: 0.25, z: -0.02, s: [1, 1, 0.5] });
+        b.add(G.torus(0.15, 0.022, 22), '#fff4f7', { x: sx * 0.36, y: 0.245, z: 0.07 });
+        b.add(G.ball(0.14, 18), earInner, { x: sx * 0.36, y: 0.245, z: 0.06, s: [1, 1, 0.3] });
       }
-      b.add(G.ball(0.08), '#ffffff', { ...at(on(0, 66, 1.03)) });
-      b.add(G.ball(0.055), '#ffffff', { ...at(on(14, 56, 1.05)) });
-      b.add(G.ball(0.04, 8), PALETTE.rose, { ...at(on(0, -6, 1.0)) });
+      b.add(G.ball(0.08, 14), '#ffffff', { ...at(on(0, 66, 1.03)) });
+      b.add(G.ball(0.055, 12), '#ffffff', { ...at(on(14, 56, 1.05)) });
+      b.add(G.ball(0.04, 12), PALETTE.rose, { ...at(on(0, -6, 1.0)), s: [1.25, 0.9, 0.9] });
+      { const m = on(0, -20, 1.0); wMouth(b, m[0], m[1], m[2], 0.9); }
       break;
     case 'hamster': {
       // Dottie Spotwhisk: a round cheetah-spotted hamster. Rosettes are a dark ring with a cream center.
@@ -99,13 +110,13 @@ function buildHead(kind: Kind, skin: string, accent: string): THREE.Mesh {
         b.add(G.ball(0.024, 6), '#ffe7bf', { x: x + dir[0] * c, y: y + dir[1] * c, z: z + dir[2] * c, dir, s: [k * 0.42, 0.22, k * 0.36] });
       };
       for (const sx of [-1, 1]) {
-        b.add(G.ball(0.24, 16), skin, { x: sx * 0.32, y: -0.1, z: 0.08, s: [1.05, 0.92, 0.95] });
+        b.add(G.ball(0.24, 26), skin, { x: sx * 0.32, y: -0.1, z: 0.08, s: [1.05, 0.92, 0.95] });
         rosette(sx * 0.42, -0.06, 0.22, [sx, 0.1, 0.8], 1);
         rosette(sx * 0.48, -0.16, 0.12, [sx, -0.3, 0.5], 0.75);
       }
       for (const sx of [-1, 1]) {
-        b.add(G.ball(0.15, 14), skin, { x: sx * 0.32, y: 0.34, z: -0.02, s: [1.05, 0.95, 0.55] });
-        b.add(G.ball(0.09, 10), '#ffb7d2', { x: sx * 0.32, y: 0.33, z: 0.04, s: [0.85, 0.78, 0.35] });
+        b.add(G.ball(0.15, 20), skin, { x: sx * 0.32, y: 0.34, z: -0.02, s: [1.05, 0.95, 0.55] });
+        b.add(G.ball(0.09, 16), '#ffb7d2', { x: sx * 0.32, y: 0.33, z: 0.04, s: [0.85, 0.78, 0.35] });
       }
       const spots: [number, number, number][] = [[-16, 58, 1], [20, 60, 0.9], [-46, 48, 0.85], [52, 44, 0.8], [0, 74, 1.05], [-100, 40, 0.7], [108, 42, 0.75], [170, 55, 0.95], [12, 34, 0.6]];
       for (const [yw, pt, k] of spots) {
@@ -113,8 +124,8 @@ function buildHead(kind: Kind, skin: string, accent: string): THREE.Mesh {
         rosette(p[0], p[1], p[2], on(yw, pt), k);
       }
       for (const sx of [-1, 1]) b.add(G.ball(0.03, 6), accent, { ...at(on(sx * 20, -8, 1.02)), s: [0.5, 2.8, 0.45] });
-      b.add(G.ball(0.12, 12), '#fff7ea', { ...at(on(0, -18, 0.92)), s: [1.2, 0.78, 0.75] });
-      b.add(G.ball(0.038, 8), '#ff8fb0', { ...at(on(0, -12, 1.05)), s: [1.35, 0.9, 0.75] });
+      b.add(G.ball(0.12, 18), '#fff7ea', { ...at(on(0, -18, 0.92)), s: [1.2, 0.78, 0.75] });
+      b.add(G.ball(0.038, 12), '#ff8fb0', { ...at(on(0, -12, 1.05)), s: [1.35, 0.9, 0.75] });
       for (const sx of [-1, 1]) {
         const tooth = on(sx * 4, -24, 1.02);
         b.add(G.ball(0.016, 6), '#ffffff', { x: tooth[0], y: tooth[1], z: tooth[2], s: [0.85, 1.35, 0.55] });
@@ -135,18 +146,23 @@ function buildHead(kind: Kind, skin: string, accent: string): THREE.Mesh {
       break;
     }
     case 'hedgehog': {
-      for (const sx of [-1, 1]) b.add(G.ball(0.085, 10), skin, { x: sx * 0.33, y: 0.2, z: 0.08, s: [1, 1, 0.6] });
-      // marshmallow quills over the top and back
+      for (const sx of [-1, 1]) {
+        b.add(G.ball(0.085, 16), skin, { x: sx * 0.33, y: 0.2, z: 0.08, s: [1, 1, 0.6] });
+        b.add(G.ball(0.05, 12), '#ffc4d6', { x: sx * 0.33, y: 0.2, z: 0.12, s: [1, 1, 0.35] });
+      }
+      // marshmallow quills over the top and back: soft rounded teardrops, not spikes
       for (let ring = 0; ring < 4; ring++) {
         const pitch = 78 - ring * 22, n = ring === 0 ? 4 : 6 + ring * 2;
         for (let i = 0; i < n; i++) {
           const yaw = ring === 0 ? i * 90 + 45 : 62 + (i / (n - 1)) * 236; // skip the face
           const d = on(yaw, pitch);
-          b.add(G.cone(0.085, 0.24, 7), i % 2 ? '#ffd3e2' : '#f7b8cc', { ...at(on(yaw, pitch, 1.08)), dir: [d[0] / HA, d[1] / HB + 0.25, d[2] / HC] });
+          b.add(G.ball(0.075, 12), i % 2 ? '#ffd3e2' : '#f7b8cc', { ...at(on(yaw, pitch, 1.06)), dir: [d[0] / HA, d[1] / HB + 0.25, d[2] / HC], s: [1, 1.75, 1] });
         }
       }
-      b.add(G.ball(0.1, 10), '#fff7f0', { ...at(on(0, -12, 0.98)), s: [1, 0.8, 0.9] }); // snout
-      b.add(G.ball(0.04, 8), EYE, { ...at(on(0, -9, 1.2)) });
+      b.add(G.ball(0.1, 18), '#fff7f0', { ...at(on(0, -12, 0.98)), s: [1, 0.8, 0.9] }); // snout
+      b.add(G.ball(0.04, 12), EYE, { ...at(on(0, -9, 1.2)), s: [1.2, 0.9, 0.9] });
+      b.add(G.ball(0.012, 6), '#ffffff', { ...at(on(-3, -6, 1.25)) }); // a glint on the button nose
+      wMouth(b, 0, -0.125, 0.47, 0.65);
       break;
     }
     case 'bunny': {
@@ -157,16 +173,16 @@ function buildHead(kind: Kind, skin: string, accent: string): THREE.Mesh {
         const earX = sx * (floppy ? 0.28 : 0.16);
         const earY = floppy ? 0.42 : 0.78;
         const tilt = -sx * (floppy ? 1.05 : 0.12);
-        b.add(G.capsule(0.075, floppy ? 0.34 : 0.42), skin, { x: earX, y: earY, z: floppy ? 0.02 : -0.02, rz: tilt, s: [1, 1, 0.72] });
-        b.add(G.capsule(0.042, floppy ? 0.26 : 0.32), fogInner, { x: earX + sx * 0.01, y: earY, z: floppy ? 0.05 : 0.02, rz: tilt, s: [0.85, 1, 0.4] });
-        b.add(G.ball(0.1, 10), fog, { x: sx * 0.18, y: 0.36, z: 0.02, s: [1, 0.8, 0.8] });
+        b.add(softCap(0.075, floppy ? 0.34 : 0.42), skin, { x: earX, y: earY, z: floppy ? 0.02 : -0.02, rz: tilt, s: [1, 1, 0.72] });
+        b.add(softCap(0.042, floppy ? 0.26 : 0.32), fogInner, { x: earX + sx * 0.01, y: earY, z: floppy ? 0.05 : 0.02, rz: tilt, s: [0.85, 1, 0.4] });
+        b.add(G.ball(0.1, 14), fog, { x: sx * 0.18, y: 0.36, z: 0.02, s: [1, 0.8, 0.8] });
       }
-      b.add(G.ball(0.14), fog, { ...at(on(0, 62, 1.02)), s: [1.35, 0.7, 0.9] });
-      b.add(G.ball(0.1), fogDeep, { ...at(on(-28, 54, 1.04)) });
-      b.add(G.ball(0.09), fog, { ...at(on(30, 52, 1.04)) });
-      for (const sx of [-1, 1]) b.add(G.ball(0.12), fog, { ...at(on(sx * 70, -8, 1.0)), s: [0.9, 0.85, 0.85] });
-      b.add(G.ball(0.11, 10), fog, { ...at(on(0, -16, 0.94)), s: [1.15, 0.72, 0.7] });
-      b.add(G.ball(0.032, 8), '#f59ac0', { ...at(on(0, -10, 1.05)), s: [1.3, 0.85, 0.75] });
+      b.add(G.ball(0.14, 18), fog, { ...at(on(0, 62, 1.02)), s: [1.35, 0.7, 0.9] });
+      b.add(G.ball(0.1, 16), fogDeep, { ...at(on(-28, 54, 1.04)) });
+      b.add(G.ball(0.09, 16), fog, { ...at(on(30, 52, 1.04)) });
+      for (const sx of [-1, 1]) b.add(G.ball(0.12, 16), fog, { ...at(on(sx * 70, -8, 1.0)), s: [0.9, 0.85, 0.85] });
+      b.add(G.ball(0.11, 16), fog, { ...at(on(0, -16, 0.94)), s: [1.15, 0.72, 0.7] });
+      b.add(G.ball(0.032, 12), '#f59ac0', { ...at(on(0, -10, 1.05)), s: [1.3, 0.85, 0.75] });
       const smile = on(0, -26, 1.03);
       b.add(G.torus(0.04, 0.009, 8, Math.PI * 0.85), '#e7a0c0', { x: smile[0], y: smile[1], z: smile[2], rz: Math.PI, rx: 0.3 });
       break;
@@ -175,15 +191,16 @@ function buildHead(kind: Kind, skin: string, accent: string): THREE.Mesh {
       // Tansy, the traveling merchant: tall banana ears, a big fluffy topknot, woolly cheeks and a soft cream muzzle.
       const wool = '#ffffff';
       for (const sx of [-1, 1]) {
-        b.add(G.capsule(0.07, 0.3), skin, { x: sx * 0.22, y: 0.5, z: -0.04, rz: -sx * 0.32, s: [1, 1, 0.7] });
-        b.add(G.capsule(0.04, 0.2), earInner, { x: sx * 0.22, y: 0.5, z: 0.0, rz: -sx * 0.32, s: [0.85, 1, 0.4] });
-        b.add(G.ball(0.12, 10), wool, { ...at(on(sx * 66, -12, 0.99)), s: [0.9, 0.9, 0.85] });
-        b.add(G.ball(0.11, 10), wool, { ...at(on(sx * 34, 50, 1.05)) });
+        b.add(softCap(0.07, 0.3), skin, { x: sx * 0.22, y: 0.5, z: -0.04, rz: -sx * 0.32, s: [1, 1, 0.7] });
+        b.add(softCap(0.04, 0.2), earInner, { x: sx * 0.22, y: 0.5, z: 0.0, rz: -sx * 0.32, s: [0.85, 1, 0.4] });
+        b.add(G.ball(0.12, 16), wool, { ...at(on(sx * 66, -12, 0.99)), s: [0.9, 0.9, 0.85] });
+        b.add(G.ball(0.11, 16), wool, { ...at(on(sx * 34, 50, 1.05)) });
+        b.add(G.ball(0.085, 14), '#fbf6ff', { ...at(on(sx * 16, 66, 1.1)) }); // extra curls make the topknot read as a cloud
       }
-      b.add(G.ball(0.2, 14), wool, { ...at(on(0, 58, 1.0)), s: [1.35, 0.9, 1.1] });
-      b.add(G.ball(0.1, 10), '#f6ecfa', { ...at(on(0, 74, 1.12)), s: [1.2, 0.8, 1] });
-      b.add(G.ball(0.12, 12), '#fff7ee', { ...at(on(0, -14, 0.98)), s: [1.25, 0.85, 0.9] });
-      b.add(G.ball(0.034, 8), '#c0577d', { ...at(on(0, -8, 1.06)), s: [1.4, 0.8, 0.8] });
+      b.add(G.ball(0.2, 22), wool, { ...at(on(0, 58, 1.0)), s: [1.35, 0.9, 1.1] });
+      b.add(G.ball(0.1, 16), '#f6ecfa', { ...at(on(0, 74, 1.12)), s: [1.2, 0.8, 1] });
+      b.add(G.ball(0.12, 18), '#fff7ee', { ...at(on(0, -14, 0.98)), s: [1.25, 0.85, 0.9] });
+      b.add(G.ball(0.034, 12), '#c0577d', { ...at(on(0, -8, 1.06)), s: [1.4, 0.8, 0.8] });
       const smile = on(0, -26, 1.05);
       b.add(G.torus(0.045, 0.01, 8, Math.PI * 0.9), '#c0577d', { x: smile[0], y: smile[1], z: smile[2], rz: Math.PI, rx: 0.3 });
       break;
@@ -192,16 +209,17 @@ function buildHead(kind: Kind, skin: string, accent: string): THREE.Mesh {
       // Brioche: a boxy, gentle capybara. Tiny ears set back, a big square snout with two nostrils.
       const snout = '#dcb98c';
       for (const sx of [-1, 1]) {
-        b.add(G.ball(0.1, 10), skin, { x: sx * 0.31, y: 0.3, z: -0.1, s: [1, 1, 0.6] });
-        b.add(G.ball(0.055, 8), '#d99a7d', { x: sx * 0.31, y: 0.3, z: -0.05, s: [1, 1, 0.4] });
+        b.add(G.ball(0.1, 16), skin, { x: sx * 0.31, y: 0.3, z: -0.1, s: [1, 1, 0.6] });
+        b.add(G.ball(0.055, 12), '#d99a7d', { x: sx * 0.31, y: 0.3, z: -0.05, s: [1, 1, 0.4] });
       }
-      b.add(G.ball(0.2, 14), snout, { ...at(on(0, -12, 0.98)), s: [1.55, 0.98, 1.0] });
-      b.add(G.ball(0.07, 10), '#7a4a3a', { ...at(on(0, -2, 1.03)), s: [1.5, 0.8, 0.8] });
-      for (const sx of [-1, 1]) b.add(G.ball(0.014, 6), '#5a3328', { ...at(on(sx * 8, -4, 1.12)) });
+      b.add(G.ball(0.2, 26), snout, { ...at(on(0, -12, 0.98)), s: [1.55, 0.98, 1.0] });
+      b.add(G.ball(0.07, 16), '#7a4a3a', { ...at(on(0, -2, 1.03)), s: [1.5, 0.8, 0.8] });
+      b.add(G.ball(0.018, 8), '#ffffff', { ...at(on(-6, 2, 1.1)) }); // nose glint
+      for (const sx of [-1, 1]) b.add(G.ball(0.014, 8), '#5a3328', { ...at(on(sx * 8, -4, 1.12)) });
       const smile = on(0, -26, 1.07);
       b.add(G.torus(0.05, 0.01, 8, Math.PI * 0.9), '#a0714f', { x: smile[0], y: smile[1], z: smile[2], rz: Math.PI, rx: 0.3 });
       // flat-topped fluff
-      b.add(G.ball(0.15, 10), skin, { ...at(on(0, 68, 1.0)), s: [1.5, 0.5, 1.0] });
+      b.add(G.ball(0.15, 18), skin, { ...at(on(0, 68, 1.0)), s: [1.5, 0.5, 1.0] });
       break;
     }
     case 'moth': {
@@ -209,13 +227,15 @@ function buildHead(kind: Kind, skin: string, accent: string): THREE.Mesh {
       const fuzz = '#ffffff';
       for (const sx of [-1, 1]) {
         const ax = sx * 0.12;
-        b.add(G.capsule(0.018, 0.34), '#c9b8ee', { x: ax + sx * 0.05, y: 0.52, z: 0.0, rz: -sx * 0.5 });
-        b.add(G.ball(0.04, 8), accent, { x: ax + sx * 0.2, y: 0.7, z: 0.0 });
+        b.add(G.capsule(0.018, 0.34, 4, 10), '#c9b8ee', { x: ax + sx * 0.05, y: 0.52, z: 0.0, rz: -sx * 0.5 });
+        b.add(G.ball(0.045, 14), accent, { x: ax + sx * 0.2, y: 0.7, z: 0.0 });
         for (let k = 0; k < 4; k++) b.add(G.capsule(0.009, 0.1), '#d9c9f5', { x: ax + sx * (0.08 + k * 0.034), y: 0.55 + k * 0.045, z: 0.0, rz: -sx * 1.0 });
-        b.add(G.ball(0.1, 10), fuzz, { x: sx * 0.34, y: -0.08, z: 0.08, s: [1, 1.1, 0.8] });
+        b.add(G.ball(0.1, 16), fuzz, { x: sx * 0.34, y: -0.08, z: 0.08, s: [1, 1.1, 0.8] });
+        b.add(G.ball(0.07, 14), fuzz, { x: sx * 0.38, y: 0.04, z: 0.02, s: [1, 1, 0.8] });
       }
-      b.add(G.ball(0.16, 12), fuzz, { ...at(on(0, 58, 1.0)), s: [1.4, 0.62, 0.9] });
-      b.add(G.ball(0.07, 8), '#f59ac0', { ...at(on(0, -12, 1.05)), s: [1.1, 0.8, 0.6] });
+      b.add(G.ball(0.16, 20), fuzz, { ...at(on(0, 58, 1.0)), s: [1.4, 0.62, 0.9] });
+      b.add(G.ball(0.045, 14), '#f59ac0', { ...at(on(0, -10, 1.03)), s: [1.3, 0.85, 0.7] });
+      { const m = on(0, -22, 1.0); wMouth(b, m[0], m[1], m[2], 0.85); }
       // a pressed flower behind the ear
       for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; b.add(G.ball(0.04, 8), '#ffb3cf', { x: -0.36 + Math.cos(a) * 0.05, y: 0.22 + Math.sin(a) * 0.05, z: 0.1, s: [1, 1, 0.5] }); }
       b.add(G.ball(0.03, 6), '#fff3a8', { x: -0.36, y: 0.22, z: 0.12 });
@@ -225,23 +245,25 @@ function buildHead(kind: Kind, skin: string, accent: string): THREE.Mesh {
       // Tuppi: wide head, three feathery gill stalks per side, a giggly grin and a frosting-dipped cap.
       for (const sx of [-1, 1]) for (let k = 0; k < 3; k++) {
         const y = 0.06 + k * 0.12, ang = 0.55 + k * 0.28;
-        b.add(G.capsule(0.022, 0.2), accent, { x: sx * (0.5 + k * 0.01), y, z: -0.02, rz: -sx * (1.2 + k * 0.1) });
-        b.add(G.ball(0.045, 8), '#ffb3cf', { x: sx * (0.62 + k * 0.03), y: y + 0.08 + k * 0.04, z: -0.02 });
+        b.add(G.capsule(0.024, 0.2, 6, 12), accent, { x: sx * (0.5 + k * 0.01), y, z: -0.02, rz: -sx * (1.2 + k * 0.1) });
+        b.add(G.ball(0.05, 14), '#ffb3cf', { x: sx * (0.62 + k * 0.03), y: y + 0.08 + k * 0.04, z: -0.02 });
         void ang;
       }
       const smile = on(0, -22, 1.04);
       b.add(G.torus(0.13, 0.014, 12, Math.PI * 0.85), '#c0577d', { x: smile[0], y: smile[1] + 0.02, z: smile[2], rz: Math.PI, rx: 0.3 });
       for (const sx of [-1, 1]) b.add(G.ball(0.014, 6), '#c0577d', { ...at(on(sx * 38, -20, 1.03)) });
-      b.add(G.ball(0.14, 12), '#ffffff', { ...at(on(0, 64, 1.0)), s: [1.5, 0.45, 1.1] }); // a baker's cap
-      b.add(G.ball(0.12, 12), '#ffffff', { ...at(on(0, 78, 1.0)), s: [1, 0.8, 1] });
+      b.add(G.ball(0.14, 20), '#ffffff', { ...at(on(0, 64, 1.0)), s: [1.5, 0.45, 1.1] }); // a baker's cap
+      b.add(G.ball(0.12, 18), '#ffffff', { ...at(on(0, 78, 1.0)), s: [1, 0.8, 1] });
       b.add(G.ball(0.035, 8), '#ff6f9c', { ...at(on(10, 84, 1.07)) });
       break;
     }
     case 'seal': {
       // Marlo: a round, sugar-dusted seal. Whisker pad, big dark nose, whiskers, and a lavender keeper's cap.
       const pad = '#fff6fa';
-      b.add(G.ball(0.17, 14), pad, { ...at(on(0, -14, 0.98)), s: [1.45, 0.95, 0.95] });
-      b.add(G.ball(0.055, 10), '#7a4a6a', { ...at(on(0, -4, 1.04)), s: [1.4, 0.8, 0.8] });
+      b.add(G.ball(0.17, 24), pad, { ...at(on(0, -14, 0.98)), s: [1.45, 0.95, 0.95] });
+      b.add(G.ball(0.055, 16), '#7a4a6a', { ...at(on(0, -4, 1.04)), s: [1.4, 0.8, 0.8] });
+      b.add(G.ball(0.014, 8), '#ffffff', { ...at(on(-5, 0, 1.13)) }); // nose glint
+      wMouth(b, 0, -0.15, 0.545, 0.8);
       for (const sx of [-1, 1]) for (const tilt of [0.25, -0.15]) {
         const len = 0.2, ox = sx * 0.1;
         b.add(G.capsule(0.006, len), '#ffffff', { x: ox + sx * len * 0.5, y: -0.14 + tilt * len * 0.5, z: 0.35, rz: -sx * (Math.PI / 2 - tilt) });
@@ -249,7 +271,7 @@ function buildHead(kind: Kind, skin: string, accent: string): THREE.Mesh {
       for (const sx of [-1, 1]) b.add(G.ball(0.045, 8), skin, { x: sx * 0.3, y: 0.24, z: -0.04, s: [1, 1, 0.6] });
       const cap = '#a98fd6';
       b.add(G.cyl(0.4, 0.43, 0.05, 20), cap, { y: 0.31, z: 0.0, rx: -0.1 });
-      b.add(G.ball(0.3, 14), '#b9a3e6', { y: 0.34, z: -0.02, s: [1, 0.65, 1] });
+      b.add(G.ball(0.3, 22), '#b9a3e6', { y: 0.34, z: -0.02, s: [1, 0.65, 1] });
       b.add(G.torus(0.3, 0.02, 18), PALETTE.gold, { y: 0.34, rx: Math.PI / 2 });
       b.add(G.ball(0.04, 8), PALETTE.gold, { y: 0.54 });
       for (let i = 0; i < 9; i++) b.add(G.ball(0.011, 5), '#ffffff', { ...at(on(((i * 53) % 140) - 70, 10 + ((i * 37) % 50), 1.01)) }); // sugar dust
@@ -259,20 +281,52 @@ function buildHead(kind: Kind, skin: string, accent: string): THREE.Mesh {
   return b.build();
 }
 
-function buildEyes(): THREE.Mesh {
-  const b = new Batch();
-  const [, ey] = on(20, 4);
-  for (const sx of [-1, 1]) {
-    const p = on(sx * 20, 4, 0.99);
-    b.add(G.ball(0.062, 12), EYE, { x: p[0], y: p[1] - ey, z: p[2], ry: sx * 20 * DEG, s: [1, 1.22, 0.5] });
-    const h = on(sx * 20 - 5, 9, 1.05), h2 = on(sx * 20 + 4, -1, 1.055);
-    b.add(G.ball(0.023, 8), '#ffffff', { x: h[0], y: h[1] - ey, z: h[2] });
-    b.add(G.ball(0.012, 6), '#ffffff', { x: h2[0], y: h2[1] - ey, z: h2[2] });
+/**
+ * Villager eyes: big glossy ovals that sit on the head curve. A dark iris fading to a rosy glow at the bottom,
+ * a soft upper lid line, and three unlit catchlights so they always sparkle. The geometry is built once and
+ * shared by every villager (two meshes each). Blink / expressions scale the whole group around the eye line.
+ */
+const V_EYE_YAW = 20, V_EYE_PITCH = 4;
+let vEyeGeo: { iris: THREE.BufferGeometry; shine: THREE.BufferGeometry } | null = null;
+function buildEyes(): THREE.Group {
+  const [, ey] = on(V_EYE_YAW, V_EYE_PITCH);
+  if (!vEyeGeo) {
+    const dark: THREE.BufferGeometry[] = [], shine: THREE.BufferGeometry[] = [];
+    const place = new THREE.Matrix4(), q = new THREE.Quaternion(), z = new THREE.Vector3(0, 0, 1), n = new THREE.Vector3(), pos = new THREE.Vector3(), one = new THREE.Vector3(1, 1, 1);
+    for (const sx of [-1, 1]) {
+      const yaw = sx * V_EYE_YAW, p = on(yaw, V_EYE_PITCH, 0.99);
+      q.setFromUnitVectors(z, n.set(...nrm(yaw, V_EYE_PITCH)));
+      place.compose(pos.set(p[0], p[1] - ey, p[2]), q, one);
+      const d = new Batch()
+        .add(G.ball(1, 20), EYE, { s: [0.066, 0.083, 0.024] })
+        .add(G.ball(1, 16), '#7a3d63', { y: -0.024, z: 0.012, s: [0.05, 0.048, 0.013] })
+        .add(G.ball(1, 12), '#d98ab4', { y: -0.05, z: 0.016, s: [0.032, 0.02, 0.008] })
+        .add(G.torus(0.07, 0.009, 16, Math.PI * 0.8), EYE, { y: 0.006, z: 0.012, rz: Math.PI * 0.1, s: [1, 1.12, 0.7] });
+      const sh = new Batch()
+        .add(G.ball(0.024, 12), '#ffffff', { x: -0.022, y: 0.03, z: 0.026 })
+        .add(G.ball(0.011, 8), '#ffffff', { x: 0.024, y: -0.03, z: 0.022 })
+        .add(G.ball(0.007, 6), '#ffffff', { x: 0.008, y: 0.045, z: 0.024 });
+      dark.push(d.geometry().applyMatrix4(place));
+      shine.push(sh.geometry().applyMatrix4(place));
+    }
+    vEyeGeo = { iris: mergeGeometries(dark), shine: mergeGeometries(shine) };
   }
-  const m = b.build();
-  m.position.y = ey;
-  m.castShadow = false;
-  return m;
+  shineMat ??= registerUnlit(new THREE.MeshBasicMaterial({ color: '#ffffff' }));
+  const eyes = new THREE.Group();
+  eyes.add(new THREE.Mesh(vEyeGeo.iris, vertexToon()), new THREE.Mesh(vEyeGeo.shine, shineMat));
+  eyes.position.y = ey;
+  return eyes;
+}
+
+/** Soft see-through rosy cheeks lying on the head curve (shared material; one small mesh per actor). */
+function buildBlush(yaw = 41, pitch = -14): THREE.Mesh {
+  const bl = new Batch();
+  for (const sx of [-1, 1]) bl.add(G.ball(1, 16), BLUSH, { ...at(on(sx * yaw, pitch, 0.995)), dir: nrm(sx * yaw, pitch), s: [0.09, 0.02, 0.066] });
+  blushMat ??= makeToon(BLUSH, { transparent: true, opacity: 0.62 });
+  blushMat.depthWrite = false;
+  const blush = bl.build(blushMat, false);
+  blush.renderOrder = 1;
+  return blush;
 }
 
 // ---------- the player's face and hair: a soft plush toy look that still reads at a small size ----------
@@ -294,49 +348,47 @@ let blushMat: THREE.MeshToonMaterial | null = null;
  * `topper` holds the plush ears + sprout that would poke through a hat; the wardrobe hides it under covering hats.
  */
 function buildPlayerHead(skin: string): { head: THREE.Mesh; topper: THREE.Mesh; blush: THREE.Mesh } {
-  const b = new Batch(), top = new Batch(), bl = new Batch();
-  b.add(G.ball(1, 28), skin, { s: [HA, HB, HC] });
+  const b = new Batch(), top = new Batch();
+  b.add(G.ball(1, 40), skin, { s: [HA, HB, HC] });
   // hair shell: a crown cap all the way round, plus a bob that wraps the back and sides down past the ears
-  b.add(new THREE.SphereGeometry(1, 28, 8, 0, Math.PI * 2, 0, 0.98), P_HAIR, { s: [HA * 1.025, HB * 1.035, HC * 1.025] });
-  b.add(new THREE.SphereGeometry(1, 24, 12, Math.PI - 0.42, Math.PI + 0.84, 0, 2.0), P_HAIR, { s: [HA * 1.02, HB * 1.03, HC * 1.03] });
-  // a few soft scallops along the back of the bob
-  for (let i = 0; i < 5; i++) b.add(G.ball(0.08, 12), P_HAIR, { ...at(on(130 + i * 25, -22, 0.98)), s: [1.2, 0.85, 0.8] });
+  b.add(new THREE.SphereGeometry(1, 40, 12, 0, Math.PI * 2, 0, 0.98), P_HAIR, { s: [HA * 1.025, HB * 1.035, HC * 1.025] });
+  b.add(new THREE.SphereGeometry(1, 36, 18, Math.PI - 0.42, Math.PI + 0.84, 0, 2.0), P_HAIR, { s: [HA * 1.02, HB * 1.03, HC * 1.03] });
+  // soft scallops along the back of the bob, a fuller row of seven so the hem reads as one rounded curl
+  for (let i = 0; i < 7; i++) b.add(G.ball(0.075, 16), P_HAIR, { ...at(on(122 + i * 19.5, -22 - (i % 2) * 3, 0.98)), s: [1.2, 0.85, 0.8] });
   // rounded fringe: overlapping lobes that melt into one soft scalloped edge, the middle ones a touch higher
   const lobes: [number, number, number, number][] = [[-52, 30, 0.12, 0.1], [-26, 34, 0.13, 0.1], [0, 36, 0.12, 0.09], [26, 34, 0.13, 0.1], [52, 30, 0.12, 0.1]];
-  for (const [yaw, pitch, w, h] of lobes) b.add(G.ball(1, 16), P_HAIR, { ...at(on(yaw, pitch, 1.0)), dir: nrm(yaw, pitch), s: [w, 0.06, h] });
+  for (const [yaw, pitch, w, h] of lobes) b.add(G.ball(1, 20), P_HAIR, { ...at(on(yaw, pitch, 1.0)), dir: nrm(yaw, pitch), s: [w, 0.06, h] });
   // a soft gloss on the crown, lying on the hair
   for (const sx of [-1, 1]) b.add(G.ball(1, 10), P_HAIR_LITE, { ...at(on(sx * 24, 54, 1.03)), dir: nrm(sx * 24, 54), s: [0.07, 0.012, 0.025] });
   // side locks framing the cheeks
   for (const sx of [-1, 1]) {
-    b.add(G.ball(1, 14), P_HAIR, { ...at(on(sx * 66, -6, 0.99)), ry: sx * 66 * DEG, rz: -sx * 0.1, s: [0.065, 0.135, 0.045] });
-    // pigtail puffs behind the ears with ribbon ties
-    b.add(G.ball(0.09, 12), P_HAIR, { x: sx * 0.46, y: -0.05, z: -0.16, s: [0.8, 1.1, 0.85] });
-    b.add(G.ball(0.028, 8), P_HAIR_LITE, { x: sx * 0.49, y: 0.01, z: -0.11 });
-    b.add(G.torus(0.05, 0.016, 12), P_HAIR_TIE, { x: sx * 0.42, y: 0.01, z: -0.14, ry: sx * 1.1, rx: 0.3 });
+    b.add(G.ball(1, 18), P_HAIR, { ...at(on(sx * 66, -6, 0.99)), ry: sx * 66 * DEG, rz: -sx * 0.1, s: [0.065, 0.135, 0.045] });
+    // pigtail puffs behind the ears with ribbon ties: a plump puff and a smaller curl tucked under it
+    b.add(G.ball(0.095, 18), P_HAIR, { x: sx * 0.465, y: -0.05, z: -0.16, s: [0.8, 1.1, 0.85] });
+    b.add(G.ball(0.06, 14), P_HAIR, { x: sx * 0.49, y: -0.14, z: -0.18, s: [0.85, 1, 0.85] });
+    b.add(G.ball(0.03, 10), P_HAIR_LITE, { x: sx * 0.495, y: 0.01, z: -0.11 });
+    b.add(G.torus(0.05, 0.017, 16), P_HAIR_TIE, { x: sx * 0.42, y: 0.01, z: -0.14, ry: sx * 1.1, rx: 0.3 });
+    // little ribbon loops on each tie
+    for (const lx of [-1, 1]) b.add(G.ball(0.03, 10), P_HAIR_TIE, { x: sx * 0.415 + lx * 0.028 * Math.cos(sx * 1.1), y: 0.04, z: -0.14 - lx * 0.028 * Math.sin(sx * 1.1), ry: sx * 1.1, rz: lx * 0.5, s: [1.1, 0.7, 0.5] });
   }
   // tiny button nose and a sweet little smile
-  b.add(G.ball(0.017, 8), '#ff9cbc', { ...at(on(0, -12, 1.01)), s: [1.35, 0.95, 0.8] });
+  b.add(G.ball(0.017, 10), '#ff9cbc', { ...at(on(0, -12, 1.01)), s: [1.35, 0.95, 0.8] });
   const smile = on(0, -23, 1.01);
-  b.add(G.torus(0.032, 0.0085, 10, Math.PI * 0.8), '#d65f8f', { x: smile[0], y: smile[1], z: smile[2], rz: Math.PI * 1.1, rx: 0.3 });
+  b.add(G.torus(0.032, 0.0085, 14, Math.PI * 0.8), '#d65f8f', { x: smile[0], y: smile[1], z: smile[2], rz: Math.PI * 1.1, rx: 0.3 });
   // a tiny sparkle on each cheek
-  for (const sx of [-1, 1]) b.add(G.ball(0.011, 6), '#fff4f8', { ...at(on(sx * 36, -7, 1.015)) });
-  // plush rosy cheeks: flattened discs lying on the head curve, drawn see-through
-  for (const sx of [-1, 1]) bl.add(G.ball(1, 14), BLUSH, { ...at(on(sx * 41, -14, 0.995)), dir: nrm(sx * 41, -14), s: [0.088, 0.02, 0.064] });
+  for (const sx of [-1, 1]) b.add(G.ball(0.011, 8), '#fff4f8', { ...at(on(sx * 36, -7, 1.015)) });
   // plush ears: round outer, a soft contour rim and pink inner padding
   for (const sx of [-1, 1]) {
     const ex = sx * 0.27, ey = 0.29, rz = -sx * 0.35;
-    top.add(G.ball(0.135, 14), skin, { x: ex, y: ey, z: -0.04, rz, s: [1, 0.95, 0.62] });
-    top.add(G.torus(0.088, 0.02, 16), '#ffd3e4', { x: ex, y: ey - 0.005, z: 0.03, rz });
-    top.add(G.ball(0.082, 12), '#ffb0cc', { x: ex, y: ey - 0.005, z: 0.02, rz, s: [1, 0.95, 0.4] });
+    top.add(G.ball(0.135, 22), skin, { x: ex, y: ey, z: -0.04, rz, s: [1, 0.95, 0.62] });
+    top.add(G.torus(0.088, 0.02, 22), '#ffd3e4', { x: ex, y: ey - 0.005, z: 0.03, rz });
+    top.add(G.ball(0.082, 18), '#ffb0cc', { x: ex, y: ey - 0.005, z: 0.02, rz, s: [1, 0.95, 0.4] });
   }
-  // a little sprout on top
-  top.add(G.capsule(0.018, 0.08), P_HAIR, { x: 0.03, y: HB * 1.05 + 0.03, z: 0.02, rz: 0.6, rx: -0.25 });
-  top.add(G.ball(0.03, 8), P_HAIR_LITE, { x: 0.075, y: HB * 1.05 + 0.08, z: 0.04 });
-  blushMat ??= makeToon(BLUSH, { transparent: true, opacity: 0.62 });
-  blushMat.depthWrite = false;
-  const blush = bl.build(blushMat, false);
-  blush.renderOrder = 1;
-  return { head: b.build(), topper: top.build(), blush };
+  // a little sprout on top: a curled stem with two round leaves
+  top.add(G.capsule(0.018, 0.08, 6, 12), P_HAIR, { x: 0.03, y: HB * 1.05 + 0.03, z: 0.02, rz: 0.6, rx: -0.25 });
+  top.add(G.ball(0.034, 12), P_HAIR_LITE, { x: 0.075, y: HB * 1.05 + 0.08, z: 0.04, s: [1.2, 0.8, 0.9], rz: -0.5 });
+  top.add(G.ball(0.026, 10), P_HAIR, { x: 0.02, y: HB * 1.05 + 0.085, z: 0.035, s: [1.2, 0.8, 0.9], rz: 0.6 });
+  return { head: b.build(), topper: top.build(), blush: buildBlush() };
 }
 
 /**
@@ -356,17 +408,18 @@ function buildPlayerEyes(): { eyes: THREE.Group; closed: THREE.Mesh } {
     place.compose(pos.set(p[0], p[1] - ey, p[2]), q, one);
     // one eye, facing +z with its centre on the head surface
     const d = new Batch()
-      .add(G.ball(1, 16), P_EYE, { s: [0.064, 0.082, 0.024] })
-      .add(G.ball(1, 12), P_EYE_MID, { y: -0.022, z: 0.013, s: [0.05, 0.05, 0.012] })
-      .add(G.ball(1, 10), P_EYE_LOW, { y: -0.048, z: 0.016, s: [0.034, 0.022, 0.008] })
-      .add(G.torus(0.072, 0.012, 14, Math.PI * 0.84), P_LASH, { y: 0.004, z: 0.012, rz: Math.PI * 0.08, s: [1, 1.13, 0.7] })
-      .add(G.capsule(0.011, 0.034), P_LASH, { x: sx * 0.072, y: 0.058, z: 0.008, rz: -sx * 0.95 });
+      .add(G.ball(1, 22), P_EYE, { s: [0.066, 0.085, 0.024] })
+      .add(G.ball(1, 18), P_EYE_MID, { y: -0.023, z: 0.013, s: [0.052, 0.052, 0.012] })
+      .add(G.ball(1, 14), P_EYE_LOW, { y: -0.05, z: 0.016, s: [0.036, 0.022, 0.008] })
+      .add(G.torus(0.074, 0.012, 20, Math.PI * 0.84), P_LASH, { y: 0.004, z: 0.012, rz: Math.PI * 0.08, s: [1, 1.13, 0.7] })
+      .add(G.capsule(0.011, 0.034, 6, 12), P_LASH, { x: sx * 0.074, y: 0.06, z: 0.008, rz: -sx * 0.95 });
     const s = new Batch()
-      .add(G.ball(0.025, 10), '#ffffff', { x: -0.022, y: 0.03, z: 0.026 })
-      .add(G.ball(0.012, 8), '#ffffff', { x: 0.024, y: -0.03, z: 0.022 });
+      .add(G.ball(0.026, 14), '#ffffff', { x: -0.022, y: 0.031, z: 0.026 })
+      .add(G.ball(0.012, 10), '#ffffff', { x: 0.025, y: -0.031, z: 0.022 })
+      .add(G.ball(0.007, 6), '#ffffff', { x: 0.006, y: 0.048, z: 0.024 });
     const c = new Batch()
-      .add(G.torus(0.056, 0.012, 14, Math.PI * 0.8), P_LASH, { y: -0.02, z: 0.012, rz: Math.PI * 0.1 })
-      .add(G.capsule(0.009, 0.026), P_LASH, { x: sx * 0.058, y: -0.004, z: 0.01, rz: -sx * 1.2 });
+      .add(G.torus(0.056, 0.012, 18, Math.PI * 0.8), P_LASH, { y: -0.02, z: 0.012, rz: Math.PI * 0.1 })
+      .add(G.capsule(0.009, 0.026, 6, 12), P_LASH, { x: sx * 0.058, y: -0.004, z: 0.01, rz: -sx * 1.2 });
     dark.push(d.geometry().applyMatrix4(place));
     shine.push(s.geometry().applyMatrix4(place));
     shut.push(c.geometry().applyMatrix4(place));
@@ -384,8 +437,8 @@ function buildPlayerEyes(): { eyes: THREE.Group; closed: THREE.Mesh } {
 }
 
 function bowGeo(b: Batch, color: string, k = 1) {
-  for (const sx of [-1, 1]) b.add(G.ball(0.12, 10), color, { x: sx * 0.11 * k, s: [1.05 * k, 0.8 * k, 0.5 * k], rz: sx * 0.25, uv: [0.6, 0.4] });
-  b.add(G.ball(0.055, 8), color, { s: k, uv: [0.2, 0.2] });
+  for (const sx of [-1, 1]) b.add(G.ball(0.12, 18), color, { x: sx * 0.11 * k, s: [1.05 * k, 0.8 * k, 0.5 * k], rz: sx * 0.25, uv: [0.6, 0.4] });
+  b.add(G.ball(0.055, 12), color, { s: k, uv: [0.2, 0.2] });
   return b;
 }
 
@@ -416,11 +469,12 @@ function build(sp: Spec) {
   const root = new THREE.Group();
   const model = new THREE.Group(); // bobs / turns / squashes
 
-  dressGeo ??= scaleUv(G.lathe(DRESS, 28), 2.5, 0.9);
-  bandGeo ??= scaleUv(G.lathe(BAND, 22), 2.5, 0.28);
-  legGeo ??= G.capsule(0.075, 0.08).translate(0, -0.1, 0);
-  sleeveGeo ??= scaleUv(G.capsule(0.072, 0.13).translate(0, -0.12, 0), 0.5, 0.4);
-  forearmGeo ??= G.capsule(0.058, 0.12).translate(0, -0.12, 0);
+  // shared by every actor: 40 / 36 lathe segments and 18-sided limbs keep silhouettes round, not faceted
+  dressGeo ??= scaleUv(G.lathe(DRESS, 40), 2.5, 0.9);
+  bandGeo ??= scaleUv(G.lathe(BAND, 36), 2.5, 0.28);
+  legGeo ??= softCap(0.075, 0.08).translate(0, -0.1, 0);
+  sleeveGeo ??= scaleUv(softCap(0.072, 0.13).translate(0, -0.12, 0), 0.5, 0.4);
+  forearmGeo ??= softCap(0.058, 0.12).translate(0, -0.12, 0);
 
   const dressMat = fillMat(sp.dress), bandMat = fillMat(sp.band);
   const body = new THREE.Group();
@@ -441,16 +495,20 @@ function build(sp: Spec) {
     const hb = new Batch();
     if (sp.plush) {
       // a round mitten paw: soft ball, a little thumb nub to the front and a pink pad on the palm side
-      hb.add(G.ball(0.09, 14), sp.skin, { y: -0.27, s: [1, 0.94, 0.95] });
-      hb.add(G.ball(0.036, 8), sp.skin, { x: -sx * 0.03, y: -0.255, z: 0.07 });
-      hb.add(G.ball(0.034, 8), '#ffc2d6', { x: -sx * 0.072, y: -0.28, z: 0.01, s: [0.45, 1, 1] });
-    } else hb.add(G.ball(0.086, 12), sp.skin, { y: -0.27 });
+      hb.add(G.ball(0.09, 20), sp.skin, { y: -0.27, s: [1, 0.94, 0.95] });
+      hb.add(G.ball(0.036, 12), sp.skin, { x: -sx * 0.03, y: -0.255, z: 0.07 });
+      hb.add(G.ball(0.034, 12), '#ffc2d6', { x: -sx * 0.072, y: -0.28, z: 0.01, s: [0.45, 1, 1] });
+    } else {
+      // a soft round paw with a little pink pad on the palm side
+      hb.add(G.ball(0.088, 20), sp.skin, { y: -0.27, s: [1, 0.95, 0.96] });
+      hb.add(G.ball(0.03, 10), '#ffc2d6', { x: -sx * 0.074, y: -0.282, z: 0.01, s: [0.4, 1, 1] });
+    }
     if (sp.bag && sx === 1) {
       // round pink shopping bag with a little heart
-      hb.add(G.ball(0.11, 12), PALETTE.pink, { y: -0.48, s: [1.05, 0.95, 0.7] });
-      hb.add(G.ball(0.028, 6), '#ff7fa9', { x: -0.02, y: -0.46, z: 0.06 });
-      hb.add(G.ball(0.028, 6), '#ff7fa9', { x: 0.02, y: -0.46, z: 0.06 });
-      hb.add(G.torus(0.055, 0.012, 10, Math.PI), '#fff6fb', { y: -0.38 });
+      hb.add(G.ball(0.11, 18), PALETTE.pink, { y: -0.48, s: [1.05, 0.95, 0.7] });
+      hb.add(G.ball(0.028, 10), '#ff7fa9', { x: -0.02, y: -0.46, z: 0.06 });
+      hb.add(G.ball(0.028, 10), '#ff7fa9', { x: 0.02, y: -0.46, z: 0.06 });
+      hb.add(G.torus(0.055, 0.012, 14, Math.PI), '#fff6fb', { y: -0.38 });
     }
     const hand = hb.build();
     pivot.add(forearm, sleeve, hand);
@@ -464,12 +522,10 @@ function build(sp: Spec) {
     pivot.position.set(sx * 0.12, LEG_Y, 0);
     const leg = new THREE.Mesh(legGeo!, toon(sp.skin));
     leg.castShadow = true;
-    const sb = new Batch().add(G.ball(0.105, 14), sp.shoes, { y: -0.2, z: 0.03, s: [1.05, 0.72, 1.25] });
-    if (sp.plush) {
-      // a cream sole and a round toe button
-      sb.add(G.ball(0.108, 14), '#fff4e6', { y: -0.235, z: 0.03, s: [1.06, 0.3, 1.26] });
-      sb.add(G.ball(0.024, 8), '#fff4e6', { y: -0.17, z: 0.14 });
-    }
+    const sb = new Batch().add(G.ball(0.105, 22), sp.shoes, { y: -0.2, z: 0.03, s: [1.05, 0.72, 1.25] });
+    // a soft cream sole on everyone; the player's plush shoes also get a round toe button
+    sb.add(G.ball(0.108, 22), '#fff4e6', { y: -0.235, z: 0.03, s: [1.06, 0.3, 1.26] });
+    if (sp.plush) sb.add(G.ball(0.024, 10), '#fff4e6', { y: -0.17, z: 0.14 });
     const shoe = sb.build();
     pivot.add(leg, shoe);
     return { pivot, leg, shoe };
@@ -487,7 +543,7 @@ function build(sp: Spec) {
     head.add(ph.head, ph.topper, ph.blush, eyes, closedEyes);
   } else {
     eyes = buildEyes();
-    head.add(buildHead(sp.kind, sp.skin, sp.accent), eyes);
+    head.add(buildHead(sp.kind, sp.skin, sp.accent), eyes, buildBlush());
   }
   eyes.scale.set(eyeK, eyeK, 1);
 
@@ -734,7 +790,7 @@ function puffStar(): THREE.Object3D {
     const dx = Math.cos(a), dy = Math.sin(a);
     b.add(G.cone(0.032, len, 4), '#ffd36e', { x: dx * len * 0.28, y: dy * len * 0.28, dir: [dx, dy, 0.08] });
   }
-  b.add(G.ball(0.03, 8), '#fff6d2', { z: 0.01 });
+  b.add(G.ball(0.03, 12), '#fff6d2', { z: 0.01 });
   return b.build(vertexToon('#ffe7a0'));
 }
 
@@ -743,17 +799,17 @@ const ALPACA_SHAPE: Pick<Spec, 'scale' | 'headScale' | 'headDrop' | 'bodyScale' 
   scale: 1.04, headScale: [1.0, 1.1, 1.0], headDrop: 0.0, bodyScale: [1.12, 1.0, 1.12], eyeScale: 1.1,
   extra({ model, body }) {
     const pack = new Batch()
-      .add(G.ball(0.3, 14), '#ffd0e0', { y: 0.34, z: -0.3, s: [1.05, 1.0, 0.7] })
+      .add(G.ball(0.3, 20), '#ffd0e0', { y: 0.34, z: -0.3, s: [1.05, 1.0, 0.7] })
       .add(G.cyl(0.13, 0.13, 0.6, 14), '#fff3c4', { y: 0.7, z: -0.3, rz: Math.PI / 2 })
       .add(G.torus(0.13, 0.025, 14), '#ff9ec0', { x: -0.2, y: 0.7, z: -0.3, ry: Math.PI / 2 })
       .add(G.torus(0.13, 0.025, 14), '#ff9ec0', { x: 0.2, y: 0.7, z: -0.3, ry: Math.PI / 2 })
-      .add(G.ball(0.05, 8), PALETTE.gold, { x: 0.0, y: 0.38, z: -0.5 })
+      .add(G.ball(0.05, 12), PALETTE.gold, { x: 0.0, y: 0.38, z: -0.5 })
       .build();
     body.add(pack);
-    const tail = new Batch().add(G.ball(0.07, 8), '#ffffff', {}).build();
+    const tail = new Batch().add(G.ball(0.07, 12), '#ffffff', {}).build();
     tail.position.set(0, HIP_Y + 0.12, -0.46);
     model.add(tail);
-    const scarf = new Batch().add(G.torus(0.2, 0.05, 18), '#ff9ec0', { rx: Math.PI / 2 }).add(G.ball(0.05, 8), '#ffd36e', { x: 0.07, y: -0.04, z: 0.19 }).build();
+    const scarf = new Batch().add(G.torus(0.2, 0.05, 28), '#ff9ec0', { rx: Math.PI / 2 }).add(G.ball(0.05, 12), '#ffd36e', { x: 0.07, y: -0.04, z: 0.19 }).build();
     scarf.position.set(0, 0.56, 0.03);
     body.add(scarf);
     return (t) => { pack.rotation.z = Math.sin(t * 1.3) * 0.02; };
@@ -771,12 +827,12 @@ const VILLAGER_SHAPE: Partial<Record<string, Pick<Spec, 'scale' | 'headScale' | 
     scale: 0.9, headScale: [1.16, 1.02, 1.12], headDrop: -0.03, bodyScale: [1.12, 0.9, 1.12], eyeScale: 1.12,
     extra({ model, body }) {
       const bell = new Batch()
-        .add(G.ball(0.055, 10), '#ffd36e', { y: 0.48, z: 0.16 })
+        .add(G.ball(0.055, 16), '#ffd36e', { y: 0.48, z: 0.16 })
         .add(G.ball(0.014, 6), '#a8456f', { y: 0.445, z: 0.2 })
         .build();
       body.add(bell);
       const tail = new Batch()
-        .add(G.ball(0.07, 10), '#f6d9a0', {})
+        .add(G.ball(0.07, 16), '#f6d9a0', {})
         .add(G.ball(0.028, 6), '#7a4a3a', { z: 0.02, s: [1, 0.45, 0.8] })
         .build();
       tail.position.set(0, HIP_Y + 0.2, -0.26);
@@ -795,15 +851,15 @@ const VILLAGER_SHAPE: Partial<Record<string, Pick<Spec, 'scale' | 'headScale' | 
       }
       for (let i = 0; i < 6; i++) {
         const a = (i / 6) * Math.PI * 2 + 0.4;
-        puffs.add(G.ball(0.11, 10), cols[(i + 1) % 3], { x: Math.sin(a) * 0.26, y: 0.22, z: Math.cos(a) * 0.26 });
+        puffs.add(G.ball(0.11, 16), cols[(i + 1) % 3], { x: Math.sin(a) * 0.26, y: 0.22, z: Math.cos(a) * 0.26 });
       }
       const mist = puffs.build();
       mist.name = 'bunny-mist';
       mist.position.y = HIP_Y;
       const tail = new Batch()
-        .add(G.ball(0.13, 10), '#ffffff', {})
-        .add(G.ball(0.08, 8), '#f4f0ff', { x: 0.06, y: 0.04, z: 0.02 })
-        .add(G.ball(0.07, 8), '#ffffff', { x: -0.05, y: 0.02 })
+        .add(G.ball(0.13, 16), '#ffffff', {})
+        .add(G.ball(0.08, 12), '#f4f0ff', { x: 0.06, y: 0.04, z: 0.02 })
+        .add(G.ball(0.07, 12), '#ffffff', { x: -0.05, y: 0.02 })
         .build();
       tail.name = 'bunny-tail';
       tail.position.set(0, HIP_Y + 0.18, -0.32);
@@ -830,7 +886,7 @@ const VILLAGER_SHAPE: Partial<Record<string, Pick<Spec, 'scale' | 'headScale' | 
       const croissant = cr.build();
       croissant.position.set(0.02, 0.47, 0.0);
       head.add(croissant);
-      const tail = new Batch().add(G.ball(0.08, 8), '#dcb98c', {}).build();
+      const tail = new Batch().add(G.ball(0.08, 12), '#dcb98c', {}).build();
       tail.position.set(0, HIP_Y + 0.15, -0.34);
       model.add(tail);
     },
@@ -841,9 +897,9 @@ const VILLAGER_SHAPE: Partial<Record<string, Pick<Spec, 'scale' | 'headScale' | 
     extra({ model }) {
       const wing = (sx: number, up: boolean) => {
         const b = new Batch();
-        b.add(G.ball(0.3, 14), up ? '#e6d4ff' : '#ffd9ea', { s: [up ? 1.2 : 0.95, up ? 1.1 : 0.9, 0.08], y: up ? 0.1 : -0.15 });
-        b.add(G.ball(0.1, 10), up ? '#ff9ec0' : '#c9b8ee', { x: sx * 0.14, y: up ? 0.12 : -0.15, z: 0.03, s: [1, 1, 0.3] });
-        b.add(G.ball(0.045, 8), '#ffffff', { x: sx * 0.32, y: up ? 0.18 : -0.2, z: 0.04, s: [1, 1, 0.4] });
+        b.add(G.ball(0.3, 20), up ? '#e6d4ff' : '#ffd9ea', { s: [up ? 1.2 : 0.95, up ? 1.1 : 0.9, 0.08], y: up ? 0.1 : -0.15 });
+        b.add(G.ball(0.1, 16), up ? '#ff9ec0' : '#c9b8ee', { x: sx * 0.14, y: up ? 0.12 : -0.15, z: 0.03, s: [1, 1, 0.3] });
+        b.add(G.ball(0.045, 12), '#ffffff', { x: sx * 0.32, y: up ? 0.18 : -0.2, z: 0.04, s: [1, 1, 0.4] });
         const m = b.build();
         const piv = new THREE.Group();
         m.position.x = sx * 0.28;
@@ -865,8 +921,8 @@ const VILLAGER_SHAPE: Partial<Record<string, Pick<Spec, 'scale' | 'headScale' | 
     // a wiggly fin tail that giggles when it moves
     extra({ model }) {
       const tail = new Batch()
-        .add(G.ball(0.16, 10), '#ffc4d8', { s: [0.5, 1.0, 1.4] })
-        .add(G.ball(0.1, 8), '#ff9ec0', { y: 0.08, z: -0.18, s: [0.35, 0.9, 1.2] })
+        .add(G.ball(0.16, 16), '#ffc4d8', { s: [0.5, 1.0, 1.4] })
+        .add(G.ball(0.1, 12), '#ff9ec0', { y: 0.08, z: -0.18, s: [0.35, 0.9, 1.2] })
         .build();
       tail.position.set(0, HIP_Y + 0.16, -0.36);
       model.add(tail);
@@ -878,11 +934,11 @@ const VILLAGER_SHAPE: Partial<Record<string, Pick<Spec, 'scale' | 'headScale' | 
     // round flipper tail, and a lavender-and-gold scarf
     extra({ model, body }) {
       const flip = new Batch();
-      for (const sx of [-1, 1]) flip.add(G.ball(0.1, 10), '#e8bfd2', { x: sx * 0.1, s: [1.3, 0.35, 1.5], rz: sx * 0.3 });
+      for (const sx of [-1, 1]) flip.add(G.ball(0.1, 16), '#e8bfd2', { x: sx * 0.1, s: [1.3, 0.35, 1.5], rz: sx * 0.3 });
       const tail = flip.build();
       tail.position.set(0, HIP_Y + 0.1, -0.34);
       model.add(tail);
-      const scarf = new Batch().add(G.torus(0.2, 0.05, 18), '#a98fd6', { rx: Math.PI / 2 }).add(G.ball(0.055, 8), PALETTE.gold, { x: 0.06, y: -0.04, z: 0.19 }).build();
+      const scarf = new Batch().add(G.torus(0.2, 0.05, 28), '#a98fd6', { rx: Math.PI / 2 }).add(G.ball(0.055, 12), PALETTE.gold, { x: 0.06, y: -0.04, z: 0.19 }).build();
       scarf.position.set(0, 0.56, 0.03);
       body.add(scarf);
     },
