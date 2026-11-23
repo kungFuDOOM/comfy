@@ -1,6 +1,7 @@
 // The island map: a top-down pastel painting of the terrain, with place labels, fogged-over locked areas and a blinking "you are here".
 import { AREA_LIST, BARRIERS, type AreaId } from '../areas';
 import { VILLAGERS } from '../data';
+import { homeOf } from '../npc';
 import { player } from '../player';
 import { isAreaOpen } from '../state';
 import { barrierForArea, requirementText } from '../unlocks';
@@ -60,9 +61,10 @@ function buildLabels(): Label[] {
   const house = buildings.find((b) => b.id === 'house')!;
   out.push({ x: (house.x0 + house.x1 + 1) / 2, y: (house.y0 + house.y1 + 1) / 2, icon: '🏠', name: 'Your home', area: 'town', prio: 1 });
   for (const v of VILLAGERS) {
-    const area = areaAt(v.home.x, v.home.y);
+    const home = homeOf(v); // a friend who moved into town is marked at their new house
+    const area = areaAt(home.x, home.y);
     const open = isAreaOpen(area);
-    out.push({ x: v.home.x + 0.5, y: v.home.y + 0.5, icon: '🐾', name: open ? `${v.name.split(' ')[0]}'s home` : 'A friend\'s home', area, prio: 2, locked: !open });
+    out.push({ x: home.x + 0.5, y: home.y + 0.5, icon: '🐾', name: open ? `${v.name.split(' ')[0]}'s home` : 'A friend\'s home', area, prio: 2, locked: !open });
   }
   return out;
 }

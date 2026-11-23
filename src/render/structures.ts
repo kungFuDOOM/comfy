@@ -5,6 +5,7 @@ import { buildings, props, stations, type Building, type Prop, type Station } fr
 import { cheetahToon, contactShadow, lightPool, makeToon, PALETTE, vertexToon, type CheetahKind } from './materials';
 import { ball, Batch, box, G, makeLabel, mat } from './util';
 import { tileHeight } from './terrain';
+import type { TownHomeSpec } from '../townHomeData';
 
 const STYLE = {
   cafe: { wall: '#fff4e6', base: '#f3c9b4', roof: '#f29aa6', ridge: '#ffffff', name: 'Puddle & Pip Café' },
@@ -610,6 +611,63 @@ export function createProp(p: Prop): THREE.Group | null {
     default: return null;
   }
   k.into(g);
+  return g;
+}
+
+/**
+ * A friend's little town house (Friend Moves In): a cream cottage on a 3x3 patch of tiles, smaller than the player's
+ * house, with a pastel roof, a round-topped door, flower boxes and potted blooms. Faces south. The door sits on the
+ * footprint's front wall, so the free tile row just below it is where the friend stands. Built once per friend.
+ */
+export function createCottage(spec: TownHomeSpec): THREE.Group {
+  const g = new THREE.Group();
+  const k = new Kit();
+  const W = 2.6, D = 2.5, wallH = 1.55, roofW = 3.3, roofD = 3.1, roofH = 1.05;
+  const front = D / 2 + 0.02;
+  g.position.set(spec.x + 1.5, tileHeight(spec.x + 1, spec.y + 2), spec.y + 1.5);
+
+  // shell: walls, plinth, front corner posts, roof with white piping and two rows of shingle bumps
+  k.v.add(G.box(W, wallH, D), '#fff4e6', { y: wallH / 2 });
+  k.v.add(G.box(W + 0.1, 0.26, D + 0.1), '#f3d6e0', { y: 0.13 });
+  for (const sx of [-1, 1]) k.v.add(G.box(0.16, wallH, 0.16), '#ffffff', { x: sx * (W / 2 - 0.04), y: wallH / 2, z: D / 2 - 0.04 });
+  k.v.add(roofGeo(roofW, roofD, roofH), spec.roof, { y: wallH });
+  k.v.add(G.cyl(0.08, 0.08, roofW + 0.1, 10), '#ffffff', { y: wallH + roofH, rz: Math.PI / 2 });
+  k.v.add(G.cyl(0.07, 0.07, roofW + 0.06, 10), '#ffffff', { y: wallH + 0.03, z: roofD / 2, rz: Math.PI / 2 });
+  const slope = Math.atan2(roofH, roofD / 2);
+  for (let r = 1; r <= 2; r++) {
+    const s = (r / 3) * Math.hypot(roofH, roofD / 2);
+    k.v.add(G.cyl(0.04, 0.04, roofW - 0.1, 8), '#ffffff', { y: wallH + s * Math.sin(slope) + 0.02, z: roofD / 2 - s * Math.cos(slope), rz: Math.PI / 2, s: [1, 1, 0.6] });
+  }
+  // a stubby chimney near the ridge
+  k.v.add(G.box(0.4, 0.9, 0.4), '#ffc3da', { x: W / 2 - 0.55, y: wallH + 0.8, z: -0.35 });
+  k.v.add(G.box(0.5, 0.1, 0.5), '#ffffff', { x: W / 2 - 0.55, y: wallH + 1.28, z: -0.35 });
+
+  // door: white frame, the friend's color, a gold knob, a step, and a tiny heart above it
+  k.v.add(G.box(0.74, 1.2, 0.08), '#ffffff', { y: 0.6 + 0.13, z: front });
+  k.v.add(G.box(0.58, 1.1, 0.08), spec.door, { y: 0.55 + 0.13, z: front + 0.03 });
+  k.v.add(G.ball(0.045, 8), PALETTE.gold, { x: 0.17, y: 0.65, z: front + 0.1 });
+  k.v.add(G.box(0.95, 0.08, 0.3), '#ffffff', { y: 0.04, z: front + 0.18 });
+  for (const dx of [-0.045, 0.045]) k.v.add(G.ball(0.055, 8), '#ff8fb6', { x: dx, y: 1.5, z: front + 0.03, s: [1, 1, 0.35] });
+  k.v.add(G.cone(0.1, 0.12, 3), '#ff8fb6', { y: 1.42, z: front + 0.03, rz: Math.PI, s: [1, 1, 0.3] });
+  // windows with flower boxes either side of the door
+  for (const sx of [-1, 1]) {
+    windowAt(k, sx * 0.88, wallH * 0.56, front, 0.5, 0.5);
+    flowerBox(k.v, sx * 0.88, wallH * 0.56 - 0.42, front + 0.16, 0.66);
+  }
+  // potted blooms by the step
+  for (const sx of [-1, 1]) {
+    k.v.add(G.cyl(0.1, 0.07, 0.15, 10), '#ffd0e2', { x: sx * 0.62, y: 0.08, z: front + 0.3 });
+    k.v.add(G.ball(0.12, 10), '#9fe0b8', { x: sx * 0.62, y: 0.24, z: front + 0.3 });
+    k.v.add(G.ball(0.05, 8), sx > 0 ? '#fff3a8' : '#ff8fb6', { x: sx * 0.62 + 0.03, y: 0.33, z: front + 0.36 });
+  }
+  k.into(g);
+
+  g.add(contactShadow(W + 0.8, D + 0.8, 'rect', 0.3));
+  { const pool = lightPool(W * 0.9, 1.6, PALETTE.windowGlow, 0.24, 'rect'); pool.position.set(0, 0.12, front + 0.9); g.add(pool); }
+  const label = makeLabel(spec.name, 2.8);
+  label.position.set(0, wallH + roofH + 0.55, front + 0.4);
+  label.rotation.x = -0.25;
+  g.add(label);
   return g;
 }
 

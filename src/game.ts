@@ -34,6 +34,7 @@ import { maybeStartFirstSnowfall } from './events/firstSnowfall';
 import { maybeStartFirstPie } from './events/firstPie';
 import { maybeStartGoldenPie } from './events/goldenPie';
 import { maybeStartTreeLighting } from './events/treeLighting';
+import { maybeStartFriendMovesIn } from './cutscene/friendMovesIn';
 import { maybeStartNewYear } from './events/newYearScene';
 import { cutsceneParam } from './cutscene/presets';
 import { state } from './state';
@@ -58,6 +59,7 @@ import { maybeOfferToday, todayWantsShow } from './ui/todayUi';
 import { openBag, openBoutique, openCafe, openChest, openCrafting, openDialogue, openHelp, openJournal, openMarket } from './ui/panels';
 import { openPause } from './ui/menuPanels';
 import { barrierHint, barrierNear, syncUnlocks, useBarrier } from './unlocks';
+import { syncTownHomeBlocks } from './townHomes';
 import { T, TS, barrierAtTile, buildWorld, inYard, isPlotTile, isSolidTile, stations, terrainAt, type Station } from './world';
 
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -393,6 +395,7 @@ let adventPreviewOpened = false;
 export function startGame() {
   buildWorld();
   syncUnlocks();
+  syncTownHomeBlocks(); // friends' little houses are solid (before the player and the cast are seated)
   initNpcs();
   placePlayer();
   resetPet(); // the pet (if adopted) trots in beside her; position is never saved
@@ -412,6 +415,7 @@ export function startGame() {
   if (!cutsceneParam) maybeStartTreeLighting(() => isPanelOpen()); // a tree that was already finished: the lighting, once per save
   if (!cutsceneParam) maybeStartNewYear(() => isPanelOpen()); // Dec 31 evening: the Twinkle New Year countdown, once per save
   if (!cutsceneParam) maybeStartGoldenPie(() => isPanelOpen()); // a Golden Pie reveal that was still waiting when the game last closed
+  if (!cutsceneParam) maybeStartFriendMovesIn(() => isPanelOpen()); // a friend at 8 hearts asks to move into a little house in town, once each, one at a time
   cancelAct();
   if (booted) {
     cancelPath();
