@@ -19,6 +19,7 @@ export const CUTSCENE_PRESETS: Record<string, CutscenePreset> = {
   'golden-pie': { event: 'harvest', date: '2026-11-21', hour: 16.2 },
   'first-pet': { hour: 10.5 },
   'friend-moves-in': { hour: 11 },
+  'new-year': { event: 'newyear', date: '2026-12-31', hour: 23.6 },
   'first-snowfall': { event: 'twinkle', date: '2026-11-27', hour: 17.9 },
 };
 

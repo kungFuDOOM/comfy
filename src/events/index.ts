@@ -6,6 +6,7 @@ import './petalpicnic';
 import './shoredays';
 import './costumenight';
 import './warmcup';
+import './newyear';
 
 export { startFeast, feastPlaying } from './feast';
 export { openPieBake, canBakePie } from './pieBake';
@@ -14,4 +15,5 @@ export { openCookieBake } from './cookieBake';
 export { queueTreeLighting, startTreeLighting, treeLightingDue, treeLightingPlaying } from './treeLighting';
 export { startFirstSnowfall, firstSnowfallDue, firstSnowfallPlaying, maybeStartFirstSnowfall } from './firstSnowfall';
 export { startFirstPie, firstPieDue, firstPiePlaying, maybeStartFirstPie } from './firstPie';
+export { startNewYear, newYearPlaying, maybeStartNewYear } from './newYearScene';
 export { startGoldenPie, goldenPieDue, goldenPiePlaying, queueGoldenPie } from './goldenPie';

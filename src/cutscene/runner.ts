@@ -10,7 +10,7 @@ import { VILLAGERS, type VillagerDef } from '../data';
 import { npcs, presentNpcs, type Npc } from '../npc';
 import type { PetPose } from '../pet';
 import { cancelPath, player } from '../player';
-import { confettiAt, harvestAt, twinkleAt, welcomeAt } from '../render/celebrate';
+import { confettiAt, fireworkAt, harvestAt, twinkleAt, welcomeAt } from '../render/celebrate';
 import { getWorld, runScene } from '../render/stage';
 import { heightAtUnits } from '../render/terrain';
 import type { FrameInput, World3D } from '../render/world3d';
@@ -53,6 +53,8 @@ const TIMING: Timing = { fadeIn: 0.9, fadeOut: 0.9, lead: 4.6, titleFrom: 1.0, t
 export type V3 = [number, number, number];
 /** A ground point in tiles (1 tile = TS world px), or an actor: a villager id or 'player'. */
 export type At = { x: number; z: number } | string;
+/** Particle moments the runner can play (render/celebrate.ts). `firework` is a soft pastel shell burst, best 2 to 4 up. */
+export type FxKind = 'confetti' | 'harvest' | 'twinkle' | 'welcome' | 'firework';
 type SfxName = { [K in keyof typeof sfx]: [] extends Parameters<(typeof sfx)[K]> ? K : never }[keyof typeof sfx];
 
 export type Beat =
@@ -68,7 +70,7 @@ export type Beat =
   /** 'talk' bounces for `dur`, 'hop' hops (`who: 'all'` = the whole party), 'gasp' is one quick startled jump. */
   | { type: 'emote'; who: string; kind: 'talk' | 'hop' | 'gasp'; dur?: number }
   /** Particles at a point (`y` = height above ground). `welcome` at 'all' sparkles over every villager. */
-  | { type: 'fx'; fx: 'confetti' | 'harvest' | 'twinkle' | 'welcome'; at: At | 'all'; y?: number }
+  | { type: 'fx'; fx: FxKind; at: At | 'all'; y?: number }
   | { type: 'sfx'; name: SfxName }
   /** Escape hatch: run any staging mid-script (light lamps, raise a tree...). */
   | { type: 'call'; fn: (c: RunnerCtx) => void }
@@ -127,7 +129,7 @@ export interface RunnerCtx {
   follow(camera: THREE.PerspectiveCamera, focus: THREE.Vector3, f: FrameInput, pos: THREE.Vector3, look: THREE.Vector3): void;
   /** Everybody (and the player) hops together for `dur` seconds. */
   hop(dur?: number): void;
-  fx(kind: 'confetti' | 'harvest' | 'twinkle' | 'welcome', at: At | 'all', y?: number): void;
+  fx(kind: FxKind, at: At | 'all', y?: number): void;
   /** Tile position of a villager id, 'player' or a point. */
   point(at: At): { x: number; z: number };
   finish(): void;
@@ -215,7 +217,7 @@ export function playCutscene(scene: CutsceneScene): boolean {
   const fx: RunnerCtx['fx'] = (kind, at, y = 0.8) => {
     if (at === 'all') { if (kind === 'welcome') for (const n of presentNpcs()) welcomeAt(new THREE.Vector3(n.x / TS, heightAtUnits(n.x / TS, n.y / TS) + 0.7, n.y / TS)); return; }
     const p = point(at), v = new THREE.Vector3(p.x, heightAtUnits(p.x, p.z) + y, p.z);
-    if (kind === 'confetti') confettiAt(v); else if (kind === 'harvest') harvestAt(v); else if (kind === 'twinkle') twinkleAt(v); else welcomeAt(v);
+    if (kind === 'confetti') confettiAt(v); else if (kind === 'harvest') harvestAt(v); else if (kind === 'twinkle') twinkleAt(v); else if (kind === 'firework') fireworkAt(v); else welcomeAt(v);
   };
   const c: RunnerCtx = {
     world, preview,

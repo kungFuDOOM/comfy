@@ -84,7 +84,7 @@ function glowTexture(): THREE.CanvasTexture {
 }
 
 /** A big soft numeral that pops in over the scene for the countdown. */
-function countOverlay() {
+export function countOverlay() {
   const el = document.createElement('div');
   el.setAttribute('aria-hidden', 'true');
   el.style.cssText = 'position:absolute;left:50%;top:30%;z-index:8;pointer-events:none;font-weight:700;font-size:clamp(72px,16vw,180px);line-height:1;color:#fff;'

@@ -54,3 +54,7 @@ def('top', 'witchy', 'cn_bat_cape', 'Paper Bat Cape', 'tee', '#d8c8f8', '#ffb3cf
 // Warm Cup Market (Jan 15 to Jan 18, 2027)
 const M = E('warmcup');
 def('top', 'winter', 'wc_cocoa_poncho', 'Warm Cup Poncho', 'sweater', '#ffd9c8', '#fff3e8', 0, 'A cuddly cocoa-cream poncho with a mug stitched on the front and a big cozy collar.', { tint: 'Warm Cup', deco: ['scarf', 'heart'], src: M });
+
+// Twinkle New Year (Dec 31, 2026 to Jan 1, 2027): one small keepsake, paid after the midnight countdown (events/newyear.ts)
+const N = E('newyear');
+def('hat', 'party', 'ny_midnight_star', 'Midnight Star Headband', 'headband', '#ffd2e3', '#ffe27a', 0, 'A blush headband with one little gold star that glows a bit at midnight. Sleepy wishes welcome.', { tint: 'Midnight', deco: ['sparkle'], src: N });
