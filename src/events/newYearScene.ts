@@ -86,10 +86,10 @@ export function startNewYear(onDone?: () => void, preview = false) {
     { type: 'shot', look: [SQUARE.x, 1.3, SQUARE.z + 0.5], pos: [SQUARE.x + 5.6, 4.0, SQUARE.z + 8.4], dur: 5, wait: false },
     ...[...spots.entries()].flatMap(([id, s], i): Beat[] => [
       { type: 'walk', who: id, to: s.to, speed: 2.1 + (i % 3) * 0.2, wait: false },
-      { type: 'wait', sec: 0.26 },
+      { type: 'wait', sec: 0.18 },
     ]),
     { type: 'walk', who: 'player', to: PLAYER_SPOT, speed: 2.2, wait: false },
-    { type: 'wait', sec: 2.4 },
+    { type: 'wait', sec: 0.8 },
     ...cast.map((id): Beat => ({ type: 'face', who: id, at: 'player' })),
     { type: 'face', who: 'player', at: SKY },
     ...say(['mimsy', 'nimbus'], '*yawn* Almost midnight, and I am still awake. Look at me go. Come stand with us, sunbeam.'),
@@ -128,6 +128,7 @@ export function startNewYear(onDone?: () => void, preview = false) {
     title: { name: 'Twinkle New Year', sub: 'Sugarlily Square at midnight' },
     player: { x: PLAYER_FROM.x, z: PLAYER_FROM.z, facing: 'left' },
     hour: 23.6,
+    timing: { lead: 1.4, titleFrom: 0.6, titleTo: 3.6 },
     setup(c) {
       for (const [id, s] of spots) {
         c.point(id); // registers them so the runner puts them back afterwards
