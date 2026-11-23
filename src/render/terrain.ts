@@ -52,8 +52,8 @@ vec3 grassVar(vec3 c, vec2 gp) {
   float nBig = gNoise(gp * 0.33), nMid = gNoise(gp * 1.7 + 7.0), nFine = gNoise(gp * 11.0);
   float streak = gNoise(vec2(gp.x * 26.0, gp.y * 7.0) + 3.0);
   c *= 1.0 + (nBig - 0.5) * 0.12 + (nMid - 0.5) * 0.05 + (nFine - 0.5) * 0.035 + (streak - 0.5) * 0.03;
-  c = mix(c, c * vec3(1.05, 1.02, 0.88), smoothstep(0.35, 0.8, nBig));   // sun-warmed patches
-  c = mix(c, c * vec3(0.93, 1.0, 1.04), smoothstep(0.55, 0.15, nBig) * 0.7); // cooler, bluer hollows
+  c = mix(c, c * vec3(1.06, 1.025, 0.86), smoothstep(0.35, 0.8, nBig));   // sun-warmed, buttery patches
+  c = mix(c, c * vec3(0.92, 0.99, 1.05), smoothstep(0.55, 0.15, nBig) * 0.7); // cooler, minty-lilac hollows
   return c;
 }
 `;
@@ -82,7 +82,7 @@ vec3 pathCol(vec3 base, vec2 gp) {
   st *= 1.0 - 0.07 * smoothstep(-0.14, 0.0, sd);               // soft rim
   st += 0.045 * (1.0 - smoothstep(0.0, 0.5, length(q - vec2(-0.12, 0.12)))); // pillowy highlight
   st += (gNoise(gp * 14.0) - 0.5) * 0.03;
-  vec3 mortar = base * vec3(0.84, 0.76, 0.76);
+  vec3 mortar = base * vec3(0.86, 0.76, 0.79); // rosy mortar so the path stays in the pink family
   return mix(mortar, st, stone);
 }
 vec3 plazaCol(vec2 gp) {

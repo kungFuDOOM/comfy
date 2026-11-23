@@ -348,7 +348,7 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       if (director) director.shoot(camera, target, f);
       else { target.x += (tx - target.x) * k; target.z += (tz - target.z) * k; placeCamera(); }
       // continuous (not bucketed) so dawn/dusk blend smoothly and the shadow frustum follows the camera
-      rig.update(f.hour, target);
+      rig.update(f.hour, target, camera.position.distanceTo(target));
       weather.group.visible = !!f.weather;
       if (f.weather) { weather.update(f.t, target); weather.grade(rig, scene); }
       const pxScale = renderer.getDrawingBufferSize(bufSize).y / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));

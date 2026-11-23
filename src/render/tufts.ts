@@ -45,8 +45,9 @@ export function createTufts() {
       base.call(m, shader, renderer);
       shader.uniforms.uTime = uTime;
       shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', '#include <common>\nuniform float uTime;')
+        .replace('#include <common>', '#include <common>\nuniform float uTime;\nvarying float vTuftH;')
         .replace('#include <begin_vertex>', `#include <begin_vertex>
+          vTuftH = position.y;
           {
             vec3 ip = vec3(instanceMatrix[3].x, 0.0, instanceMatrix[3].z);
             float ph = uTime * 1.5 + ip.x * 0.8 + ip.z * 0.55;
@@ -54,6 +55,11 @@ export function createTufts() {
             transformed.x += (sin(ph) * 0.6 + sin(ph * 2.3 + 1.0) * 0.25) * amt;
             transformed.z += cos(ph * 0.8 + 0.7) * 0.4 * amt;
           }`);
+      // soft root-to-tip gradient (shaded roots, sunlit tips): reads as fluffy blades for free, no extra geometry
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying float vTuftH;')
+        .replace('#include <color_fragment>', `#include <color_fragment>
+          diffuseColor.rgb *= mix(0.84, 1.07, smoothstep(0.0, 0.2, vTuftH));`);
     };
     return m;
   };

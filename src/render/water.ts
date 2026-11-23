@@ -103,14 +103,15 @@ const fragmentShader = /* glsl */ `
 
     // pale ripple crest lines + a soft banded sun glint
     float crest = smoothstep(0.42, 0.62, rh) * near;
-    vec3 lightTint = min(uSunColor + uSkyColor * 0.5, vec3(1.0));
+    vec3 lightTint = min(uSunColor * 1.05 + uSkyColor * 0.5, vec3(1.0));
     col += lightTint * crest * 0.09;
     vec3 hv = normalize(uSunDir + v);
     float spec = pow(max(dot(n, hv), 0.0), 90.0);
-    col += lightTint * smoothstep(0.35, 0.5, spec) * 0.22 * (1.0 - 0.5 * uNight);
+    // soft halo under the banded glint so it blooms gently instead of being a hard dot (no post cost)
+    col += lightTint * (smoothstep(0.35, 0.5, spec) * 0.22 + pow(max(dot(n, hv), 0.0), 18.0) * 0.06) * (1.0 - 0.5 * uNight);
     // sky sheen at grazing angles
     float fres = pow(1.0 - max(v.y, 0.0), 3.0);
-    col = mix(col, uSkyColor * 1.1, fres * 0.25);
+    col = mix(col, uSkyColor * 1.1, fres * 0.3);
 
     // twinkly four-point star sparkles drifting with the current
     vec2 q = p * 0.8 + vec2(t * 0.05, t * 0.03);
@@ -162,9 +163,9 @@ export function createWater(): Water {
       uTime: { value: 0 },
       uShore: { value: null },
       uMapSize: { value: new THREE.Vector2(MAP_W, MAP_H) },
-      uShallow: { value: new THREE.Color('#9ef0dc') },
-      uMid: { value: new THREE.Color('#7fdcef') },
-      uDeep: { value: new THREE.Color('#6fb4ea') },
+      uShallow: { value: new THREE.Color('#a4f0dc') }, // minty shallows
+      uMid: { value: new THREE.Color('#84d8f0') },     // clear aqua
+      uDeep: { value: new THREE.Color('#78a8ea') },    // periwinkle deep, sits with the lilac shade colors
       uFoam: { value: new THREE.Color('#fff4f7') },
       uSparkle: { value: new THREE.Color('#fffbe8') },
     }]),

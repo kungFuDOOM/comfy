@@ -19,7 +19,8 @@ function makeRamp(): THREE.DataTexture {
   const ss = (a: number, b: number, x: number) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
   for (let i = 0; i < n; i++) {
     const ndl = (i / (n - 1)) * 2 - 1;
-    const v = 0.6 * ss(-0.12, 0.2, ndl) + 0.4 * ss(0.38, 0.7, ndl);
+    // a whisper of key light wraps past the terminator (like light through felt), then two wide feathered steps
+    const v = 0.05 * ss(-0.5, -0.1, ndl) + 0.55 * ss(-0.14, 0.24, ndl) + 0.4 * ss(0.34, 0.74, ndl);
     data[i * 4] = data[i * 4 + 1] = data[i * 4 + 2] = Math.round(v * 255);
     data[i * 4 + 3] = 255;
   }
@@ -37,6 +38,8 @@ export const shadeUniforms = {
   uRimStrength: { value: 0.35 },
   /** Multiplied into the base of objects where they meet the ground (cheap AO-like grounding). */
   uAoTint: { value: new THREE.Color(0.8, 0.77, 0.8) },
+  /** World-space direction *towards* the key light (sun / moon), for aiming the rim at the shaded side. */
+  uKeyDir: { value: new THREE.Vector3(0.3, 0.9, 0.3).normalize() },
 };
 
 function patchToon(shader: { uniforms: Record<string, THREE.IUniform>; vertexShader: string; fragmentShader: string }) {
@@ -50,7 +53,7 @@ function patchToon(shader: { uniforms: Record<string, THREE.IUniform>; vertexSha
       #endif
       vToyY = ( modelMatrix * toyWP ).y;`);
   shader.fragmentShader = shader.fragmentShader
-    .replace('#include <common>', '#include <common>\nvarying float vToyY;\nuniform vec3 uRimColor;\nuniform float uRimStrength;\nuniform vec3 uAoTint;')
+    .replace('#include <common>', '#include <common>\nvarying float vToyY;\nuniform vec3 uRimColor;\nuniform float uRimStrength;\nuniform vec3 uAoTint;\nuniform vec3 uKeyDir;')
     .replace('#include <opaque_fragment>', `
       vec3 toyLit = outgoingLight - totalEmissiveRadiance;
       float toyUp = dot( normal, normalize( ( viewMatrix * vec4( 0.0, 1.0, 0.0, 0.0 ) ).xyz ) );
@@ -62,7 +65,11 @@ function patchToon(shader: { uniforms: Record<string, THREE.IUniform>; vertexSha
       #ifdef TOY_RIM
         // sky-facing fresnel sheen, screen-blended so it can never push a surface into the bloom range
         float toyF = 1.0 - saturate( dot( normal, normalize( vViewPosition ) ) );
-        float toyRim = pow( toyF, 2.6 ) * ( 0.3 + 0.7 * saturate( toyUp * 0.5 + 0.5 ) );
+        float toyRim = pow( toyF, 2.4 ) * ( 0.3 + 0.7 * saturate( toyUp * 0.5 + 0.5 ) );
+        // aim it: strongest on edges turned away from the key, so silhouettes (faces, ears, hats) lift off the
+        // background on their shaded side, where the screen blend has room to show it
+        float toyAway = 1.0 - dot( normal, normalize( ( viewMatrix * vec4( uKeyDir, 0.0 ) ).xyz ) );
+        toyRim *= 0.6 + 0.35 * toyAway;
         toyLit += uRimColor * ( toyRim * uRimStrength ) * max( vec3( 0.0 ), 1.0 - toyLit );
       #endif
       outgoingLight = toyLit + totalEmissiveRadiance;
@@ -159,7 +166,7 @@ export function contactMaterial(shape: 'round' | 'rect' = 'round', opacity = 0.2
   const key = shape + opacity;
   let m = decalMats.get(key);
   if (!m) {
-    m = new THREE.MeshBasicMaterial({ color: '#4b3a5e', alphaMap: softTex(shape), transparent: true, opacity, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    m = new THREE.MeshBasicMaterial({ color: '#56395f', alphaMap: softTex(shape), transparent: true, opacity, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
     decalMats.set(key, m);
   }
   return m;
