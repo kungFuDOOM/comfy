@@ -30,7 +30,14 @@ function paintLabel(c: HTMLCanvasElement, text: string) {
   g.clearRect(0, 0, c.width, c.height);
   g.fillStyle = '#fff7fb'; g.strokeStyle = '#ffb3cf'; g.lineWidth = 8;
   g.beginPath(); g.roundRect(6, 6, c.width - 12, c.height - 12, 28); g.fill(); g.stroke();
-  g.fillStyle = '#a8456f'; g.font = '600 52px Fredoka, ui-rounded, system-ui, sans-serif';
+  g.fillStyle = '#a8456f';
+  // Shrink the font for long names so the whole string stays inside the pill (short labels stay at 52px).
+  const font = (px: number) => `600 ${px}px Fredoka, ui-rounded, system-ui, sans-serif`;
+  let px = 52;
+  g.font = font(px);
+  const maxW = c.width - 64;
+  const tw = g.measureText(text).width;
+  if (tw > maxW) { px = Math.max(20, Math.floor(px * maxW / tw)); g.font = font(px); }
   g.textAlign = 'center'; g.textBaseline = 'middle';
   g.fillText(text, c.width / 2, c.height / 2 + 3);
 }

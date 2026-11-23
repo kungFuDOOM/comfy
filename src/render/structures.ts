@@ -664,8 +664,8 @@ export function createCottage(spec: TownHomeSpec): THREE.Group {
 
   g.add(contactShadow(W + 0.8, D + 0.8, 'rect', 0.3));
   { const pool = lightPool(W * 0.9, 1.6, PALETTE.windowGlow, 0.24, 'rect'); pool.position.set(0, 0.12, front + 0.9); g.add(pool); }
-  const label = makeLabel(spec.name, 2.6);
-  label.position.set(0, wallH + roofH + 0.45, front + 0.4);
+  const label = makeLabel(spec.name, 2.8);
+  label.position.set(0, wallH + roofH + 0.55, front + 0.4);
   label.rotation.x = -0.25;
   g.add(label);
   return g;
