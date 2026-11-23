@@ -4,6 +4,7 @@ import { toast } from '../bus';
 import { VILLAGERS } from '../data';
 import { startFeast } from '../events/feast';
 import { startFirstSnowfall } from '../events/firstSnowfall';
+import { startNewYear } from '../events/newYearScene';
 import { startTreeLighting } from '../events/treeLighting';
 import { startFirstPet } from './firstPet';
 import { startFirstPie } from '../events/firstPie';
@@ -22,6 +23,7 @@ const PLAYERS: Record<string, (done: () => void) => void> = {
   'christmas-day': (done) => startGathering('day', true, done, true),
   'first-snowfall': (done) => startFirstSnowfall(done, true),
   'tree-lighting': (done) => startTreeLighting(done, true),
+  'new-year': (done) => { startNewYear(done, true); },
   'first-pie': (done) => { startFirstPie(done, true); },
   'first-pet': (done) => { startFirstPet(done, true); },
   'golden-pie': (done) => { startGoldenPie(done, true); },
