@@ -22,9 +22,9 @@ export function createNature(): Nature {
   // soft trunk: a lathe with a little root flare at the foot and a rounded taper (10 sides, about what the cylinder cost)
   const trunkGeo = new THREE.LatheGeometry([[0.001, 0], [0.22, 0], [0.18, 0.05], [0.14, 0.16], [0.115, 0.45], [0.09, 0.8], [0.075, 1]].map(([x, y]) => new THREE.Vector2(x, y)), 10);
   const trunk = new THREE.InstancedMesh(trunkGeo, toon(PALETTE.wood), n * 2); // trunk + one leaning branch
-  // Perf: 14x9 puffs = 224 tris (was 12x8 = 168; the original 320 was cut for phones). With one extra puff that's
-  // ~2.2k tris per crown, still one instanced draw for every tree on the island.
-  const puff = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 14, 9), makeToon('#ffffff'), n * PUFFS);
+  // Perf: 12x8 puffs = 168 tris (the original 320 was cut for phones). Puffs don't cast shadows (only trunks do),
+  // so the crowns cost nothing in the shadow map; still one instanced draw for every tree on the island.
+  const puff = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 12, 8), makeToon('#ffffff'), n * PUFFS);
   // blossom specks: the same 20-tri icosahedron, but with smooth (radial) normals so they read as round buds, not facets
   const speckGeo = new THREE.IcosahedronGeometry(1, 0);
   { const pos = speckGeo.attributes.position, nr = speckGeo.attributes.normal, v = new THREE.Vector3();
@@ -38,7 +38,8 @@ export function createNature(): Nature {
   // soft contact patch under every tree so the fluffy crowns sit on the ground
   const patch = new THREE.InstancedMesh(contactGeometry, contactMaterial('round', 0.22), n);
   patch.renderOrder = 1;
-  trunk.castShadow = trunk.receiveShadow = puff.castShadow = puff.receiveShadow = true;
+  trunk.castShadow = trunk.receiveShadow = puff.receiveShadow = true;
+  puff.castShadow = false;
 
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3(1, 1, 1);
   const e = new THREE.Euler(), q0 = new THREE.Quaternion();

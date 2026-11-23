@@ -17,10 +17,11 @@ const ROOF_H = 1.7;
 
 /** Everything one model needs: body, glowing glass, and the two prints. */
 class Kit {
-  v = new Batch(); glow = new Batch(); classic = new Batch(); pink = new Batch();
+  v = new Batch(); scallops = new Batch(); glow = new Batch(); classic = new Batch(); pink = new Batch();
   print(k: CheetahKind) { return k === 'classic' ? this.classic : this.pink; }
   into(g: THREE.Group) {
     if (!this.v.empty) g.add(this.v.build());
+    if (!this.scallops.empty) { const m = this.scallops.build(); m.castShadow = false; g.add(m); } // roof shingles: lit, but not in the shadow map
     if (!this.glow.empty) g.add(this.glow.build(vertexToon(PALETTE.windowGlow)));
     if (!this.classic.empty) g.add(this.classic.build(cheetahToon('classic')));
     if (!this.pink.empty) g.add(this.pink.build(cheetahToon('pink')));
@@ -280,7 +281,7 @@ export function createBuilding(b: Building): THREE.Group {
   { const n = Math.round(roofW / 0.32), sw = roofW / n;
     for (let i = 0; i < n; i++) k.v.add(G.cyl(sw * 0.5, sw * 0.5, 0.05, 12), st.ridge, { x: -roofW / 2 + (i + 0.5) * sw, y: wallH - 0.05, z: roofD / 2 + 0.02, rx: Math.PI / 2 }); }
   // round scalloped shingles over the front slope (the boutique keeps its print band clear near the eave)
-  roofScallops(k.v, roofW, roofD, ROOF_H, wallH, st.roof, b.id === 'boutique' ? 0.2 : 0.06);
+  roofScallops(k.scallops, roofW, roofD, ROOF_H, wallH, st.roof, b.id === 'boutique' ? 0.2 : 0.06);
   const slope = Math.atan2(ROOF_H, roofD / 2);
 
   g.add(contactShadow(w + 0.9, d + 0.9, 'rect', 0.3));
