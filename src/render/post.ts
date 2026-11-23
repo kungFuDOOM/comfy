@@ -7,7 +7,12 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 
-export const BLOOM = { strength: 0.6, radius: 0.55, threshold: 1.3 };
+// Night only. A slightly lower threshold + wider radius gives lamps and lanterns a soft round halo; lit surfaces
+// still top out near 1.0, so nothing but 'lamp' glow (LAMP_HDR) crosses it.
+export const BLOOM = { strength: 0.68, radius: 0.62, threshold: 1.22 };
+/** Neutral tone mapping starts rolling off at ~0.76; a hair under 1 keeps sunlit whites/pinks creamy instead of
+ *  clipping toward flat white, while the warmer key light keeps the overall brightness where it was. */
+const EXPOSURE = 0.97;
 
 export interface Post {
   render(night: number): void;
@@ -17,7 +22,7 @@ export interface Post {
 
 export function createPost(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera): Post {
   renderer.toneMapping = THREE.NeutralToneMapping; // keeps pastels saturated; only rolls off HDR highlights
-  renderer.toneMappingExposure = 1;
+  renderer.toneMappingExposure = EXPOSURE;
   const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: 4 });
   const composer = new EffectComposer(renderer, target);
   const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), BLOOM.strength, BLOOM.radius, BLOOM.threshold);
