@@ -13,6 +13,7 @@ import { moment } from './lanterns';
 import { bump } from './quests';
 import { ensureDaily, isAreaOpen, state } from './state';
 import { getClock } from './time';
+import { townHomeDoor, isMovedIn } from './townHomes';
 import { TS, areaAt, isWalkable } from './world';
 
 export interface Npc { def: VillagerDef; x: number; y: number; tx: number; ty: number; wait: number; facing: Facing; moving: boolean; busy: boolean; /** At the feast table or the Twinkle tree (seasonal event). */ seated?: boolean }
@@ -25,6 +26,10 @@ export const presentNpcs = (): Npc[] => { const ph = getClock().phase; return np
 
 /** Is this friend living on the island yet? Friends from a gated area are absent until it opens. */
 export const hasMovedIn = (def: VillagerDef) => !def.area || isAreaOpen(def.area);
+/** Does this friend live in a little house of their own in town? (Friend Moves In; `hasMovedIn` above only means their area is open.) */
+export const hasTownHome = (def: VillagerDef) => isMovedIn(def.id);
+/** Where a friend wanders from: the door of their town house once they have one, else their original home. A runtime override; VILLAGERS is never changed. */
+export const homeOf = (def: VillagerDef): { x: number; y: number } => (hasTownHome(def) ? townHomeDoor(def.id) : null) ?? def.home;
 
 /** Make the cast match what is unlocked: friends from opened areas appear at home, friends of locked ones vanish. */
 export function syncNpcs() {
@@ -32,7 +37,8 @@ export function syncNpcs() {
     const at = npcs.findIndex((n) => n.def.id === def.id);
     if (hasMovedIn(def)) {
       if (at >= 0) continue;
-      const x = def.home.x * TS + TS / 2, y = def.home.y * TS + TS - 4;
+      const home = homeOf(def);
+      const x = home.x * TS + TS / 2, y = home.y * TS + TS - 4;
       npcs.push({ def, x, y, tx: x, ty: y, wait: 1 + Math.random() * 3, facing: 'down', moving: false, busy: false });
     } else if (at >= 0) npcs.splice(at, 1);
   }
@@ -49,7 +55,8 @@ export function updateNpcs(dt: number) {
       n.facing = seat.face; n.moving = false;
       continue;
     }
-    if (n.seated) { n.seated = false; n.x = n.tx = n.def.home.x * TS + TS / 2; n.y = n.ty = n.def.home.y * TS + TS - 4; n.wait = 2; }
+    const home = homeOf(n.def);
+    if (n.seated) { n.seated = false; n.x = n.tx = home.x * TS + TS / 2; n.y = n.ty = home.y * TS + TS - 4; n.wait = 2; }
     if (n.busy) { n.moving = false; continue; }
     const dx = n.tx - n.x, dy = n.ty - n.y, d = Math.hypot(dx, dy);
     if (d > 2) {
@@ -63,10 +70,10 @@ export function updateNpcs(dt: number) {
       n.wait -= dt;
       if (n.wait <= 0) {
         n.wait = 3 + Math.random() * 5;
-        const r = n.def.radius;
-        const gx = Math.floor(n.def.home.x + (Math.random() * 2 - 1) * r), gy = Math.floor(n.def.home.y + (Math.random() * 2 - 1) * r);
+        const r = hasTownHome(n.def) ? Math.min(n.def.radius, 2) : n.def.radius; // a friend with a house potters close to it
+        const gx = Math.floor(home.x + (Math.random() * 2 - 1) * r), gy = Math.floor(home.y + (Math.random() * 2 - 1) * r);
         // stay in the friend's own area, so nobody wanders through a barrier or a wall
-        if (isWalkable(gx, gy) && areaAt(gx, gy) === areaAt(n.def.home.x, n.def.home.y)) { n.tx = gx * TS + TS / 2; n.ty = gy * TS + TS - 4; }
+        if (isWalkable(gx, gy) && areaAt(gx, gy) === areaAt(home.x, home.y)) { n.tx = gx * TS + TS / 2; n.ty = gy * TS + TS - 4; }
       }
     }
   }

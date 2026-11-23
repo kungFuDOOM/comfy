@@ -7,6 +7,7 @@ import { ITEMS, VILLAGERS, type VillagerDef } from './data';
 import { FRIEND_INFO, HEART_PTS, MAX_HEARTS, MAX_PTS, type FriendInfo, type LetterDef, type LetterGift, type MaxReward } from './friendData';
 import { addItem, earn } from './inventory';
 import { isAreaOpen, state, type Letter } from './state';
+import { TOWN_HOMES } from './townHomeData';
 import { today } from './time';
 
 export { HEART_PTS, MAX_HEARTS, MAX_PTS };
@@ -152,6 +153,11 @@ export function letterView(l: Letter): LetterView | null {
   if (!def || !info) return null;
   const bday = /^[a-z]+:bday:(\d+)$/.exec(l.id);
   if (bday) return { subject: 'Thank you for my birthday', body: info.bdayLetter, gift: { pips: 60, item: BDAY_GIFT[l.from] }, sign: SPECIAL_SIGN(def) };
+  // the housewarming letter from a friend who moved into town (Friend Moves In): 'mimsy:movedin'
+  if (/^[a-z]+:movedin$/.test(l.id)) {
+    const w = TOWN_HOMES[l.from]?.letter;
+    return w ? { subject: w.subject, body: w.body, gift: w.gift, sign: SPECIAL_SIGN(def) } : null;
+  }
   const m = /^[a-z]+:h(\d+)$/.exec(l.id);
   const lt = m ? milestone(l.from, Number(m[1])) : undefined;
   if (!lt) return null;

@@ -227,6 +227,11 @@ export interface SaveData {
    * A missed day only starts the streak over; nothing is taken away.
    */
   today: TodaySave;
+  /**
+   * Friend Moves In. Optional: villager ids who now live in their own little town house (townHomeData.ts).
+   * Missing = nobody has moved in yet. Each friend is added once, by a real play of the move-in scene.
+   */
+  movedIn?: string[];
 }
 
 /** Doors opened on the Twinkle Advent Calendar for one calendar year. */

@@ -6,6 +6,7 @@ import { sanitizePet, sanitizePetCare } from './petData';
 import { sanitizeErrands } from './errandData';
 import { ITEMS, SKILLS, VILLAGERS } from './data';
 import { sanitizeMerchant } from './merchantData';
+import { TOWN_HOMES } from './townHomeData';
 
 const KEY = 'comfy.save.v1';
 
@@ -50,6 +51,8 @@ export function loadGame(): boolean {
     state.talk = sanitizeTalk(data.talk); // saves from before the conversation rework: nothing said yet
     state.advent = sanitizeAdvent(data.advent); // saves from before the advent calendar: no doors opened yet
     state.today = sanitizeToday(data.today); // saves from before the Today card: no streak, not shown yet
+    const moved = sanitizeMovedIn(data.movedIn); // saves from before Friend Moves In: nobody lives in town yet (the field stays absent)
+    if (moved.length) state.movedIn = moved; else delete state.movedIn;
     if ((data.mapV ?? 1) < MAP_VERSION) migrateMap();
     state.mapV = MAP_VERSION;
     return true;
@@ -69,6 +72,12 @@ function backfillAdoptGoal() {
 function sanitizeSeen(v: unknown): string[] {
   if (!Array.isArray(v)) return [];
   return [...new Set(v.filter((x): x is string => typeof x === 'string' && x.length > 0 && x.length < 60))].slice(0, 200);
+}
+
+/** Friend Moves In list: unique ids of villagers that have a town house spot; anything else is dropped. */
+function sanitizeMovedIn(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return [...new Set(v.filter((x): x is string => typeof x === 'string' && !!TOWN_HOMES[x] && VILLAGERS.some((d) => d.id === x)))];
 }
 
 /** Has this cutscene been watched (or skipped) in a real play? */

@@ -6,12 +6,14 @@ import { startFeast } from '../events/feast';
 import { startFirstSnowfall } from '../events/firstSnowfall';
 import { startTreeLighting } from '../events/treeLighting';
 import { startFirstPet } from './firstPet';
+import { startFriendMovesIn } from './friendMovesIn';
 import { startFirstPie } from '../events/firstPie';
 import { startGoldenPie } from '../events/goldenPie';
 import { startGathering } from '../events/gathering';
 import { refreshFeast } from '../events/feastSeats';
 import { refreshGather } from '../events/twinkleSeats';
 import { npcs, updateNpcs, type Npc } from '../npc';
+import { DEFAULT_PREVIEW_FRIEND, TOWN_HOMES } from '../townHomeData';
 import { TS } from '../world';
 import { isRunnerPlaying } from './runner';
 
@@ -25,6 +27,11 @@ const PLAYERS: Record<string, (done: () => void) => void> = {
   'first-pie': (done) => { startFirstPie(done, true); },
   'first-pet': (done) => { startFirstPet(done, true); },
   'golden-pie': (done) => { startGoldenPie(done, true); },
+  // ?friend=<id> picks who asks (default mimsy); a stand-in house stands in for the new one and nothing is saved
+  'friend-moves-in': (done) => {
+    const want = new URLSearchParams(location.search).get('friend') ?? '';
+    startFriendMovesIn(TOWN_HOMES[want] ? want : DEFAULT_PREVIEW_FRIEND, done, true);
+  },
 };
 
 /** Later scenes (first-snowfall, tree-lighting, ...) add themselves here. */

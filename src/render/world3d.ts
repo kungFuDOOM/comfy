@@ -26,6 +26,7 @@ import { createParticles } from './particles';
 import { createPlayerActs } from './playerActs';
 import { createPost } from './post';
 import { createStructures } from './structures';
+import { createTownHomesLayer } from './townHomesLayer';
 import { createTerrain, heightAtUnits } from './terrain';
 import { createWeatherLayer } from './weatherLayer';
 import { view } from '../weather';
@@ -126,7 +127,8 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
   const eventLayer = createEventLayer(); // seasonal event decorations (events.ts)
   const weather = createWeatherLayer(); // rain / snow, puddles, cloud shadows (driven by the weather view)
   const merchantLayer = createMerchantLayer(); // the traveling merchant's stall (merchant.ts)
-  scene.add(terrain.group, nature.group, beach, structures, dynamic.group, eventLayer.group, merchantLayer.group, particles.group, weather.group, celebrate.group);
+  const townHomes = createTownHomesLayer(); // friends' little houses, only once they have moved in (townHomes.ts)
+  scene.add(terrain.group, nature.group, beach, structures, dynamic.group, eventLayer.group, merchantLayer.group, townHomes.group, particles.group, weather.group, celebrate.group);
 
   // A friend moving in (bus 'friendArrived', only from a live unlock, never a save restore): a burst of hearts at
   // their spot, then a gentle trickle for a few seconds so the welcome is still there if the camera is elsewhere.
@@ -332,6 +334,7 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
       }
       dynamic.update(f.t);
       eventLayer.update(f.t);
+      townHomes.update();
       merchantLayer.update(f.t, f.dt, f.player.x, f.player.y);
       nature.update(f.t, target.x, target.z);
       terrain.update(f.t);
