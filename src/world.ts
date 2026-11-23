@@ -4,6 +4,7 @@ import { hash } from './art/draw';
 import { isAreaOpen } from './state';
 import { NODES, NODE_SPECS, VILLAGERS, type NodeDef } from './data';
 import { PITCH } from './merchantLayout';
+import { TOWN_HOMES, HOME_SIZE } from './townHomeData';
 
 export const TS = 32;
 export const MAP_W = 96;
@@ -226,6 +227,9 @@ export function buildWorld() {
   addParasol(84, 5, 0);
   for (const p of PARASOLS) block(p.x, p.y);
   for (const v of VILLAGERS) reserved[idx(v.home.x, v.home.y)] = 1; // keep trees off every friend's front door
+  // keep trees off every future town cottage: its 3x3 plot plus one tile all round (reserved only, so the grass stays walkable)
+  for (const h of Object.values(TOWN_HOMES))
+    for (let y = h.y - 1; y <= h.y + HOME_SIZE; y++) for (let x = h.x - 1; x <= h.x + HOME_SIZE; x++) if (inMap(x, y)) reserved[idx(x, y)] = 1;
   placeNodes();
   // glows (night lamps / windows)
   for (const p of props) if (p.type === 'lamp') glows.push({ x: p.x * TS + 16, y: p.y * TS - 6, r: 70, c: '255,220,170' });

@@ -108,7 +108,7 @@ export function startFriendMovesIn(id: string, onDone?: () => void, preview = fa
   const PLAYER_AT = { x: cx + 1.1, z: doorZ + 1.35 };
 
   const beats: Beat[] = [
-    { type: 'shot', look: [cx, 0.9, spec.y + 2.0], pos: [cx + 2.4, 3.9, spec.y + 10.6], dur: 2.4, wait: false },
+    { type: 'shot', look: [cx, 0.9, spec.y + 2.0], pos: [cx - 2.2, 4.4, spec.y + 11.0], dur: 2.4, wait: false },
     { type: 'call', fn: (c) => c.fx('twinkle', plot, 0.5) },
     { type: 'wait', sec: 1.3 },
     { type: 'walk', who: id, to: FRIEND_AT, speed: 1.7 },
@@ -118,7 +118,7 @@ export function startFriendMovesIn(id: string, onDone?: () => void, preview = fa
     { type: 'emote', who: 'player', kind: 'hop', dur: 0.7 },
     { type: 'wait', sec: 0.8 },
     { type: 'face', who: id, at: plot },
-    { type: 'shot', look: [cx, 1.3, spec.y + 1.8], pos: [cx + 1.3, 2.7, spec.y + 7.4], dur: 2.2, wait: false },
+    { type: 'shot', look: [cx, 1.3, spec.y + 1.8], pos: [cx - 1.6, 3.2, spec.y + 9.0], dur: 2.2, wait: false },
     { type: 'call', fn: (c) => { setStandInHome(id); c.fx('welcome', plot, 1.0); c.fx('twinkle', plot, 2.1); } },
     { type: 'sfx', name: 'gift' },
     { type: 'wait', sec: 1.8 },
