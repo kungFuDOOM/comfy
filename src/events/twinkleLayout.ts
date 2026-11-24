@@ -25,7 +25,7 @@ export const GATHER_SPOTS: GatherSpot[] = GATHER_ORDER.map((_, i) => {
 export const PLAYER_SPOT = { x: TREE.x + 1.55, z: TREE.z + 0.2 };
 
 /** Lamp posts around the square and along the roads that carry strings of twinkle lights (existing props in world.ts). */
-export const LAMPS = [{ x: 44, z: 37 }, { x: 51, z: 37 }, { x: 45, z: 45 }, { x: 51, z: 45 }];
+export const LAMPS = [{ x: 46, z: 37 }, { x: 51, z: 37 }, { x: 45, z: 45 }, { x: 51, z: 45 }];
 export const FAR_LAMPS = [{ x: 61, z: 39 }, { x: 34, z: 46 }];
 /** Slim light posts along the main roads (visual only, set just off the path edges). [x, z] pairs, each pair faces across the road. */
 export const ROAD_POSTS: [number, number][][] = [

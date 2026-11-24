@@ -7,7 +7,7 @@ import { bunting, glowPool, ground, newRoot, rng, scatter, titleSign } from './f
 
 const LANTERN = ['#e6d4ff', '#ffc9dc', '#fff0d6', '#d8c8f8'];
 const PUMPKIN = ['#ffc9a8', '#ffd6e4', '#e6d4ff', '#fff0d6'];
-const LAMPS = [{ x: 44, z: 37 }, { x: 51, z: 37 }, { x: 45, z: 45 }, { x: 51, z: 45 }];
+const LAMPS = [{ x: 46, z: 37 }, { x: 51, z: 37 }, { x: 45, z: 45 }, { x: 51, z: 45 }];
 
 export function createCostumeWorld(): EventWorld {
   let bats: { m: THREE.Group; y: number; ph: number }[] = [];

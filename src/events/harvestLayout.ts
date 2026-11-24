@@ -27,4 +27,4 @@ export const CANOPY_POSTS: { x: number; z: number }[] = [
 ];
 
 /** Existing lamp posts around the square (world.ts props) that carry garlands and strings of lanterns. */
-export const LAMPS = [{ x: 44, z: 37 }, { x: 51, z: 37 }, { x: 45, z: 45 }, { x: 51, z: 45 }];
+export const LAMPS = [{ x: 46, z: 37 }, { x: 51, z: 37 }, { x: 45, z: 45 }, { x: 51, z: 45 }];

@@ -103,7 +103,7 @@ export function createHarvestWorld(): EventWorld {
       }
       // lamp near the grove road and the garden: a short garland each, to make the whole town feel dressed
       strands.push({ a: lampTop({ x: 51, z: 37 }, 1.38), b: lampTop({ x: 61, z: 39 }, 1.38), sag: 1.0, kind: 'leaves' });
-      strands.push({ a: lampTop({ x: 44, z: 37 }, 1.38), b: lampTop({ x: 34, z: 46 }, 1.38), sag: 1.4, kind: 'leaves' });
+      strands.push({ a: lampTop({ x: 46, z: 37 }, 1.38), b: lampTop({ x: 34, z: 46 }, 1.38), sag: 1.4, kind: 'leaves' });
       // the lantern canopy over the table
       const post = (p: { x: number; z: number }) => new THREE.Vector3(p.x, ground(p.x, p.z) + 1.7, p.z);
       const [nw, ne, sw, se] = CANOPY_POSTS.map(post);

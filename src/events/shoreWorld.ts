@@ -6,7 +6,7 @@ import { ball, cyl } from '../render/util';
 
 const SUN = ['#fff3a8', '#ffd9a8', '#ffc2d8', '#fff7d6', '#ffe27a'];
 const SHELLS = ['#ffd9c2', '#ffe8d2', '#ffc2d8', '#fff3e0'];
-const LAMPS = [{ x: 44, z: 37 }, { x: 51, z: 37 }, { x: 45, z: 45 }, { x: 51, z: 45 }];
+const LAMPS = [{ x: 46, z: 37 }, { x: 51, z: 37 }, { x: 45, z: 45 }, { x: 51, z: 45 }];
 
 export function createShoreWorld(): EventWorld {
   return {
