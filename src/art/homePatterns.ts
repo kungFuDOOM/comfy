@@ -55,6 +55,13 @@ export function paintWall(w: WallDef, size = 128): HTMLCanvasElement {
       for (const [x, y] of [[96, 34], [30, 100]]) { g.beginPath(); g.arc(x * u, y * u, 3.2 * u, 0, Math.PI * 2); g.fill(); }
       break;
   }
+  // a whisper of fine paper grain so the wallpaper never reads as flat colour (deterministic)
+  let seed = w.id.length * 977 + w.kind.length * 131;
+  const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  for (let i = 0; i < 220; i++) {
+    g.fillStyle = rnd() < 0.5 ? 'rgba(255,255,255,0.14)' : 'rgba(120,80,90,0.06)';
+    g.fillRect(Math.floor(rnd() * size), Math.floor(rnd() * size), 2, 1);
+  }
   return c;
 }
 
@@ -67,11 +74,24 @@ export function paintFloor(f: FloorDef, size = 128): HTMLCanvasElement {
   switch (f.kind) {
     case 'checker':
       g.fillRect(0, 0, h, h); g.fillRect(h, h, h, h);
+      // soft bevels: a light edge on top / left of every square, a faint shade on the bottom / right
+      for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) {
+        g.fillStyle = 'rgba(255,255,255,0.35)'; g.fillRect(i * h, j * h, h, 2); g.fillRect(i * h, j * h, 2, h);
+        g.fillStyle = 'rgba(190,110,140,0.12)'; g.fillRect(i * h, j * h + h - 2, h, 2); g.fillRect(i * h + h - 2, j * h, 2, h);
+      }
       break;
     case 'planks': {
       const ph = size / 4;
       for (let i = 0; i < 4; i++) {
         g.fillStyle = i % 2 ? f.b : f.a; g.fillRect(0, i * ph, size, ph);
+        // soft wood grain: a few long wavy lines per plank (periodic across the tile so it still repeats seamlessly)
+        g.strokeStyle = 'rgba(150,100,60,0.12)'; g.lineWidth = 1;
+        for (let k = 0; k < 3; k++) {
+          g.beginPath();
+          for (let x = 0; x <= size; x += 4) { const y = i * ph + ph * (0.25 + k * 0.25) + Math.sin((x / size) * Math.PI * 2 * (k + 1) + i) * 1.6; if (x) g.lineTo(x, y); else g.moveTo(x, y); }
+          g.stroke();
+        }
+        g.fillStyle = 'rgba(255,255,255,0.16)'; g.fillRect(0, i * ph + 2, size, 2); // a sheen along each plank's edge
         g.fillStyle = 'rgba(150,100,60,0.28)'; g.fillRect(0, i * ph, size, 2);
         g.fillRect(((i * 37) % size) + 8, i * ph, 2, ph);
       }
@@ -81,6 +101,9 @@ export function paintFloor(f: FloorDef, size = 128): HTMLCanvasElement {
       g.fillStyle = f.b; g.fillRect(0, 0, size, size);
       g.fillStyle = f.a;
       for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) { g.beginPath(); g.roundRect(i * h + 4, j * h + 4, h - 8, h - 8, 10); g.fill(); }
+      // a glossy highlight in each tile's top-left corner
+      g.fillStyle = 'rgba(255,255,255,0.35)';
+      for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) { g.beginPath(); g.roundRect(i * h + 9, j * h + 9, h * 0.32, 5, 3); g.fill(); g.beginPath(); g.roundRect(i * h + 9, j * h + 9, 5, h * 0.22, 3); g.fill(); }
       break;
     case 'plush':
       g.fillStyle = f.b;
@@ -97,6 +120,13 @@ export function paintFloor(f: FloorDef, size = 128): HTMLCanvasElement {
       for (let i = 0; i <= 4; i++) { g.beginPath(); g.moveTo(i * q, 0); g.lineTo(i * q, size); g.stroke(); g.beginPath(); g.moveTo(0, i * q); g.lineTo(size, i * q); g.stroke(); }
       break;
     }
+  }
+  // a whisper of fine grain over every floor so it never reads as flat colour (deterministic, so swatches match)
+  let seed = f.id.length * 977 + f.kind.length * 131;
+  const rnd = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+  for (let i = 0; i < 220; i++) {
+    g.fillStyle = rnd() < 0.5 ? 'rgba(255,255,255,0.14)' : 'rgba(120,80,90,0.06)';
+    g.fillRect(Math.floor(rnd() * size), Math.floor(rnd() * size), 2, 1);
   }
   return c;
 }

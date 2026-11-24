@@ -558,6 +558,8 @@ function build(sp: Spec) {
 
   let expr: Expression = 'sweet';
   let ang = 0, last = -1, walk = 0, phase = 0, runK = 0, hasPrev = false, prevX = 0, prevZ = 0;
+  // alert (a villager with something to say today): eases in a happy little hop + wave while they stand idle
+  let alert = false, alertK = 0;
   model.rotation.order = 'YXZ'; // yaw first, so the lean tips along the facing direction
   const off = Math.random() * 10;
   const api: ActorMesh & { model: THREE.Group; dressMat: THREE.MeshToonMaterial; bandMat: THREE.MeshToonMaterial; head: THREE.Group; body: THREE.Group; dress: THREE.Mesh; band: THREE.Mesh; arms: typeof arms; legs: typeof legs; topper: THREE.Mesh | null; setExpression(e: Expression): void } = {
@@ -599,13 +601,15 @@ function build(sp: Spec) {
       model.position.y = (hop * (0.04 + runK * 0.1) + air) * w * sp.scale + Math.sin(t * 2.1 + off) * 0.006 * idle;
       model.rotation.x = (0.06 + runK * 0.24) * w; // a little lean on a walk, a clear tip forward while running
       model.scale.set(sp.scale * (1 - sq * 0.05), sp.scale * (1 + sq * (0.09 + runK * 0.04)), sp.scale * (1 - sq * 0.05));
-      model.rotation.z = s * (0.04 + runK * 0.04) * w;
+      // idle: a slow, gentle weight shift from foot to foot under the breathing
+      const shift = Math.sin(t * 0.55 + off * 1.3);
+      model.rotation.z = s * (0.04 + runK * 0.04) * w + shift * 0.022 * idle;
       body.rotation.y = s * (0.06 + runK * 0.08) * w;
       // breathing fades out as the stride fades in
       body.scale.set(1 - br * 0.014 * idle, 1 + br * 0.035 * idle, 1 - br * 0.014 * idle);
       head.position.y = HEAD_Y + br * 0.016 * idle - (1 - hop) * (0.016 + runK * 0.018) * w;
       head.rotation.y = s * (0.045 + runK * 0.06) * w;
-      head.rotation.z = Math.sin(t * 1.1 + off) * 0.035 * idle - s * (0.045 + runK * 0.03) * w;
+      head.rotation.z = Math.sin(t * 1.1 + off) * 0.035 * idle - shift * 0.02 * idle - s * (0.045 + runK * 0.03) * w;
       // Arms oppose the same-side leg: positive X swings the limb backward. Run carries both arms forward.
       for (const a of arms) {
         a.pivot.rotation.x = -a.sx * s * armAmp * w - runK * 0.3 * w + br * 0.045 * idle;
@@ -620,6 +624,23 @@ function build(sp: Spec) {
       legPivots[1].position.y = LEG_Y + Math.max(0, -swing) * lift + air;
       legPivots[0].position.z = s * plant * w;
       legPivots[1].position.z = -s * plant * w;
+      // the alert greeting: every few seconds a happy bounce and a little wave of the right paw (idle only)
+      alertK += ((alert ? 1 : 0) - alertK) * blend;
+      const greet = alertK * idle;
+      if (greet > 0.01) {
+        const gp = ((t + off) % 4.2) / 4.2;
+        const up = Math.min(1, gp / 0.08) * (1 - Math.min(1, Math.max(0, (gp - 0.34) / 0.08)));
+        const hopG = Math.max(0, Math.sin(Math.min(1, gp / 0.18) * Math.PI)) * (gp < 0.18 ? 1 : 0);
+        model.position.y += hopG * 0.07 * sp.scale * greet;
+        const sqG = hopG > 0 ? (0.5 - hopG) * 0.06 : 0;
+        model.scale.y *= 1 + sqG * greet; model.scale.x *= 1 - sqG * 0.5 * greet; model.scale.z *= 1 - sqG * 0.5 * greet;
+        const a = arms[1];
+        a.pivot.rotation.z = a.sx * (0.62 + (1.75 + Math.sin(t * 15) * 0.28) * up * greet);
+        a.pivot.rotation.x += -0.25 * up * greet;
+        head.rotation.z += Math.sin(t * 6) * 0.06 * up * greet;
+      }
+      // the player's plush ears give a soft springy bounce on each step (scale only: nothing pivots or detaches)
+      if (topper) topper.scale.y = 1 + ((1 - hop) * (0.03 + runK * 0.03) * w + br * 0.008 * idle);
       const ex = EXPR[expr];
       eyes.scale.x = eyeK * ex.x;
       eyes.scale.y = Math.min(ex.y, (t + off * 3) % 3.7 < 0.12 ? 0.12 : 1) * eyeK; // blink
@@ -633,7 +654,7 @@ function build(sp: Spec) {
       marker.position.y = 2.0 * sp.scale + Math.sin(t * 3) * 0.06;
       tick?.(t, w);
     },
-    setAlert(on) { marker.visible = on; },
+    setAlert(on) { marker.visible = on; alert = on; },
     setExpression(e) { expr = e; },
   };
   api.animate(0, false);
@@ -812,7 +833,7 @@ const ALPACA_SHAPE: Pick<Spec, 'scale' | 'headScale' | 'headDrop' | 'bodyScale' 
     const scarf = new Batch().add(G.torus(0.2, 0.05, 28), '#ff9ec0', { rx: Math.PI / 2 }).add(G.ball(0.05, 12), '#ffd36e', { x: 0.07, y: -0.04, z: 0.19 }).build();
     scarf.position.set(0, 0.56, 0.03);
     body.add(scarf);
-    return (t) => { pack.rotation.z = Math.sin(t * 1.3) * 0.02; };
+    return (t, walk) => { pack.rotation.z = Math.sin(t * 1.3) * 0.02; tail.position.y = HIP_Y + 0.12 + Math.abs(Math.sin(t * 9)) * 0.02 * walk; tail.rotation.z = Math.sin(t * 5) * 0.3; };
   },
 };
 
@@ -837,6 +858,7 @@ const VILLAGER_SHAPE: Partial<Record<string, Pick<Spec, 'scale' | 'headScale' | 
         .build();
       tail.position.set(0, HIP_Y + 0.2, -0.26);
       model.add(tail);
+      return (t, walk) => { tail.rotation.z = Math.sin(t * (4 + walk * 9)) * (0.25 + walk * 0.2); tail.position.y = HIP_Y + 0.2 + Math.abs(Math.sin(t * 9)) * 0.015 * walk; };
     },
   },
   bunny: {
@@ -889,6 +911,7 @@ const VILLAGER_SHAPE: Partial<Record<string, Pick<Spec, 'scale' | 'headScale' | 
       const tail = new Batch().add(G.ball(0.08, 12), '#dcb98c', {}).build();
       tail.position.set(0, HIP_Y + 0.15, -0.34);
       model.add(tail);
+      return (t, walk) => { tail.rotation.y = Math.sin(t * (2.5 + walk * 7)) * (0.3 + walk * 0.25); croissant.rotation.z = Math.sin(t * 1.3) * 0.03; };
     },
   },
   moth: {

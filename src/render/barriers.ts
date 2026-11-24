@@ -53,7 +53,7 @@ function bridge(b: Barrier): { broken: THREE.Group; mended: THREE.Group } {
   const m = mk();
   for (let i = 0; i < 9; i++) {
     const z = z0 - 0.05 + (i + 0.5) * ((z1 - z0 + 0.1) / 9);
-    m.k.add(G.box(2.1, 0.09, 0.2), i % 2 ? PLANK : PLANK_DARK, { x: b.cx, y: y, z });
+    m.k.add(G.rbox(2.1, 0.09, 0.2, 0.035), i % 2 ? PLANK : PLANK_DARK, { x: b.cx, y: y + (i % 3 === 1 ? 0.006 : 0), z });
   }
   for (const sx of [-1, 1]) m.k.add(G.box(0.08, 0.1, 2.3), PLANK_DARK, { x: b.cx + sx * 1.0, y: y - 0.04, z: b.cy });
   posts(m.k);
@@ -62,6 +62,22 @@ function bridge(b: Barrier): { broken: THREE.Group; mended: THREE.Group } {
     for (const t of [-0.6, 0, 0.6]) m.k.add(G.ball(0.07, 8), '#ff8fb6', { x: b.cx + sx * 1.0, y: y + 0.6, z: b.cy + t, s: [1, 0.9, 1] });
   }
   m.g.add(m.k.build());
+  // toy trim (lit, no shadows): a lower rope swag, a blossom garland between the knots and a bow on every post
+  const trim = new Batch();
+  for (const sx of [-1, 1]) {
+    for (let i = 0; i < 4; i++) {
+      const za = b.cy - 1.05 + i * 0.7, zb = za + 0.7, zm = (za + zb) / 2;
+      trim.add(G.cyl(0.018, 0.018, 0.74, 5), '#fff4e6', { x: b.cx + sx * 1.0, y: y + 0.36, z: zm, rx: Math.PI / 2 });
+      trim.add(G.ball(0.045, 6), i % 2 ? '#ffffff' : '#fff3a8', { x: b.cx + sx * 1.02, y: y + 0.58, z: zm + 0.3, s: [1, 0.8, 1] });
+      trim.add(G.ball(0.045, 6), PALETTE.leaf, { x: b.cx + sx * 1.02, y: y + 0.6, z: zm - 0.3, s: [1.2, 0.6, 0.8] });
+    }
+    for (const sz of [-1, 1]) {
+      const px = b.cx + sx * 1.0, pz = b.cy + sz * 1.05;
+      for (const d of [-1, 1]) trim.add(G.ball(0.055, 8), '#ff9ec0', { x: px + d * 0.06, y: y + 0.7, z: pz + sz * 0.08, s: [1.1, 0.75, 0.5], rz: d * 0.3 });
+      trim.add(G.ball(0.03, 6), '#ff7fa9', { x: px, y: y + 0.7, z: pz + sz * 0.1 });
+    }
+  }
+  m.g.add(trim.build(undefined, false));
   // broken: stubs at each bank, a few planks adrift, a slumped rope
   const br = mk();
   for (const [z, dir] of [[z0, 1], [z1, -1]] as const) {

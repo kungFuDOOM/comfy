@@ -5,7 +5,7 @@ import type { Season } from '../time';
 import type { FootSurface } from '../audio';
 import { steamVents } from './structures';
 
-const DAY = 70;        // petals + sparkles, wrapped around the camera target
+const DAY = 84;        // petals + sparkles, wrapped around the camera target
 const FLIES = 46;      // night fireflies, wrapped around the camera target
 const STEAM_PER = 12;  // puffs per steam vent
 // wrap box around the follow target (camera looks north, so more room towards -z)
@@ -142,7 +142,8 @@ export function createParticles(): Particles {
           day.pos.set([x, groundAt(x, z) + y, z], i * 3);
           const fade = sp ? Math.pow(0.5 + 0.5 * Math.sin(t * (2.2 + r1 * 2) + i * 1.7), 3) : Math.min(1, life * 2, (5 - life) * 2);
           day.alpha[i] = (sp ? 0.9 : 0.75) * fade;
-          day.size[i] = sp ? 0.08 + r2 * 0.05 : 0.1 + r1 * 0.05;
+          // petals flutter (their apparent size flips as they tumble); sparkles pulse a little
+          day.size[i] = sp ? 0.08 + r2 * 0.05 : (0.1 + r1 * 0.05) * (0.7 + 0.3 * Math.abs(Math.sin(t * (2.2 + r2 * 1.5) + i)));
         }
         for (const n of ['position', 'aAlpha', 'aSize']) day.pts.geometry.attributes[n].needsUpdate = true;
       }
@@ -160,11 +161,24 @@ export function createParticles(): Particles {
       }
 
       steamVents.forEach((v, vi) => {
+        if (v.wisp) {
+          // chimney wisp: slow, soft puffs that swell, lean down-wind and thin out
+          for (let j = 0; j < STEAM_PER; j++) {
+            const i = vi * STEAM_PER + j, ph = wrap(t * 0.11 + j / STEAM_PER + vi * 0.37, 1);
+            const drift = ph * ph * 0.9 + Math.sin(t * 0.8 + j * 1.3) * 0.06 * (0.3 + ph);
+            steam.pos.set([v.x + drift, v.y + ph * 1.6, v.z - ph * 0.25 + Math.cos(j * 2.1 + t * 0.5) * 0.05], i * 3);
+            steam.alpha[i] = Math.sin(Math.min(1, ph * 1.15) * Math.PI) * 0.32; // (kept in rain: a chimney wisp on a grey day is the coziest thing)
+            steam.size[i] = 0.22 + ph * 0.5;
+          }
+          return;
+        }
         const rise = v.big ? 1.3 : 0.55, puff = v.big ? 0.42 : 0.14;
         for (let j = 0; j < STEAM_PER; j++) {
-          const i = vi * STEAM_PER + j, ph = wrap(t * (v.big ? 0.22 : 0.4) + j / STEAM_PER, 1);
+          const i = vi * STEAM_PER + j, ph = wrap(t * (v.big ? 0.22 : 0.4) + j / STEAM_PER + vi * 0.23, 1);
+          // curls: a soft spiral that widens as it rises
           const sway = Math.sin(t * 1.4 + j * 1.9 + ph * 4) * 0.08 * (1 + ph * 2) * (v.big ? 2 : 1);
-          steam.pos.set([v.x + sway, v.y + ph * rise, v.z + Math.cos(j * 2.4) * 0.03], i * 3);
+          const curl = Math.cos(t * 1.1 + j * 1.9 + ph * 5) * 0.04 * ph * (v.big ? 2 : 1);
+          steam.pos.set([v.x + sway, v.y + ph * rise, v.z + Math.cos(j * 2.4) * 0.03 + curl], i * 3);
           steam.alpha[i] = Math.sin(ph * Math.PI) * (v.big ? 0.55 : 0.45);
           steam.size[i] = puff * (0.5 + ph);
         }

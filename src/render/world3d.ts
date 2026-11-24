@@ -25,7 +25,7 @@ import { createNature } from './nature';
 import { createParticles } from './particles';
 import { createPlayerActs } from './playerActs';
 import { createPost } from './post';
-import { createStructures } from './structures';
+import { animateStructures, createStructures } from './structures';
 import { createTownHomesLayer } from './townHomesLayer';
 import { createTerrain, heightAtUnits } from './terrain';
 import { createWeatherLayer } from './weatherLayer';
@@ -333,6 +333,7 @@ export function createWorld3D(canvas: HTMLCanvasElement): World3D {
         if (markerT > 1.6) { markerT = -1; markerMesh.visible = false; }
       }
       dynamic.update(f.t);
+      animateStructures(f.t);
       eventLayer.update(f.t);
       townHomes.update();
       merchantLayer.update(f.t, f.dt, f.player.x, f.player.y);

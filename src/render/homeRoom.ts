@@ -12,7 +12,7 @@ import { getClock } from '../time';
 import { currentLook } from '../wardrobe';
 import { createDecor } from './dynamic';
 import { celebrate, Shape } from './celebrate';
-import { makeToon, PALETTE } from './materials';
+import { contactShadow, makeToon, PALETTE } from './materials';
 import { Batch, G, makeLabel } from './util';
 import { getWorld, runScene } from './stage';
 import type { Director } from './world3d';
@@ -39,6 +39,32 @@ function tex(key: string, make: () => HTMLCanvasElement, rx: number, ry: number)
   return t;
 }
 
+// soft warm glow textures for the room's unlit light dressing (one tiny canvas each, built once)
+let glowTex: THREE.CanvasTexture | null = null, beamTex: THREE.CanvasTexture | null = null;
+function glowMat(opacity: number) {
+  if (!glowTex) {
+    const c = document.createElement('canvas'); c.width = c.height = 64;
+    const g = c.getContext('2d')!, gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(255,236,200,1)'); gr.addColorStop(0.5, 'rgba(255,220,190,0.45)'); gr.addColorStop(1, 'rgba(255,210,190,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+    glowTex = new THREE.CanvasTexture(c);
+  }
+  return new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, opacity, depthWrite: false, blending: THREE.AdditiveBlending });
+}
+function beamMat() {
+  if (!beamTex) {
+    const c = document.createElement('canvas'); c.width = 32; c.height = 64;
+    const g = c.getContext('2d')!;
+    const v = g.createLinearGradient(0, 0, 0, 64); v.addColorStop(0, 'rgba(255,240,215,0.9)'); v.addColorStop(1, 'rgba(255,230,210,0)');
+    g.fillStyle = v; g.fillRect(0, 0, 32, 64);
+    g.globalCompositeOperation = 'destination-in';
+    const h = g.createLinearGradient(0, 0, 32, 0); h.addColorStop(0, 'rgba(0,0,0,0)'); h.addColorStop(0.3, 'rgba(0,0,0,1)'); h.addColorStop(0.7, 'rgba(0,0,0,1)'); h.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = h; g.fillRect(0, 0, 32, 64);
+    beamTex = new THREE.CanvasTexture(c);
+  }
+  return new THREE.MeshBasicMaterial({ map: beamTex, transparent: true, opacity: 0.2, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide });
+}
+
 /** The per-room shell: floor, walls, trim, window, slab and clouds. Built once and reused between visits. */
 function buildShell() {
   const g = new THREE.Group();
@@ -55,28 +81,73 @@ function buildShell() {
   left.rotation.y = Math.PI / 2; left.position.set(X0, FLOOR_Y + WALL_H / 2, B.z);
 
   const trim = new Batch();
-  const TRIM = '#fff6ef';
-  trim.add(G.box(HOME_W + 0.3, 0.32, 0.16), TRIM, { x: B.x, y: FLOOR_Y + 0.16, z: Z0 + 0.06 });            // baseboards
-  trim.add(G.box(0.16, 0.32, HOME_D + 0.1), TRIM, { x: X0 + 0.06, y: FLOOR_Y + 0.16, z: B.z });
-  trim.add(G.box(HOME_W + 0.3, 0.14, 0.2), '#ff9ec0', { x: B.x, y: FLOOR_Y + WALL_H + 0.05, z: Z0 });       // top rails (pink)
-  trim.add(G.box(0.2, 0.14, HOME_D + 0.3), '#ff9ec0', { x: X0, y: FLOOR_Y + WALL_H + 0.05, z: B.z });
-  // floor edge slab: a thick cream-and-pink plinth so the room reads like a toy diorama
-  trim.add(G.box(HOME_W + 0.4, 0.5, HOME_D + 0.4), '#ffd9e6', { x: B.x, y: FLOOR_Y - 0.29, z: B.z });
-  trim.add(G.box(HOME_W + 0.46, 0.1, HOME_D + 0.46), '#fff4f8', { x: B.x, y: FLOOR_Y - 0.1, z: B.z });
-  // back-wall window with a sky pane, pink frame, cross bars and a sill with a tiny plant
+  const TRIM = '#fff6ef', PINK = '#ff9ec0', BLUSH = '#ffc9dc';
+  const BW = HOME_W, BD = HOME_D;
+  // wainscoting: a cream panelled dado on both walls with raised panels, a rounded pink chair rail and a soft baseboard
+  const DADO = 0.95;
+  trim.add(G.box(BW + 0.1, DADO, 0.06), TRIM, { x: B.x, y: FLOOR_Y + DADO / 2, z: Z0 + 0.03 });
+  trim.add(G.box(0.06, DADO, BD + 0.1), TRIM, { x: X0 + 0.03, y: FLOOR_Y + DADO / 2, z: B.z });
+  for (let i = 0; i < 8; i++) trim.add(G.rbox(0.78, 0.48, 0.04, 0.03), '#fffaf5', { x: X0 + 0.5 + i, y: FLOOR_Y + 0.58, z: Z0 + 0.075 });
+  for (let i = 0; i < 6; i++) trim.add(G.rbox(0.04, 0.48, 0.78, 0.03), '#fffaf5', { x: X0 + 0.075, y: FLOOR_Y + 0.58, z: Z0 + 0.5 + i });
+  trim.add(G.cyl(0.045, 0.045, BW + 0.1, 10), PINK, { x: B.x, y: FLOOR_Y + DADO + 0.02, z: Z0 + 0.07, rz: Math.PI / 2 });
+  trim.add(G.cyl(0.045, 0.045, BD + 0.1, 10), PINK, { x: X0 + 0.07, y: FLOOR_Y + DADO + 0.02, z: B.z, rx: Math.PI / 2 });
+  trim.add(G.rbox(BW + 0.3, 0.26, 0.16, 0.05), TRIM, { x: B.x, y: FLOOR_Y + 0.13, z: Z0 + 0.08 });            // baseboards
+  trim.add(G.rbox(0.16, 0.26, BD + 0.1, 0.05), TRIM, { x: X0 + 0.08, y: FLOOR_Y + 0.13, z: B.z });
+  trim.add(G.box(BW + 0.3, 0.03, 0.17), BLUSH, { x: B.x, y: FLOOR_Y + 0.24, z: Z0 + 0.08 });
+  trim.add(G.box(0.17, 0.03, BD + 0.1), BLUSH, { x: X0 + 0.08, y: FLOOR_Y + 0.24, z: B.z });
+  // crown molding: a rounded pink rail with a cream bead and a row of soft scallops hanging under it
+  trim.add(G.rbox(BW + 0.3, 0.16, 0.22, 0.06), PINK, { x: B.x, y: FLOOR_Y + WALL_H + 0.05, z: Z0 });
+  trim.add(G.rbox(0.22, 0.16, BD + 0.3, 0.06), PINK, { x: X0, y: FLOOR_Y + WALL_H + 0.05, z: B.z });
+  trim.add(G.cyl(0.035, 0.035, BW + 0.2, 8), TRIM, { x: B.x, y: FLOOR_Y + WALL_H - 0.05, z: Z0 + 0.1, rz: Math.PI / 2 });
+  trim.add(G.cyl(0.035, 0.035, BD + 0.2, 8), TRIM, { x: X0 + 0.1, y: FLOOR_Y + WALL_H - 0.05, z: B.z, rx: Math.PI / 2 });
+  for (let i = 0; i < 20; i++) trim.add(G.ball(0.1, 8), i % 2 ? TRIM : BLUSH, { x: X0 + 0.2 + i * 0.4, y: FLOOR_Y + WALL_H - 0.12, z: Z0 + 0.06, s: [1, 0.7, 0.45] });
+  for (let i = 0; i < 15; i++) trim.add(G.ball(0.1, 8), i % 2 ? TRIM : BLUSH, { x: X0 + 0.06, y: FLOOR_Y + WALL_H - 0.12, z: Z0 + 0.2 + i * 0.4, s: [0.45, 0.7, 1] });
+  // floor edge slab: a thick cream-and-pink plinth so the room reads like a toy diorama, with a scalloped lip on the open sides
+  trim.add(G.box(BW + 0.4, 0.5, BD + 0.4), '#ffd9e6', { x: B.x, y: FLOOR_Y - 0.29, z: B.z });
+  trim.add(G.rbox(BW + 0.46, 0.1, BD + 0.46, 0.04), '#fff4f8', { x: B.x, y: FLOOR_Y - 0.1, z: B.z });
+  for (let i = 0; i < 17; i++) trim.add(G.ball(0.13, 8), i % 2 ? '#fff4f8' : '#ffc3da', { x: X0 - 0.2 + i * 0.525, y: FLOOR_Y - 0.36, z: Z0 + BD + 0.2, s: [1, 0.8, 0.5] });
+  for (let i = 0; i < 13; i++) trim.add(G.ball(0.13, 8), i % 2 ? '#fff4f8' : '#ffc3da', { x: X0 + BW + 0.2, y: FLOOR_Y - 0.36, z: Z0 - 0.2 + i * 0.533, s: [0.5, 0.8, 1] });
+  // back-wall window: an arched sky pane in a pink frame, cross bars, a deep sill with a flower box
   const wx = B.x + 1.5, wy = FLOOR_Y + 1.95, wz = Z0 + 0.04;
-  trim.add(G.box(1.7, 1.5, 0.08), '#ff9ec0', { x: wx, y: wy, z: wz });
-  trim.add(G.box(1.4, 1.2, 0.1), '#bfe6ff', { x: wx, y: wy, z: wz + 0.02 });
-  trim.add(G.box(0.07, 1.2, 0.12), '#ffffff', { x: wx, y: wy, z: wz + 0.04 });
-  trim.add(G.box(1.4, 0.07, 0.12), '#ffffff', { x: wx, y: wy, z: wz + 0.04 });
-  trim.add(G.box(1.95, 0.1, 0.34), '#ffffff', { x: wx, y: wy - 0.82, z: wz + 0.14 });
-  // curtains: soft pink swags on each side with a gold rod
-  for (const sx of [-1, 1]) for (let i = 0; i < 3; i++) trim.add(G.capsule(0.1, 1.5), i % 2 ? '#ff9ec0' : '#ffb3cf', { x: wx + sx * (0.95 + i * 0.12), y: wy - 0.1, z: wz + 0.1, s: [1, 1, 0.7] });
-  trim.add(G.cyl(0.04, 0.04, 2.5, 8), PALETTE.gold, { x: wx, y: wy + 0.95, z: wz + 0.1, rz: Math.PI / 2 });
-  // a framed heart picture on the side wall
-  trim.add(G.box(0.08, 0.9, 0.9), '#fff6ef', { x: X0 + 0.06, y: FLOOR_Y + 2.1, z: Z0 + 2.2 });
+  const arch = (r: number, d: number) => new THREE.CylinderGeometry(r, r, d, 20, 1, false, -Math.PI / 2, Math.PI).rotateX(-Math.PI / 2); // upper half-disc facing +z
+  trim.add(G.rbox(1.7, 1.3, 0.08, 0.03), PINK, { x: wx, y: wy - 0.1, z: wz });
+  trim.add(arch(0.85, 0.08), PINK, { x: wx, y: wy + 0.55, z: wz });
+  trim.add(G.box(1.4, 1.1, 0.1), '#bfe6ff', { x: wx, y: wy - 0.1, z: wz + 0.02 });
+  trim.add(arch(0.7, 0.1), '#d4efff', { x: wx, y: wy + 0.45, z: wz + 0.02 });
+  trim.add(G.box(0.07, 1.6, 0.12), '#ffffff', { x: wx, y: wy + 0.1, z: wz + 0.04 });
+  trim.add(G.box(1.4, 0.07, 0.12), '#ffffff', { x: wx, y: wy + 0.1, z: wz + 0.04 });
+  trim.add(G.torus(0.72, 0.035, 20, Math.PI), '#ffffff', { x: wx, y: wy + 0.45, z: wz + 0.05 });
+  for (const [cx, cy, r] of [[-0.35, 0.05, 0.16], [-0.18, 0.1, 0.2], [0.0, 0.04, 0.15], [0.42, -0.35, 0.12], [0.56, -0.32, 0.15]] as [number, number, number][]) trim.add(G.ball(r, 8), '#ffffff', { x: wx + cx, y: wy + cy, z: wz + 0.05, s: [1, 0.75, 0.15] }); // clouds in the sky
+  trim.add(G.rbox(1.95, 0.1, 0.36, 0.04), '#ffffff', { x: wx, y: wy - 0.8, z: wz + 0.15 });
+  trim.add(G.rbox(1.3, 0.2, 0.24, 0.05), '#e8b896', { x: wx, y: wy - 0.65, z: wz + 0.2 });
+  for (let i = 0; i < 7; i++) {
+    const fx = wx - 0.54 + i * 0.18;
+    trim.add(G.ball(0.08, 8), i % 2 ? PALETTE.leaf : '#a6e8b4', { x: fx, y: wy - 0.52, z: wz + 0.18 });
+    trim.add(G.ball(0.06, 8), ['#ff8fb6', '#ffffff', '#fff3a8', '#ffc9dc'][i % 4], { x: fx + 0.03, y: wy - 0.47 + (i % 2) * 0.04, z: wz + 0.26 });
+  }
+  // curtains: soft pink swags on each side with tie-backs, a gold rod with ball ends and a scalloped valance
+  for (const sx of [-1, 1]) {
+    for (let i = 0; i < 3; i++) trim.add(G.capsule(0.1, 1.7, 4, 10), i % 2 ? '#ff9ec0' : '#ffb3cf', { x: wx + sx * (0.95 + i * 0.12), y: wy, z: wz + 0.1, s: [1, 1, 0.7] });
+    trim.add(G.torus(0.22, 0.03, 14), PALETTE.gold, { x: wx + sx * 1.07, y: wy - 0.35, z: wz + 0.12, rx: Math.PI / 2, s: [1, 0.55, 1] });
+    trim.add(G.ball(0.06, 10), PALETTE.gold, { x: wx + sx * 1.3, y: wy + 1.08, z: wz + 0.12 });
+  }
+  trim.add(G.cyl(0.035, 0.035, 2.6, 8), PALETTE.gold, { x: wx, y: wy + 1.08, z: wz + 0.12, rz: Math.PI / 2 });
+  for (let i = 0; i < 9; i++) trim.add(G.ball(0.15, 8), i % 2 ? '#ff8fb6' : '#ffc0d8', { x: wx - 1.2 + i * 0.3, y: wy + 0.97, z: wz + 0.16, s: [1, 0.7, 0.45] });
+  // a framed heart picture on the side wall, a little shelf of cups under it, and two warm wall sconces
+  trim.add(G.rbox(0.08, 0.9, 0.9, 0.03), '#fff6ef', { x: X0 + 0.06, y: FLOOR_Y + 2.1, z: Z0 + 2.2 });
   trim.add(G.box(0.1, 0.7, 0.7), '#ffd0e2', { x: X0 + 0.08, y: FLOOR_Y + 2.1, z: Z0 + 2.2 });
   trim.add(G.ball(0.2, 10), '#ff6f9f', { x: X0 + 0.15, y: FLOOR_Y + 2.1, z: Z0 + 2.2, s: [0.4, 1, 1] });
+  trim.add(G.rbox(0.26, 0.05, 1.1, 0.02), '#ffffff', { x: X0 + 0.15, y: FLOOR_Y + 1.48, z: Z0 + 2.2 });
+  for (const [dz, c] of [[-0.35, '#ffb3cf'], [0, '#ffffff'], [0.35, '#bfe6ff']] as [number, string][]) {
+    trim.add(G.cyl(0.06, 0.05, 0.1, 10), c, { x: X0 + 0.16, y: FLOOR_Y + 1.555, z: Z0 + 2.2 + dz });
+    trim.add(G.torus(0.03, 0.009, 8), c, { x: X0 + 0.16, y: FLOOR_Y + 1.56, z: Z0 + 2.2 + dz + 0.07, ry: Math.PI / 2 });
+  }
+  const sconces: [number, number, number][] = [[B.x - 3.25, FLOOR_Y + 2.05, Z0 + 0.1], [X0 + 0.1, FLOOR_Y + 2.05, Z0 + 4.4]];
+  for (const [x, y, z] of sconces) {
+    const onBack = z < Z0 + 0.5;
+    trim.add(G.rbox(onBack ? 0.14 : 0.04, 0.22, onBack ? 0.04 : 0.14, 0.015), PALETTE.gold, { x, y, z });
+    trim.add(G.cyl(0.07, 0.045, 0.06, 10), '#ffffff', { x: x + (onBack ? 0 : 0.12), y: y - 0.04, z: z + (onBack ? 0.12 : 0) });
+  }
   const trimMesh = trim.build(undefined, false); // no shadows: a long rail shadow across the floor looks like a smudge
 
   const sign = makeLabel('Home Sweet Home ♡', 2.2);
@@ -88,7 +159,29 @@ function buildShell() {
     for (const [dx, dy, r] of [[-0.9, 0, 0.7], [0, 0.25, 0.95], [1, 0, 0.75], [0.2, -0.1, 0.8]]) clouds.add(G.ball(r * s, 12), '#ffffff', { x: B.x + x + dx * s, y: FLOOR_Y + y + dy * s, z: B.z + z });
   }
 
-  g.add(floor, back, left, trimMesh, sign, clouds.build());
+  // cheap warm light: unlit glowing sconce bulbs, an additive sunbeam slanting in from the window onto a soft warm pool,
+  // and soft contact shading where the walls meet the floor (no new lights or passes)
+  const bulbGeo = new THREE.SphereGeometry(0.075, 12, 8);
+  const bulbMat = new THREE.MeshBasicMaterial({ color: new THREE.Color('#fff0c8') });
+  const warm = new THREE.Group();
+  for (const [x, y, z] of sconces) {
+    const onBack = z < Z0 + 0.5;
+    const bulb = new THREE.Mesh(bulbGeo, bulbMat);
+    bulb.position.set(x + (onBack ? 0 : 0.12), y + 0.04, z + (onBack ? 0.12 : 0));
+    warm.add(bulb);
+    const halo = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9), glowMat(0.28));
+    halo.position.set(x + (onBack ? 0 : 0.02), y + 0.05, z + (onBack ? 0.02 : 0));
+    if (!onBack) halo.rotation.y = Math.PI / 2;
+    warm.add(halo);
+  }
+  const beam = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 2.9), beamMat());
+  beam.position.set(wx + 0.25, FLOOR_Y + 1.05, wz + 1.15); beam.rotation.set(-0.9, 0, 0.12);
+  const pool = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 1.5), glowMat(0.22));
+  pool.rotation.x = -Math.PI / 2; pool.position.set(wx + 0.35, FLOOR_Y + 0.012, wz + 2.15);
+  warm.add(beam, pool);
+  const seamBack = contactShadow(HOME_W, 0.7, 'rect', 0.2); seamBack.position.set(B.x, FLOOR_Y + 0.008, Z0 + 0.22);
+  const seamLeft = contactShadow(0.7, HOME_D, 'rect', 0.2); seamLeft.position.set(X0 + 0.22, FLOOR_Y + 0.008, B.z);
+  g.add(floor, back, left, trimMesh, sign, clouds.build(), warm, seamBack, seamLeft);
   return {
     group: g,
     style(wall: string, fl: string) {
