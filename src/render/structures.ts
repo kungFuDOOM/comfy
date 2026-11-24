@@ -18,11 +18,13 @@ const ROOF_H = 1.7;
 
 /** Everything one model needs: body, glowing glass, and the two prints. */
 class Kit {
-  v = new Batch(); scallops = new Batch(); glow = new Batch(); classic = new Batch(); pink = new Batch();
+  /** deco: small dressing (cups, pastries, blossoms, charms, umbrella canopies) that is lit but never in the shadow map. */
+  v = new Batch(); scallops = new Batch(); deco = new Batch(); glow = new Batch(); classic = new Batch(); pink = new Batch();
   print(k: CheetahKind) { return k === 'classic' ? this.classic : this.pink; }
   into(g: THREE.Group) {
     if (!this.v.empty) g.add(this.v.build());
     if (!this.scallops.empty) { const m = this.scallops.build(); m.castShadow = false; g.add(m); } // roof shingles: lit, but not in the shadow map
+    if (!this.deco.empty) g.add(this.deco.build(vertexToon(), false));
     if (!this.glow.empty) g.add(this.glow.build(vertexToon(PALETTE.windowGlow)));
     if (!this.classic.empty) g.add(this.classic.build(cheetahToon('classic')));
     if (!this.pink.empty) g.add(this.pink.build(cheetahToon('pink')));
@@ -251,8 +253,49 @@ function roofPedestal(b: Batch, wallH: number, color: string, x: number, z = 1.8
   return top + 0.05;
 }
 
-/** World-space points where coffee steam rises (filled while structures are built; read by particles.ts). */
-export const steamVents: { x: number; y: number; z: number; big: boolean }[] = [];
+/** World-space points where coffee steam rises (filled while structures are built; read by particles.ts).
+ *  wisp = a slow, soft chimney wisp rather than cup steam. */
+export const steamVents: { x: number; y: number; z: number; big: boolean; wisp?: boolean }[] = [];
+
+/** Little pieces that sway in the breeze (lamp charms, hanging signs). Animated by animateStructures (a few rotations a frame). */
+const swayers: { o: THREE.Object3D; ph: number; amp: number; speed: number }[] = [];
+export function animateStructures(t: number) {
+  for (const s of swayers) {
+    s.o.rotation.z = Math.sin(t * s.speed + s.ph) * s.amp + Math.sin(t * s.speed * 2.3 + s.ph * 1.7) * s.amp * 0.3;
+    s.o.rotation.x = Math.sin(t * s.speed * 0.7 + s.ph + 1.3) * s.amp * 0.45;
+  }
+}
+
+/** A tiny clump of leaves with a few blooms, for planters and the feet of posts. No shadows (goes in Kit.deco). */
+function blossomTuft(b: Batch, x: number, y: number, z: number, s = 1, cols: string[] = ['#ff8fb6', '#ffffff', '#ffc9dc']) {
+  const leaf = tint(PALETTE.leaf, '#ffffff', 0.1);
+  for (let i = 0; i < 3; i++) { const a = i * 2.1; b.add(G.ball(0.06, 8), i % 2 ? leaf : PALETTE.leaf, { x: x + Math.cos(a) * 0.05 * s, y: y + 0.03 * s, z: z + Math.sin(a) * 0.05 * s, s: [s, s * 0.7, s] }); }
+  cols.forEach((c, i) => {
+    const a = i * 2.3 + 0.6, fx = x + Math.cos(a) * 0.055 * s, fz = z + Math.sin(a) * 0.055 * s, fy = y + (0.08 + (i % 2) * 0.025) * s;
+    b.add(G.ball(0.04, 8), c, { x: fx, y: fy, z: fz, s: [s, s * 0.8, s] });
+    b.add(G.ball(0.014, 6), '#ffe08a', { x: fx, y: fy + 0.02 * s, z: fz + 0.02 * s, s });
+  });
+}
+
+/** A pastry on a little plate: a croissant (k 0), a pink macaron stack (k 1) or a strawberry tartlet (k 2). */
+function pastryPlate(b: Batch, x: number, y: number, z: number, k: number, ry = 0) {
+  b.add(G.cyl(0.11, 0.085, 0.014, 16), '#ffffff', { x, y: y + 0.007, z });
+  b.add(G.torus(0.105, 0.006, 16), '#ffc9dc', { x, y: y + 0.014, z, rx: Math.PI / 2 });
+  if (k === 0) {
+    for (let i = -2; i <= 2; i++) b.add(G.ball(0.034 - Math.abs(i) * 0.005, 8), i % 2 ? '#f2b765' : '#e49c5a', { x: x + Math.cos(ry) * i * 0.03, y: y + 0.035 - Math.abs(i) * 0.006, z: z - Math.sin(ry) * i * 0.03, s: [1, 0.85, 1.15], ry });
+  } else if (k === 1) {
+    for (const [dy, c] of [[0.025, '#ffb3cf'], [0.06, '#d9c8ff']] as [number, string][]) {
+      b.add(G.cyl(0.04, 0.04, 0.022, 12), c, { x, y: y + dy, z });
+      b.add(G.cyl(0.036, 0.036, 0.01, 12), '#fff4e6', { x, y: y + dy + 0.015, z });
+      b.add(G.cyl(0.04, 0.04, 0.02, 12), c, { x, y: y + dy + 0.028, z });
+    }
+  } else {
+    b.add(G.cyl(0.055, 0.045, 0.03, 12), '#f2c48a', { x, y: y + 0.03, z });
+    b.add(G.cyl(0.046, 0.046, 0.012, 12), '#fff4e6', { x, y: y + 0.047, z });
+    b.add(G.ball(0.022, 8), '#ff5c8a', { x, y: y + 0.064, z, s: [1, 1.15, 1] });
+    b.add(G.ball(0.008, 6), '#8fe0a0', { x, y: y + 0.088, z });
+  }
+}
 
 export function createBuilding(b: Building): THREE.Group {
   const st = STYLE[b.id];
@@ -313,6 +356,7 @@ export function createBuilding(b: Building): THREE.Group {
     // chimney: rounded stack with a soft cap
     k.v.add(G.rbox(0.5, 1.1, 0.5, 0.08), '#ffe1d2', { x: -2.6, y: wallH + 1.25, z: -0.6 });
     k.v.add(G.rbox(0.64, 0.16, 0.64, 0.07), '#ffffff', { x: -2.6, y: wallH + 1.84, z: -0.6 });
+    steamVents.push({ x: cx - 2.6, y: base + wallH + 1.95, z: cz - 0.6, big: false, wisp: true });
     // giant coffee cup sign on the roof, with steam
     const sx = -2.35, sz = 1.85, top = roofPedestal(k.v, wallH, '#ffe1d2', sx, sz);
     mug(k.v, sx - 0.06, top, sz, 6, '#ffffff', PALETTE.pink);
@@ -376,6 +420,7 @@ export function createBuilding(b: Building): THREE.Group {
     k.v.add(G.rbox(1.2, 0.1, 0.4, 0.045), '#ffffff', { y: 0.05, z: front + 0.2 });
     k.v.add(G.rbox(0.5, 1.2, 0.5, 0.08), '#ffc3da', { x: w / 2 - 0.9, y: wallH + 1.2 });
     k.v.add(G.rbox(0.64, 0.16, 0.64, 0.07), '#ffffff', { x: w / 2 - 0.9, y: wallH + 1.84 });
+    steamVents.push({ x: cx + w / 2 - 0.9, y: base + wallH + 1.95, z: cz, big: false, wisp: true });
   }
   k.into(g);
 
@@ -484,6 +529,14 @@ export function createStation(s: Station): THREE.Group {
       }
       stripedAwning(k.v, 0, 1.98, -0.05, w + 0.3, 0.8, '#c3e8d6', '#ffffff', 0.4);
       k.v.add(G.ball(0.17), '#ff8fb6', { x: -0.5, y: 0.95 }).add(G.ball(0.17), '#ff8fb6', { x: -0.1, y: 0.95 }).add(G.ball(0.17), '#ffffff', { x: 0.4, y: 0.95 });
+      // market dressing (no shadows): a cream trim on the counter, little crates of produce, a seed-packet row and bunting
+      k.deco.add(G.rbox(w - 0.1, 0.06, 0.86, 0.025), '#fff4e6', { y: 0.81 });
+      for (const [x, c1, c2] of [[0.72, '#ffc2da', '#ff8fb6']] as [number, string, string][]) {
+        k.deco.add(G.rbox(0.32, 0.14, 0.24, 0.02), '#e8b896', { x, y: 0.91, z: 0.25 });
+        for (let i = 0; i < 5; i++) k.deco.add(G.ball(0.055, 8), i % 2 ? c1 : c2, { x: x - 0.1 + (i % 3) * 0.1, y: 1.0 + (i > 2 ? 0.03 : 0), z: 0.2 + (i > 2 ? 0.08 : 0) });
+      }
+      for (let i = 0; i < 4; i++) k.deco.add(G.rbox(0.1, 0.14, 0.02, 0.01), ['#cfeedd', '#ffd0e0', '#e4d6ff', '#fff3a8'][i], { x: -0.86 + i * 0.13, y: 0.88, z: 0.34, rx: -0.2 });
+      for (let i = 0; i < 9; i++) k.deco.add(G.cone(0.07, 0.14, 3), i % 3 === 0 ? '#ff9ec0' : i % 3 === 1 ? '#ffffff' : '#c3e8d6', { x: -w / 2 + 0.2 + i * ((w - 0.4) / 8), y: 1.52, z: 0.33, rx: Math.PI, s: [1, 1, 0.25] });
       const l = makeLabel('Tuppence Cart', 2.2); l.position.set(0, 2.5, 0.4); g.add(l);
       break;
     }
@@ -532,6 +585,12 @@ export function createStation(s: Station): THREE.Group {
       k.v.add(G.rbox(0.2, 0.16, 0.03), '#fff4f8', { y: 1.08, z: 0.21 });
       k.v.add(G.ball(0.045, 16), PALETTE.gold, { y: 1.08, z: 0.235 });
       k.v.add(G.ball(0.06, 16), '#ffffff', { x: -0.31, y: 1.45 });
+      // a white rolled rim round the front, a little heart on top and blossoms round the foot
+      k.deco.add(G.torus(0.2, 0.018, 20), '#ffffff', { x: -0.31, y: 1.27, ry: Math.PI / 2 });
+      for (const sx of [-1, 1]) k.deco.add(G.ball(0.035, 8), '#ff7fa9', { x: 0.1 + sx * 0.022, y: 1.49, s: [1, 1, 0.5] });
+      k.deco.add(G.cone(0.048, 0.05, 8), '#ff7fa9', { x: 0.1, y: 1.465, rx: Math.PI, s: [1, 1, 0.5] });
+      blossomTuft(k.deco, 0.13, 0.05, 0.1, 1.1);
+      blossomTuft(k.deco, -0.12, 0.05, 0.08, 0.9, ['#ffffff', '#e6d6ff']);
       const flag = new THREE.Group();
       flag.name = 'mailFlag';
       flag.position.set(0.34, 1.12, 0);
@@ -610,24 +669,42 @@ export function createProp(p: Prop): THREE.Group | null {
       for (const ry of [0.28, 0.5]) k.v.add(G.cyl(0.045, 0.045, 1, 10), '#ffc3da', { y: ry, rz: Math.PI / 2 });
       for (const x of [-0.4, -0.13, 0.13, 0.4]) { k.v.add(G.cyl(0.06, 0.065, 0.66, 10), '#ffffff', { x, y: 0.33 }); k.v.add(G.ball(0.085, 10), '#ffffff', { x, y: 0.7 }); }
       break;
-    case 'table':
-      // café table: lace-edged top, two mugs, a bud vase and a pair of stools
-      k.v.add(G.cyl(0.2, 0.26, 0.05, 30), '#ffffff', { y: 0.025 });
-      k.v.add(G.cyl(0.05, 0.05, 0.6, 12), '#ffffff', { y: 0.3 });
-      k.v.add(G.cyl(0.46, 0.46, 0.05, 30), '#ffd0e2', { y: 0.63 });
-      k.v.add(G.torus(0.46, 0.035, 22), '#ffffff', { y: 0.63, rx: Math.PI / 2 });
-      mug(k.v, -0.2, 0.655, 0.1, 1.25, '#ffffff', PALETTE.pink);
-      mug(k.v, 0.17, 0.655, -0.14, 1.25, PALETTE.blush);
-      k.v.add(G.cyl(0.035, 0.05, 0.12, 12), '#aee2f5', { x: 0.05, y: 0.715, z: 0.2 });
-      k.v.add(G.ball(0.06, 16), PALETTE.rose, { x: 0.05, y: 0.83, z: 0.2 });
+    case 'table': {
+      // café patio table: rounded pedestal foot, lace-edged top, two mugs (with steam), pastry plates, a bud vase,
+      // plush pouf stools tucked in, and a compact striped umbrella planted at the back edge so the tabletop stays in view
+      k.v.add(G.lathe([[0.001, 0], [0.26, 0], [0.27, 0.025], [0.2, 0.06], [0.07, 0.1], [0.001, 0.11]], 20), '#ffffff');
+      k.v.add(G.cyl(0.045, 0.05, 0.56, 12), '#ffffff', { y: 0.36 });
+      k.v.add(G.torus(0.06, 0.018, 12), '#ffc9dc', { y: 0.2, rx: Math.PI / 2 });
+      k.v.add(G.lathe([[0.001, 0.585], [0.12, 0.585], [0.44, 0.6], [0.47, 0.625], [0.46, 0.655], [0.001, 0.655]], 30), '#ffd0e2');
+      k.deco.add(G.torus(0.465, 0.03, 26), '#ffffff', { y: 0.63, rx: Math.PI / 2 });
+      for (let i = 0; i < 18; i++) { const a = (i / 18) * Math.PI * 2; k.deco.add(G.ball(0.03, 6), '#ffffff', { x: Math.cos(a) * 0.47, y: 0.6, z: Math.sin(a) * 0.47, s: [1, 0.8, 1] }); } // lace scallops
+      mug(k.deco, -0.2, 0.655, 0.1, 1.25, '#ffffff', PALETTE.pink);
+      mug(k.deco, 0.17, 0.655, -0.14, 1.25, PALETTE.blush);
+      pastryPlate(k.deco, 0.2, 0.655, 0.16, (p.x + p.y) % 3, 0.6);
+      pastryPlate(k.deco, -0.2, 0.655, -0.17, (p.x + p.y + 1) % 3, -0.4);
+      k.deco.add(G.lathe([[0.001, 0], [0.04, 0], [0.05, 0.04], [0.03, 0.1], [0.022, 0.13], [0.03, 0.15], [0.001, 0.15]], 12), '#aee2f5', { x: 0.03, y: 0.655, z: 0.32 });
+      blossomTuft(k.deco, 0.03, 0.79, 0.32, 0.7, [PALETTE.rose, '#ffffff']);
       for (const sx of [-1, 1]) {
-        // stools tucked in so they stay inside the table's (blocked) tile
-        k.v.add(G.cyl(0.035, 0.035, 0.36, 12), '#ffffff', { x: sx * 0.52, y: 0.18, z: 0.22 });
-        k.v.add(G.cyl(0.16, 0.16, 0.09, 30), sx > 0 ? PALETTE.pink : '#ffffff', { x: sx * 0.52, y: 0.4, z: 0.22 });
+        // stools tucked in so they stay inside the table's (blocked) tile: a slim leg, a ring foot and a plush pouf seat
+        k.v.add(G.cyl(0.03, 0.035, 0.34, 10), '#ffffff', { x: sx * 0.52, y: 0.18, z: 0.22 });
+        k.v.add(G.torus(0.09, 0.016, 12), '#ffffff', { x: sx * 0.52, y: 0.03, z: 0.22, rx: Math.PI / 2 });
+        k.v.add(G.lathe([[0.001, 0.34], [0.14, 0.34], [0.17, 0.37], [0.17, 0.42], [0.14, 0.45], [0.001, 0.46]], 18), sx > 0 ? PALETTE.pink : '#ffffff', { x: sx * 0.52, z: 0.22 });
+        k.deco.add(G.ball(0.022, 8), sx > 0 ? '#ffffff' : PALETTE.pink, { x: sx * 0.52, y: 0.465, z: 0.22, s: [1, 0.6, 1] }); // tufted button
       }
-      k.pink.add(G.cyl(0.14, 0.14, 0.04, 30), '#ffffff', { x: -0.52, y: 0.46, z: 0.22, uv: [1.2, 0.4] }); // cheetah cushion
+      k.pink.add(G.cyl(0.13, 0.13, 0.03, 24), '#ffffff', { x: -0.52, y: 0.47, z: 0.22, uv: [1.2, 0.4] }); // cheetah cushion
+      // umbrella: pole at the back edge, a gently peaked canopy in pink/white panels with a scalloped valance and a finial
+      { const uz = -0.34, uy = 1.78, R = 0.6;
+        k.v.add(G.cyl(0.022, 0.022, uy, 8), '#ffffff', { y: uy / 2, z: uz });
+        for (let i = 0; i < 8; i++) k.deco.add(new THREE.ConeGeometry(R, 0.3, 3, 1, true, (i / 8) * Math.PI * 2, Math.PI / 4), i % 2 ? '#ffffff' : '#ffb3cf', { y: uy + 0.12, z: uz });
+        for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2 + Math.PI / 16; k.deco.add(G.ball(0.055, 8), i % 4 < 2 ? '#ffb3cf' : '#ffffff', { x: Math.sin(a) * R * 0.97, y: uy - 0.04, z: uz + Math.cos(a) * R * 0.97, s: [1, 0.7, 0.6], ry: a }); }
+        k.deco.add(G.ball(0.045, 10), PALETTE.gold, { y: uy + 0.3, z: uz });
+        k.deco.add(G.cyl(0.03, 0.03, 0.04, 8), '#ffffff', { y: uy - 0.1, z: uz }); }
+      // the mugs steam gently (particles.ts); the world position of each mug's coffee surface
+      { const gy = tileHeight(p.x, p.y);
+        steamVents.push({ x: p.x + 0.5 - 0.2, y: gy + 0.81, z: p.y + 0.5 + 0.1, big: false }, { x: p.x + 0.5 + 0.17, y: gy + 0.81, z: p.y + 0.5 - 0.14, big: false }); }
       g.add(contactShadow(1.5, 1.1));
       break;
+    }
     case 'mannequin': {
       // boutique dress form on a pedestal, wearing the print
       k.v.add(G.cyl(0.34, 0.38, 0.14, 28), '#ffffff', { y: 0.07 });
@@ -659,19 +736,45 @@ export function createProp(p: Prop): THREE.Group | null {
       g.add(contactShadow(2.8));
       g.userData.fountain = true;
       break;
-    case 'lamp':
-      // lamp post: a rounded foot, a slim post with a collar, a cup under the glowing bulb and a little cap with a knob
-      k.v.add(G.lathe([[0.001, 0], [0.16, 0], [0.17, 0.04], [0.12, 0.1], [0.07, 0.16], [0.001, 0.17]], 18), PALETTE.wood);
-      k.v.add(G.cyl(0.045, 0.055, 1.36, 14), PALETTE.wood, { y: 0.8 });
-      k.v.add(G.torus(0.06, 0.02, 14), '#ffffff', { y: 0.9, rx: Math.PI / 2 });
-      k.v.add(G.cyl(0.13, 0.06, 0.08, 16), '#ffffff', { y: 1.44 });
-      k.v.add(G.ball(0.13, 16), '#ffffff', { y: 1.8, s: [1, 0.45, 1] });
-      k.v.add(G.ball(0.04, 10), PALETTE.pink, { y: 1.87 });
+    case 'lamp': {
+      // lamp post: rounded foot with a ring of blossoms, a slim post with collars and a bow, and a little lantern
+      // (tray, four slim corner posts, a scalloped dome cap and a heart finial) round the glowing bulb. The bulb keeps
+      // its height (1.6) so the harvest light strings still meet it. A tiny heart charm swings under the tray.
+      k.v.add(G.lathe([[0.001, 0], [0.17, 0], [0.18, 0.04], [0.13, 0.1], [0.075, 0.17], [0.06, 0.2], [0.001, 0.21]], 18), PALETTE.wood);
+      k.v.add(G.cyl(0.042, 0.052, 1.24, 12), PALETTE.wood, { y: 0.8 });
+      for (const y of [0.24, 1.36]) k.v.add(G.torus(0.058, 0.02, 12), '#ffffff', { y, rx: Math.PI / 2 });
+      for (const sx of [-1, 1]) k.deco.add(G.ball(0.06, 10), '#ff9ec0', { x: sx * 0.06, y: 1.12, z: 0.05, s: [1.15, 0.75, 0.5], rz: sx * 0.3 }); // bow
+      k.deco.add(G.ball(0.03, 8), '#ff7fa9', { y: 1.12, z: 0.075 });
+      for (const sx of [-1, 1]) k.deco.add(G.cyl(0.012, 0.016, 0.16, 5), '#ff9ec0', { x: sx * 0.035, y: 1.03, z: 0.06, rz: sx * 0.35 }); // ribbon tails
+      // lantern
+      k.v.add(G.lathe([[0.001, 1.38], [0.1, 1.38], [0.2, 1.42], [0.21, 1.45], [0.19, 1.47], [0.001, 1.47]], 16), '#ffffff');
+      for (let i = 0; i < 4; i++) { const a = Math.PI / 4 + (i * Math.PI) / 2; k.v.add(G.cyl(0.014, 0.014, 0.34, 6), '#ffffff', { x: Math.cos(a) * 0.205, y: 1.62, z: Math.sin(a) * 0.205 }); }
+      k.v.add(G.lathe([[0.001, 1.78], [0.25, 1.78], [0.26, 1.8], [0.21, 1.87], [0.13, 1.93], [0.05, 1.97], [0.001, 1.98]], 16), '#ffc3da');
+      for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; k.deco.add(G.ball(0.04, 6), '#ffffff', { x: Math.cos(a) * 0.25, y: 1.775, z: Math.sin(a) * 0.25, s: [1, 0.7, 1] }); }
+      for (const sx of [-1, 1]) k.deco.add(G.ball(0.036, 8), PALETTE.pink, { x: sx * 0.025, y: 2.03, s: [1, 1, 0.5] });
+      k.deco.add(G.cone(0.05, 0.05, 8), PALETTE.pink, { y: 2.005, rx: Math.PI, s: [1, 1, 0.5] });
+      blossomTuft(k.deco, 0.12, 0.02, 0.08, 1.1);
+      blossomTuft(k.deco, -0.13, 0.02, 0.02, 0.9, ['#ffffff', '#fff3a8']);
       { const bulb = ball(0.2, mat('#fff3c4', PALETTE.lampGlow, 'lamp'), 0, 1.6, 0, 20); bulb.castShadow = false; g.add(bulb); }
+      { const charm = new THREE.Group(); charm.position.set(0, 1.4, 0.2); // hangs off the front of the tray, clear of the post
+        const cb = new Batch();
+        cb.add(G.cyl(0.004, 0.004, 0.12, 4), PALETTE.gold, { y: -0.06 });
+        for (const sx of [-1, 1]) cb.add(G.ball(0.026, 8), '#ff7fa9', { x: sx * 0.017, y: -0.13, s: [1, 1, 0.5] });
+        cb.add(G.cone(0.036, 0.04, 8), '#ff7fa9', { y: -0.155, rx: Math.PI, s: [1, 1, 0.5] });
+        charm.add(cb.build(vertexToon(), false));
+        swayers.push({ o: charm, ph: p.x * 1.7 + p.y, amp: 0.22, speed: 1.6 });
+        g.add(charm); }
       g.add(contactShadow(0.6));
       break;
+    }
     case 'sign': {
-      k.v.add(G.rbox(0.08, 0.7, 0.08), PALETTE.wood, { y: 0.35 });
+      // a wooden signpost: rounded post with a ball cap, a soft board behind the label, a bow and blossoms at its foot
+      k.v.add(G.rbox(0.09, 1.06, 0.09, 0.035), PALETTE.wood, { y: 0.53 });
+      k.v.add(G.rbox(1.56, 0.44, 0.06, 0.03), '#e8b896', { y: 0.95, z: -0.03 });
+      k.deco.add(G.ball(0.065, 10), '#fff4e6', { y: 1.1 });
+      k.deco.add(G.rbox(1.62, 0.05, 0.08, 0.02), '#fff4e6', { y: 1.18, z: -0.03 });
+      for (const sx of [-1, 1]) k.deco.add(G.ball(0.032, 8), '#fff4e6', { x: sx * 0.81, y: 1.18, z: -0.03 });
+      blossomTuft(k.deco, 0.1, 0, 0.06, 1, (p.x + p.y) % 2 ? ['#ffffff', '#ffc9dc'] : ['#fff3a8', '#ff9ec0']);
       const l = makeLabel(p.text ?? '', 1.5); l.position.set(0, 0.95, 0.05); g.add(l);
       break;
     }

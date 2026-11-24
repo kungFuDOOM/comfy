@@ -5,8 +5,8 @@ import { FLIGHT, flyers, slotPos } from '../lanterns';
 import { LANTERN_KINDS } from '../art/lantern';
 import { state, type Spawn } from '../state';
 import { AREAS, GROVE, TS } from '../world';
-import { contactShadow, PALETTE, toon } from './materials';
-import { ball, box, cyl, mat, mesh } from './util';
+import { contactShadow, PALETTE, toon, vertexToon } from './materials';
+import { ball, Batch, box, cyl, G, mat, mesh } from './util';
 import { tileHeight } from './terrain';
 import { createNodeLayer } from './nodes3d';
 import { createBarriers } from './barriers';
@@ -25,12 +25,110 @@ const HEART_GEO = (() => {
 export function createDecor(id: string): THREE.Group {
   const g = new THREE.Group();
   switch (id) {
-    case 'd_pouf': g.add(cyl(0.35, 0.38, 0.4, '#ffb3cf', 0, 0.2, 0)); break;
-    case 'd_rug': g.add(box(0.92, 0.04, 0.92, '#f9deb0', 0, 0.03, 0)); break;
-    case 'd_lamp': g.add(cyl(0.04, 0.05, 0.9, PALETTE.wood, 0, 0.45, 0)); g.add(cyl(0.2, 0.3, 0.3, mat('#ffe6ef', PALETTE.lampGlow, 'lamp'), 0, 0.95, 0)); break;
-    case 'd_shelf': g.add(box(0.6, 1.0, 0.3, '#ffc3da', 0, 0.5, 0)); break;
-    case 'd_teacup': g.add(cyl(0.28, 0.2, 0.3, '#ffffff', 0, 0.15, 0)); g.add(ball(0.2, '#ff9ec0', 0, 0.35, 0)); break;
-    case 'd_chair': g.add(box(0.6, 0.4, 0.6, '#f9deb0', 0, 0.2, 0)); g.add(box(0.6, 0.5, 0.12, '#f9deb0', 0, 0.65, -0.24)); break;
+    // ---- the cozy home basics: soft, rounded silhouettes, each merged into one mesh (one draw call) ----
+    case 'd_pouf': {
+      // a plump tufted pouf: rounded drum, a piped seam, a soft dimpled top with a button, little cream feet
+      const b = new Batch();
+      b.add(G.lathe([[0.001, 0.05], [0.3, 0.05], [0.36, 0.1], [0.385, 0.22], [0.37, 0.34], [0.32, 0.42], [0.18, 0.455], [0.001, 0.44]], 24), '#ffb3cf');
+      b.add(G.torus(0.37, 0.022, 24), '#fff4f8', { y: 0.33, rx: Math.PI / 2 });
+      b.add(G.torus(0.335, 0.02, 24), '#fff4f8', { y: 0.08, rx: Math.PI / 2 });
+      for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; b.add(G.ball(0.018, 6), '#ff8fb6', { x: Math.cos(a) * 0.2, y: 0.435, z: Math.sin(a) * 0.2 }); }
+      b.add(G.ball(0.035, 10), '#ff8fb6', { y: 0.455, s: [1, 0.6, 1] });
+      for (let i = 0; i < 4; i++) { const a = Math.PI / 4 + (i * Math.PI) / 2; b.add(G.ball(0.045, 8), '#fff4e6', { x: Math.cos(a) * 0.24, y: 0.035, z: Math.sin(a) * 0.24, s: [1, 0.8, 1] }); }
+      g.add(b.build());
+      break;
+    }
+    case 'd_rug': {
+      // a plush oval rug: soft cream field, a rosy inner border, a fluffy scalloped hem and two little hearts
+      const b = new Batch();
+      b.add(G.cyl(0.46, 0.47, 0.035, 32), '#f9deb0', { y: 0.018, s: [1, 1, 0.92] });
+      b.add(G.torus(0.36, 0.022, 32), '#ffb3cf', { y: 0.036, rx: Math.PI / 2, s: [1, 0.92, 1] });
+      b.add(G.cyl(0.3, 0.3, 0.012, 28), '#fff1d6', { y: 0.04, s: [1, 1, 0.92] });
+      for (let i = 0; i < 20; i++) { const a = (i / 20) * Math.PI * 2; b.add(G.ball(0.042, 6), i % 2 ? '#fff4f8' : '#ffd0e2', { x: Math.cos(a) * 0.465, y: 0.02, z: Math.sin(a) * 0.43, s: [1, 0.45, 1] }); }
+      for (const [x, z, c] of [[-0.08, -0.04, '#ff8fb6'], [0.1, 0.06, '#ffb3cf']] as [number, number, string][]) {
+        for (const sx of [-1, 1]) b.add(G.ball(0.035, 8), c, { x: x + sx * 0.024, y: 0.045, z: z - 0.01, s: [1, 0.25, 1] });
+        b.add(G.cone(0.05, 0.06, 8), c, { x, y: 0.045, z: z + 0.025, rx: Math.PI / 2, s: [1, 1, 0.25] });
+      }
+      const rug = b.build(vertexToon(), false);
+      rug.receiveShadow = true;
+      g.add(rug);
+      break;
+    }
+    case 'd_lamp': {
+      // a latte floor lamp: rounded foot, slim post with a ring, a pleated bell shade (glows at night) with a pink trim
+      const b = new Batch();
+      b.add(G.lathe([[0.001, 0], [0.18, 0], [0.19, 0.03], [0.14, 0.06], [0.06, 0.09], [0.001, 0.1]], 20), '#c99a7a');
+      b.add(G.cyl(0.026, 0.032, 0.78, 10), '#e8c39a', { y: 0.47 });
+      b.add(G.torus(0.04, 0.012, 10), '#ffffff', { y: 0.5, rx: Math.PI / 2 });
+      b.add(G.torus(0.3, 0.022, 20), '#ff9ec0', { y: 0.82, rx: Math.PI / 2 });
+      b.add(G.torus(0.18, 0.016, 18), '#ff9ec0', { y: 1.13, rx: Math.PI / 2 });
+      b.add(G.ball(0.03, 8), PALETTE.gold, { y: 1.18 });
+      g.add(b.build());
+      const shade = new THREE.Mesh(G.lathe([[0.3, 0.82], [0.27, 0.92], [0.22, 1.04], [0.18, 1.13]], 20), mat('#fff0e0', PALETTE.lampGlow, 'lamp'));
+      (shade.material as THREE.Material).side = THREE.DoubleSide;
+      shade.castShadow = true;
+      g.add(shade);
+      break;
+    }
+    case 'd_shelf': {
+      // a little bookshelf: rounded pink case with a scalloped crown, two shelves of books, a plant and a tiny mug
+      const b = new Batch();
+      b.add(G.rbox(0.64, 1.02, 0.32, 0.05), '#ffc3da', { y: 0.53, z: -0.01 });
+      b.add(G.rbox(0.56, 0.94, 0.04, 0.015), '#ffe3ee', { y: 0.53, z: -0.13 }); // back panel
+      for (const y of [0.08, 0.42, 0.76]) b.add(G.rbox(0.56, 0.035, 0.27, 0.012), '#fff4f8', { y, z: 0.01 });
+      for (let i = 0; i < 5; i++) b.add(G.ball(0.065, 8), i % 2 ? '#ffffff' : '#ff9ec0', { x: -0.26 + i * 0.13, y: 1.05, z: 0.04, s: [1, 0.7, 0.8] });
+      const books: [number, number, number, string][] = [[-0.21, 0.24, 0.06, '#9fd9c3'], [-0.15, 0.22, 0.05, '#fff3a8'], [-0.09, 0.26, 0.055, '#c9a8e8'], [-0.035, 0.2, 0.05, '#ff9ec0']];
+      for (const [x, h, w, c] of books) { b.add(G.rbox(w, h, 0.2, 0.01), c, { x, y: 0.1 + h / 2, z: 0.02 }); b.add(G.box(w + 0.002, 0.012, 0.202), '#ffffff', { x, y: 0.1 + h * 0.75, z: 0.02 }); }
+      b.add(G.rbox(0.05, 0.2, 0.2, 0.01), '#ffd6a8', { x: 0.06, y: 0.2, z: 0.02, rz: -0.3 });
+      b.add(G.cyl(0.06, 0.045, 0.08, 10), '#ffffff', { x: 0.18, y: 0.14, z: 0.02 });
+      b.add(G.ball(0.07, 10), '#9fe0b8', { x: 0.18, y: 0.22, z: 0.02 });
+      b.add(G.ball(0.025, 6), '#ff8fb6', { x: 0.2, y: 0.27, z: 0.07 });
+      // upper shelf: a tidy row of books, a tiny latte mug and a heart
+      for (let i = 0; i < 3; i++) b.add(G.rbox(0.05, 0.22 - i * 0.02, 0.2, 0.01), ['#ffb3cf', '#bfe6ff', '#fff4e6'][i], { x: 0.06 + i * 0.06, y: 0.44 + (0.22 - i * 0.02) / 2, z: 0.02 });
+      b.add(G.cyl(0.045, 0.038, 0.08, 10), '#ffffff', { x: -0.16, y: 0.48, z: 0.03 });
+      b.add(G.torus(0.022, 0.007, 8), '#ffffff', { x: -0.11, y: 0.48, z: 0.03 });
+      for (const sx of [-1, 1]) b.add(G.ball(0.03, 8), '#ff7fa9', { x: -0.16 + sx * 0.02, y: 0.66, z: 0.04, s: [1, 1, 0.5] });
+      b.add(G.cone(0.04, 0.045, 8), '#ff7fa9', { x: -0.16, y: 0.635, z: 0.04, rx: Math.PI, s: [1, 1, 0.5] });
+      g.add(b.build());
+      break;
+    }
+    case 'd_teacup': {
+      // a teacup planter: a saucer, a rounded cup with a gold rim and handle, soil, and a bushy little bloom
+      const b = new Batch();
+      b.add(G.cyl(0.33, 0.27, 0.035, 24), '#ffffff', { y: 0.018 });
+      b.add(G.torus(0.315, 0.012, 24), '#ffc9dc', { y: 0.036, rx: Math.PI / 2 });
+      b.add(G.lathe([[0.001, 0.035], [0.15, 0.035], [0.22, 0.08], [0.27, 0.18], [0.29, 0.29], [0.28, 0.3], [0.001, 0.3]], 22), '#ffffff');
+      b.add(G.torus(0.285, 0.014, 24), PALETTE.gold, { y: 0.295, rx: Math.PI / 2 });
+      b.add(G.torus(0.08, 0.022, 14), '#ffffff', { x: 0.3, y: 0.18 });
+      for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; b.add(G.ball(0.035, 8), '#ffb3cf', { x: Math.cos(a) * 0.255, y: 0.2, z: Math.sin(a) * 0.255, s: [1, 1, 0.4], ry: -a + Math.PI / 2 }); } // a band of pink dots
+      b.add(G.cyl(0.26, 0.26, 0.02, 20), '#b98a6f', { y: 0.29 });
+      for (const [x, z, r] of [[0, 0, 0.17], [0.11, 0.06, 0.12], [-0.1, 0.05, 0.12], [0.02, -0.11, 0.12]] as [number, number, number][]) b.add(G.ball(r, 10), r > 0.15 ? '#8fd7ae' : '#a6e0bd', { x, y: 0.36 + r * 0.3, z });
+      for (const [x, y, z, c] of [[0.0, 0.53, 0.06, '#ff8fb6'], [0.12, 0.45, 0.1, '#ffffff'], [-0.12, 0.46, 0.08, '#ff9ec0'], [0.06, 0.5, -0.1, '#fff3a8']] as [number, number, number, string][]) {
+        b.add(G.ball(0.055, 8), c, { x, y, z });
+        b.add(G.ball(0.02, 6), '#ffe08a', { x, y: y + 0.03, z: z + 0.03 });
+      }
+      g.add(b.build());
+      break;
+    }
+    case 'd_chair': {
+      // a rounded armchair: plush seat cushion, a curved back with a scalloped top, rolled arms, turned feet and a
+      // little pink heart throw cushion
+      const b = new Batch(), c = '#f9deb0', cd = '#f0cc98';
+      b.add(G.rbox(0.66, 0.24, 0.6, 0.08), cd, { y: 0.24 });
+      b.add(G.rbox(0.56, 0.12, 0.5, 0.06), '#fff1d6', { y: 0.41, z: 0.03 });
+      b.add(G.rbox(0.66, 0.56, 0.16, 0.08), c, { y: 0.58, z: -0.24, rx: -0.12 });
+      for (let i = 0; i < 4; i++) b.add(G.ball(0.1, 10), c, { x: -0.24 + i * 0.16, y: 0.86, z: -0.28, s: [1, 0.8, 0.8] });
+      for (const sx of [-1, 1]) {
+        b.add(G.capsule(0.08, 0.38, 4, 10), c, { x: sx * 0.3, y: 0.46, z: 0.0, rx: Math.PI / 2 });
+        b.add(G.ball(0.085, 10), '#ffffff', { x: sx * 0.3, y: 0.46, z: 0.28, s: [1, 1, 0.4] }); // rolled arm end
+        for (const z of [-0.22, 0.22]) b.add(G.lathe([[0.001, 0], [0.035, 0], [0.045, 0.05], [0.03, 0.1], [0.04, 0.12], [0.001, 0.12]], 8), '#c99a7a', { x: sx * 0.26, z });
+      }
+      b.add(G.rbox(0.3, 0.26, 0.1, 0.05), '#ffc2d8', { y: 0.58, z: -0.12, rx: -0.2 }); // throw cushion
+      for (const sx of [-1, 1]) b.add(G.ball(0.032, 8), '#ff7fa9', { x: sx * 0.022, y: 0.61, z: -0.06, rx: -0.2, s: [1, 1, 0.4] });
+      b.add(G.cone(0.044, 0.05, 8), '#ff7fa9', { y: 0.583, z: -0.055, rx: Math.PI - 0.2, s: [1, 1, 0.4] });
+      g.add(b.build());
+      break;
+    }
     case 'd_cornucopia': {
       const horn = cyl(0.3, 0.07, 0.8, '#e8b98a', -0.04, 0.36, 0, 12); horn.rotation.z = 1.05; g.add(horn);
       g.add(ball(0.2, '#ffa763', 0.32, 0.62, 0.05)); g.add(ball(0.17, '#ff7f93', 0.4, 0.4, -0.12)); g.add(ball(0.14, '#c9a8e8', 0.18, 0.46, 0.2)); g.add(ball(0.13, '#ffd36e', 0.38, 0.22, 0.14));
@@ -226,11 +324,16 @@ export function createDecor(id: string): THREE.Group {
       g.add(cyl(0.01, 0.1, 0.16, '#8fd7ae', 0, 0.28, 0, 8));
       g.add(ball(0.04, mat('#ffe27a', '#ffd95e', 'lamp'), 0, 0.38, 0, 6));
       break;
-    case 'd_adv_pillow':
-      g.add(box(0.55, 0.28, 0.4, '#ffc2d8', 0, 0.16, 0));
-      g.add(box(0.56, 0.04, 0.02, '#fff6ea', 0, 0.16, 0.2));
-      g.add(ball(0.06, '#ff8fb6', 0, 0.2, 0.22, 8));
+    case 'd_adv_pillow': {
+      // a squishy floor cushion with pinched corners, a piped seam and a button
+      const b = new Batch();
+      b.add(G.rbox(0.56, 0.26, 0.42, 0.12, 3), '#ffc2d8', { y: 0.15 });
+      b.add(G.rbox(0.58, 0.025, 0.44, 0.012), '#fff6ea', { y: 0.15 });
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.add(G.cone(0.04, 0.07, 6), '#ffc2d8', { x: sx * 0.29, y: 0.15, z: sz * 0.21, dir: [sx, 0, sz] });
+      b.add(G.ball(0.04, 8), '#ff8fb6', { y: 0.285, s: [1, 0.5, 1] });
+      g.add(b.build());
       break;
+    }
     case 'd_adv_bellstar':
       g.add(cyl(0.03, 0.04, 0.28, '#e8b98a', 0, 0.14, 0, 8)); g.add(cyl(0.12, 0.14, 0.04, '#e8b98a', 0, 0.02, 0, 10));
       g.add(cyl(0.12, 0.02, 0.14, '#ffe08a', 0, 0.4, 0, 12)); g.add(ball(0.04, '#fff6c8', 0, 0.32, 0, 8));

@@ -550,6 +550,9 @@ export function createPlayerActs(rig: PlayerRig): PlayerActs {
           // waiting: rod steady, a slow sway and a curious head tilt
           P.ax[0] = -1.0 + Math.sin(t * 2) * 0.04; P.lean = 0.05 + Math.sin(t * 1.3) * 0.02;
           P.hz = Math.sin(t * 0.9) * 0.1; P.hx = 0.08; P.twist = Math.sin(t * 0.7) * 0.06;
+          // patient breathing and a tiny rock on the heels while she waits; the rod tip answers the nibbles
+          P.drop = Math.sin(t * 2.2) * 0.008; P.sq = Math.sin(t * 2.2) * 0.012;
+          P.ax[0] -= Math.max(0, Math.sin(t * 7.3) * Math.sin(t * 1.7)) ** 4 * 0.12;
         } else if (t < reel) {
           // a bite! a startled hop, rod jerks up
           const k = seg(t, bite, reel);
@@ -614,8 +617,10 @@ export function createPlayerActs(rig: PlayerRig): PlayerActs {
       }
       case 'water': {
         show(prop('can'), 'RU');
-        P.ax[0] = -1.15 * env(t, D, 0.18); P.az[0] = 0.25; P.ax[1] = -0.2; P.lean = 0.08; P.hx = 0.12;
-        P.hz = Math.sin(t * 2.4) * 0.05;
+        const c = env(t, D, 0.18);
+        P.ax[0] = -1.15 * c + Math.sin(t * 4.5) * 0.05 * c; P.az[0] = 0.25; P.ax[1] = -0.35 * c; P.az[1] = 0.85 * c + REST_Z * (1 - c); // free hand out for balance
+        P.lean = 0.1 * c; P.hx = 0.16 * c; P.hz = Math.sin(t * 2.4) * 0.06;
+        P.twist = Math.sin(t * 1.5) * 0.1 * c; P.drop = Math.abs(Math.sin(t * 2.2)) * 0.012 * c; // a gentle sweep along the row
         break;
       }
       case 'harvest': {
@@ -683,8 +688,10 @@ export function createPlayerActs(rig: PlayerRig): PlayerActs {
         const c = env(t, D, 0.3);
         show(prop('mug'), 'RU');
         flip(prop('mug'), 0.07, Math.PI);
-        P.ax[0] = -2.05 * c; P.az[0] = mix(REST_Z, -0.55, c); P.ax[1] = -0.2;
-        P.hx = -0.18 * hump(t, 0.35, 1.0); P.hz = 0.06 * hump(t, 0.9, 1.4);
+        P.ax[0] = -2.05 * c; P.az[0] = mix(REST_Z, -0.55, c); P.ax[1] = -0.95 * c; P.az[1] = mix(REST_Z, -0.25, c); // other paw cups under the mug
+        P.hx = -0.18 * hump(t, 0.35, 1.0); P.hz = 0.06 * hump(t, 0.9, 1.4) + 0.05 * Math.sin(t * 9) * hump(t, 1.0, 1.45);
+        P.lean = -0.04 * hump(t, 0.35, 1.0); P.sq = 0.04 * pulse(t, 1.1, 0.08); // a contented little rise after the sip
+        if (t > 0.45 && t < 1.25) rig.setExpression('happy'); // mmm
         break;
       }
       case 'cheer': {
@@ -791,7 +798,7 @@ export function createPlayerActs(rig: PlayerRig): PlayerActs {
       case 'place': if (hit(0.45)) { target(v, 0.2); sparkle(v, 7); } break;
       case 'reach': if (hit(0.55)) { handPos(0); sparkle(v, 10, ['#ffe27a', '#ffb3cf', '#ffffff']); } break;
       case 'sip':
-        if (hit(0.2) || hit(0.6)) { const m = cache.get('mug'); if (m) { tipPos(m); puff(v, ['#ffffff'], 1, [0.12, 0.18]); } }
+        if (hit(0.15) || hit(0.4) || hit(0.65) || hit(0.9)) { const m = cache.get('mug'); if (m) { tipPos(m); v.y += 0.04; puff(v, ['#ffffff', '#fff4f8'], 1, [0.1, 0.16]); } }
         if (hit(1.05)) { overHead(v, 1.7); hearts(v, 2); }
         break;
       case 'cheer': if (every(0.4, 1.3)) { overHead(v, 1.9); sparkle(v, 5, ['#ffe27a', '#ffb3cf', '#ffffff'], 0.1); } break;

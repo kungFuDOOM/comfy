@@ -150,7 +150,16 @@ function buildSet() {
   for (let i = 0; i < 7; i++) { const a = i * 0.9; rack.add(G.ball(0.2, 8), i % 2 ? PALETTE.leaf : PALETTE.mint, { x: 3.2 + Math.cos(a) * 0.16, y: 0.62 + (i % 3) * 0.16, z: -0.9 + Math.sin(a) * 0.16, s: [0.8, 1.3, 0.8] }); }
   rack.add(G.cyl(0.32, 0.28, 0.4, 18), '#fff4f8', { x: 2.5, y: 0.2, z: 0.6 });
   rack.add(G.ball(0.33, 14), '#ffc9dc', { x: 2.5, y: 0.42, z: 0.6, s: [1, 0.35, 1] });
+  rack.add(G.torus(0.31, 0.03, 18), '#ffffff', { x: 2.5, y: 0.4, z: 0.6, rx: Math.PI / 2 });
+  rack.add(G.ball(0.04, 8), '#ff8fb6', { x: 2.5, y: 0.53, z: 0.6, s: [1, 0.6, 1] }); // tufted button
+  for (let i = 0; i < 5; i++) { const a = i * 1.26 + 0.3; rack.add(G.ball(0.06, 8), ['#ffffff', '#ff8fb6', '#fff3a8'][i % 3], { x: 3.2 + Math.cos(a) * 0.22, y: 0.82 + (i % 2) * 0.14, z: -0.9 + Math.sin(a) * 0.22 }); } // blooms on the plant
   group.add(rack.build());
+
+  // plush rug hem: a fluffy scalloped edge round the round rug (lit, no shadows)
+  const hem = new Batch();
+  hem.add(G.torus(1.62, 0.04, 48), '#fff4f8', { y: 0.02, rx: Math.PI / 2 });
+  for (let i = 0; i < 28; i++) { const a = (i / 28) * Math.PI * 2; hem.add(G.ball(0.12, 8), i % 2 ? '#ffd0e2' : '#fff4f8', { x: Math.cos(a) * 1.76, y: 0.02, z: Math.sin(a) * 1.76, s: [1, 0.35, 1] }); }
+  group.add(hem.build(undefined, false));
 
   // ---- soft spotlight: a faint cone of light and a glowing pool on the pedestal ----
   const glow = canvasTex(128, 128, (g) => {

@@ -8,6 +8,10 @@ import { makeToon, PALETTE, toon } from './materials';
 import { isSmoothTile, sampleField, shoreField, shoreHeight } from './shore';
 import { createWater } from './water';
 import { createTufts } from './tufts';
+import { createScatter } from './scatter';
+
+/** Sugarlily Square's fountain tile (world.ts props): the plaza's fan paving rings are centred on it. */
+const FOUNTAIN = { x: 48, y: 42 };
 
 const HEIGHT: Record<number, number> = { [T.Water]: -0.4, [T.Sand]: 0, [T.Grass]: 0.05, [T.Path]: 0.08, [T.Hill]: 0.35, [T.Soil]: 0.04, [T.Lawn]: 0.07, [T.Plaza]: 0.1, [T.Bridge]: 0.12 };
 /** Ground height at a tile's centre. Beach tiles follow the smooth shore surface (dry sand ~0, dipping to the sea). */
@@ -70,34 +74,80 @@ bool organicT(float t) { return t > 0.5 && (t < 1.5 || (t > 1.5 && t < 2.5) || (
 vec4 tileAt(vec2 tc) { return texture2D(uTiles, (tc + 0.5) / uMap); }
 float tType(vec4 v) { return floor(v.a * 255.0 / 16.0 + 0.5); }
 
+// set by pathCol / plazaCol: 1 on a stone, 0 in the mortar between stones (lets grass creep into the joints)
+float gStone;
 vec3 pathCol(vec3 base, vec2 gp) {
-  // cobbles in offset rows, ~3 per tile: rounded stones, soft bevel, warm mortar
-  vec2 cp = gp * 3.0; float row = floor(cp.y);
+  // stepped cobbles in offset rows, ~3 per tile: rows vary a little in height and stones in width, soft pillowy bevel
+  vec2 cp = gp * vec2(2.7, 3.0); float row = floor(cp.y);
   cp.x += row * 0.5 + gh21(vec2(row, 3.0)) * 0.6;
   vec2 id = floor(cp), q = fract(cp) - 0.5;
-  float rr = gh21(id + 17.0);
-  float sd = length(max(abs(q) - vec2(0.33), 0.0)) - 0.11;
+  float rr = gh21(id + 17.0), r2 = gh21(id + 41.0);
+  q += (vec2(gNoise(gp * 5.0), gNoise(gp * 5.0 + 9.0)) - 0.5) * 0.12; // wobbly, hand-laid edges
+  float sd = length(max(abs(q) - vec2(0.31 + 0.05 * r2, 0.31), 0.0)) - 0.12;
   float stone = 1.0 - smoothstep(-0.02, 0.035, sd);
-  vec3 st = base * (0.95 + 0.09 * rr) * mix(vec3(1.0), vec3(1.03, 0.97, 0.93), rr);
-  st *= 1.0 - 0.07 * smoothstep(-0.14, 0.0, sd);               // soft rim
-  st += 0.045 * (1.0 - smoothstep(0.0, 0.5, length(q - vec2(-0.12, 0.12)))); // pillowy highlight
-  st += (gNoise(gp * 14.0) - 0.5) * 0.03;
-  vec3 mortar = base * vec3(0.86, 0.76, 0.79); // rosy mortar so the path stays in the pink family
+  gStone = stone;
+  vec3 st = base * (0.94 + 0.1 * rr) * mix(vec3(1.0), vec3(1.035, 0.965, 0.92), rr);
+  st = mix(st, st * vec3(1.02, 0.97, 1.0), step(0.8, r2) * 0.8);          // the odd rosy stone
+  st *= 1.0 - 0.09 * smoothstep(-0.16, 0.0, sd);                           // soft rim
+  st += 0.055 * (1.0 - smoothstep(0.0, 0.48, length(q - vec2(-0.12, 0.13)))); // pillowy highlight (light from the top-left)
+  st *= 1.0 - 0.05 * smoothstep(0.05, 0.4, dot(q, vec2(0.7, -0.7)));       // the far bevel in a touch of shade
+  st += (gNoise(gp * 14.0) - 0.5) * 0.035 + (gNoise(gp * 40.0) - 0.5) * 0.02;
+  vec3 mortar = base * vec3(0.84, 0.75, 0.78) * (0.95 + 0.1 * gNoise(gp * 9.0)); // worn rosy mortar
   return mix(mortar, st, stone);
 }
+// Sugarlily Square: a fan of rounded setts in rings round the fountain, an inset rose border ring, then hand-laid
+// pink / cream / blush paving with worn grout and soft color noise. Stays in the pink-cream family.
+uniform vec2 uFountain;
 vec3 plazaCol(vec2 gp) {
-  // half-tile rounded pink / cream tiles with pale grout and a little dot on the pink ones
-  vec2 cp = gp * 2.0, id = floor(cp), q = fract(cp) - 0.5;
-  float par = mod(id.x + id.y, 2.0);
-  vec3 pink = vec3(0.98, 0.80, 0.87), cream = vec3(1.0, 0.94, 0.93), grout = vec3(1.0, 0.89, 0.9);
-  vec3 c = mix(pink, cream, par);
-  c *= 0.985 + 0.03 * gh21(id);
-  float sd = length(max(abs(q) - vec2(0.4), 0.0)) - 0.06;
-  float tile = 1.0 - smoothstep(-0.015, 0.03, sd);
-  c *= 1.0 - 0.04 * smoothstep(-0.1, 0.0, sd);
-  c += 0.035 * (1.0 - smoothstep(0.0, 0.55, length(q + vec2(0.1, -0.1))));
-  c = mix(c, c * vec3(1.0, 0.97, 0.97) + 0.03, (1.0 - par) * (1.0 - smoothstep(0.07, 0.1, length(q))) * 0.6); // dot
-  return mix(grout, c, tile);
+  vec3 pink = vec3(0.98, 0.80, 0.87), cream = vec3(1.0, 0.94, 0.92), blush = vec3(0.99, 0.87, 0.88), grout = vec3(0.95, 0.83, 0.85);
+  vec2 rel = gp - uFountain;
+  float r = length(rel);
+  vec3 c; vec2 q; float sd, id;
+  if (r < 3.25 && r > 1.3) {
+    // rings of fan setts (only inside the square round the fountain basin)
+    float ring = floor((r - 1.3) / 0.33), rf = fract((r - 1.3) / 0.33) - 0.5;
+    float n = floor(6.2831 * (1.3 + (ring + 0.5) * 0.33) / 0.38);
+    float a = atan(rel.y, rel.x) / 6.2831 * n + ring * 0.5;
+    float seg = floor(a), af = fract(a) - 0.5;
+    q = vec2(af * 0.9, rf);
+    id = gh21(vec2(seg, ring + 5.0));
+    sd = length(max(abs(q) - vec2(0.33, 0.3), 0.0)) - 0.1;
+    c = mix(cream, blush, step(0.5, mod(ring, 2.0))) * (0.97 + 0.06 * id);
+    if (ring > 4.5) c = vec3(0.96, 0.72, 0.8) * (0.98 + 0.04 * id); // the outer rose border ring
+  } else {
+    // hand-laid paving: rows of slightly uneven rounded setts
+    vec2 cp = gp * vec2(2.2, 2.4); float row = floor(cp.y);
+    cp.x += row * 0.5 + gh21(vec2(row, 7.0)) * 0.3;
+    vec2 ci = floor(cp); q = fract(cp) - 0.5;
+    id = gh21(ci + 3.0);
+    q += (vec2(gNoise(gp * 4.0 + 2.0), gNoise(gp * 4.0 + 13.0)) - 0.5) * 0.1;
+    sd = length(max(abs(q) - vec2(0.36, 0.33), 0.0)) - 0.08;
+    c = id < 0.42 ? pink : id < 0.8 ? cream : blush;
+    c *= 0.975 + 0.05 * gh21(ci + 9.0);
+  }
+  float tile = 1.0 - smoothstep(-0.015, 0.04, sd);
+  gStone = tile;
+  c *= 1.0 - 0.06 * smoothstep(-0.12, 0.0, sd);                                   // soft bevel
+  c += 0.04 * (1.0 - smoothstep(0.0, 0.5, length(q - vec2(-0.1, 0.1))));          // pillow highlight
+  c += (gNoise(gp * 11.0) - 0.5) * 0.03 + (gNoise(gp * 1.3) - 0.5) * 0.035;       // stone variation + gentle wear
+  vec3 gr = grout * (0.94 + 0.1 * gNoise(gp * 8.0));
+  return mix(gr, c, tile);
+}
+// little clover patches with tiny white / pink blossoms dotted through the inland grass (free: no geometry)
+vec3 cloverCol(vec3 c, vec2 gp) {
+  float patchN = gNoise(gp * 0.8 + 21.0);
+  float m = smoothstep(0.6, 0.72, patchN);
+  if (m < 0.001) return c;
+  vec2 cp = gp * 7.0, ci = floor(cp), q = fract(cp) - 0.5;
+  float h = gh21(ci + 31.0);
+  // trefoil leaf clumps: three soft lobes per cell
+  float lobes = 0.0;
+  for (int i = 0; i < 3; i++) { float a = float(i) * 2.094 + h * 6.28; lobes = max(lobes, 1.0 - smoothstep(0.1, 0.2, length(q - 0.17 * vec2(cos(a), sin(a))))); }
+  c = mix(c, c * vec3(0.9, 0.98, 0.94), m * 0.75);
+  c = mix(c, c * vec3(1.04, 1.07, 1.0), lobes * m * 0.45);
+  float bloom = step(0.9, h) * (1.0 - smoothstep(0.08, 0.14, length(q)));
+  c = mix(c, h > 0.95 ? vec3(1.0, 0.86, 0.92) : vec3(1.0, 0.99, 0.95), bloom * m);
+  return c;
 }
 `;
 
@@ -118,10 +168,12 @@ function patchGround(mat: THREE.MeshToonMaterial, uniforms: Record<string, THREE
           vec4 me = tileAt(tc);
           float ty = tType(me);
           vec3 col = me.rgb;
+          gStone = 1.0;
           if (ty > 5.5 && ty < 6.5) col = grassVar(col, gp) ;                       // lawn
           else if (ty > 6.5) col = plazaCol(gp);
           else if (ty > 2.5 && ty < 3.5) col = pathCol(col, gp);
-          else if (ty > 1.5 && ty < 2.5 || (ty > 3.5 && ty < 4.5)) col = grassVar(col, gp);
+          else if (ty > 1.5 && ty < 2.5) { col = grassVar(col, gp); if (dot(me.rgb, vec3(0.333)) < 0.9) col = cloverCol(col, gp); } // (no clover on snow)
+          else if (ty > 3.5 && ty < 4.5) col = grassVar(col, gp);
           else if (ty > 0.5 && ty < 1.5) col *= 0.97 + 0.06 * gNoise(gp * 24.0);    // sand
           else if (ty > 4.5 && ty < 5.5) col *= 0.96 + 0.08 * gNoise(vec2(gp.x * 30.0, gp.y * 5.0)); // tilled soil
           // soft painterly edges: blend toward each differing neighbour across a short wobbly band
@@ -137,6 +189,11 @@ function patchGround(mat: THREE.MeshToonMaterial, uniforms: Record<string, THREE
             if (nt > 5.5 && nt < 6.5) ncol = grassVar(ncol, gp);
             else if (nt > 1.5 && nt < 2.5) ncol = grassVar(ncol, gp);
             col = mix(col, ncol, (1.0 - smoothstep(0.0, w, e + wob)) * 0.5);
+            // paving beside grass: grass creeps into the joints and nibbles the outer stones
+            if ((ty > 2.5 && ty < 3.5 || ty > 6.5) && (nt > 1.5 && nt < 2.5 || nt > 5.5 && nt < 6.5)) {
+              float creep = 1.0 - smoothstep(0.0, 0.42, e + wob * 1.6 + (gNoise(gp * 9.0) - 0.5) * 0.18);
+              col = mix(col, ncol * 0.96, creep * mix(0.85, 0.22, gStone));
+            }
           }
           diffuseColor.rgb = col;
         }`);
@@ -164,7 +221,7 @@ export function createTerrain(): Terrain {
   tileTex.magFilter = tileTex.minFilter = THREE.NearestFilter;
   tileTex.generateMipmaps = false;
   const groundMat = makeToon('#ffffff', { ground: true });
-  patchGround(groundMat, { uTiles: { value: tileTex }, uMap: { value: new THREE.Vector2(MAP_W, MAP_H) } });
+  patchGround(groundMat, { uTiles: { value: tileTex }, uMap: { value: new THREE.Vector2(MAP_W, MAP_H) }, uFountain: { value: new THREE.Vector2(FOUNTAIN.x + 0.5, FOUNTAIN.y + 0.5) } });
   const inst = new THREE.InstancedMesh(geo, groundMat, Math.max(1, tiles.length));
   inst.receiveShadow = true;
   const m4 = new THREE.Matrix4();
@@ -188,6 +245,9 @@ export function createTerrain(): Terrain {
 
   const tufts = createTufts();
   group.add(tufts.group);
+  // pebbles, shells and blossom clusters (instanced, no shadows, purely decorative)
+  const scatter = createScatter();
+  group.add(scatter.group);
 
   const col = new THREE.Color();
   return {
@@ -200,12 +260,14 @@ export function createTerrain(): Terrain {
       if (inst.instanceColor) inst.instanceColor.needsUpdate = true;
       tileTex.needsUpdate = true;
       tufts.setSeason(s);
+      scatter.setSeason(s);
       shore.setSeason((x, y) => tileColor(T.Grass, x, y, s));
     },
     update(t) {
       water.update(t);
       shore.update(t);
       tufts.update(t);
+      scatter.update(t);
     },
   };
 }
