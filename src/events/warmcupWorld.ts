@@ -5,7 +5,7 @@ import { ball, cyl } from '../render/util';
 import { bunting, glowPool, newRoot, scatter, stall, titleSign } from './festivalKit';
 
 const WARM = ['#ffd9e6', '#fff3e8', '#ffc2d8', '#ffe8d0'];
-const LAMPS = [{ x: 44, z: 37 }, { x: 51, z: 37 }, { x: 45, z: 45 }, { x: 51, z: 45 }];
+const LAMPS = [{ x: 46, z: 37 }, { x: 51, z: 37 }, { x: 45, z: 45 }, { x: 51, z: 45 }];
 
 export function createWarmCupWorld(): EventWorld {
   return {

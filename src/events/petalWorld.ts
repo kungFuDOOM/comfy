@@ -3,7 +3,7 @@ import type { EventWorld } from '../events';
 import { blanket, bunting, newRoot, scatter, titleSign } from './festivalKit';
 
 const PETALS = ['#ffc2d8', '#ffd6e4', '#ffb3cf', '#fff0f5', '#f7b6d8'];
-const LAMPS = [{ x: 44, z: 37 }, { x: 51, z: 37 }, { x: 45, z: 45 }, { x: 51, z: 45 }];
+const LAMPS = [{ x: 46, z: 37 }, { x: 51, z: 37 }, { x: 45, z: 45 }, { x: 51, z: 45 }];
 
 export function createPetalWorld(rects: [number, number, number, number][]): EventWorld {
   return {

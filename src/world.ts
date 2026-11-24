@@ -198,7 +198,7 @@ export function buildWorld() {
   for (const p of [[52, 36], [56, 36]]) { props.push({ type: 'mannequin', x: p[0], y: p[1], v: p[0] === 52 ? 0 : 1 }); block(p[0], p[1]); }
   props.push({ type: 'fountain', x: 48, y: 42 });
   for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) block(48 + dx, 42 + dy); // basin is ~2.2 tiles wide
-  for (const p of [[44, 37], [51, 37], [45, 45], [51, 45], [61, 39], [34, 46]]) { props.push({ type: 'lamp', x: p[0], y: p[1] }); block(p[0], p[1]); }
+  for (const p of [[46, 37], [51, 37], [45, 45], [51, 45], [61, 39], [34, 46]]) { props.push({ type: 'lamp', x: p[0], y: p[1] }); block(p[0], p[1]); }
   const signs: [number, number, string][] = [
     [35, 49, 'Your Yard'], [34, 42, 'Garden'], [60, 37, 'To the Grove'], [26, 35, 'Ribbon Meadow'],
     [47, 60, 'Dewdrop Shore'], [52, 46, 'Sugarlily Square'],

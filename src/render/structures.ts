@@ -686,12 +686,12 @@ export function createProp(p: Prop): THREE.Group | null {
       blossomTuft(k.deco, 0.03, 0.79, 0.32, 0.7, [PALETTE.rose, '#ffffff']);
       for (const sx of [-1, 1]) {
         // stools tucked in so they stay inside the table's (blocked) tile: a slim leg, a ring foot and a plush pouf seat
-        k.v.add(G.cyl(0.03, 0.035, 0.34, 10), '#ffffff', { x: sx * 0.52, y: 0.18, z: 0.22 });
-        k.v.add(G.torus(0.09, 0.016, 12), '#ffffff', { x: sx * 0.52, y: 0.03, z: 0.22, rx: Math.PI / 2 });
-        k.v.add(G.lathe([[0.001, 0.34], [0.14, 0.34], [0.17, 0.37], [0.17, 0.42], [0.14, 0.45], [0.001, 0.46]], 18), sx > 0 ? PALETTE.pink : '#ffffff', { x: sx * 0.52, z: 0.22 });
-        k.deco.add(G.ball(0.022, 8), sx > 0 ? '#ffffff' : PALETTE.pink, { x: sx * 0.52, y: 0.465, z: 0.22, s: [1, 0.6, 1] }); // tufted button
+        k.v.add(G.cyl(0.03, 0.035, 0.34, 10), '#ffffff', { x: sx * 0.33, y: 0.18, z: 0.22 });
+        k.v.add(G.torus(0.09, 0.016, 12), '#ffffff', { x: sx * 0.33, y: 0.03, z: 0.22, rx: Math.PI / 2 });
+        k.v.add(G.lathe([[0.001, 0.34], [0.14, 0.34], [0.17, 0.37], [0.17, 0.42], [0.14, 0.45], [0.001, 0.46]], 18), sx > 0 ? PALETTE.pink : '#ffffff', { x: sx * 0.33, z: 0.22 });
+        k.deco.add(G.ball(0.022, 8), sx > 0 ? '#ffffff' : PALETTE.pink, { x: sx * 0.33, y: 0.465, z: 0.22, s: [1, 0.6, 1] }); // tufted button
       }
-      k.pink.add(G.cyl(0.13, 0.13, 0.03, 24), '#ffffff', { x: -0.52, y: 0.47, z: 0.22, uv: [1.2, 0.4] }); // cheetah cushion
+      k.pink.add(G.cyl(0.13, 0.13, 0.03, 24), '#ffffff', { x: -0.37, y: 0.47, z: 0.22, uv: [1.2, 0.4] }); // cheetah cushion
       // umbrella: pole at the back edge, a gently peaked canopy in pink/white panels with a scalloped valance and a finial
       { const uz = -0.34, uy = 1.78, R = 0.6;
         k.v.add(G.cyl(0.022, 0.022, uy, 8), '#ffffff', { y: uy / 2, z: uz });
